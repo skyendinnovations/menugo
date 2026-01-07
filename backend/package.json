@@ -27,7 +27,9 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@better-auth/expo": "^1.4.10",
     "@neondatabase/serverless": "^1.0.2",
+    "better-auth": "^1.4.10",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.45.1",
     "express": "^5.2.1"

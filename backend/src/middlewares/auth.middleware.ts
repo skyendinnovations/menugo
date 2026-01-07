@@ -1,37 +1,38 @@
+
 import type { Request, Response, NextFunction } from 'express';
 import type { AuthRequest } from '../types';
 import { AppError } from '../types';
+import { auth } from '../../auth';
+import { fromNodeHeaders } from 'better-auth/node';
 
-// Mock authentication - replace with real JWT verification
-export const authenticate = (
+export const authenticate = async (
     req: Request,
     res: Response,
     next: NextFunction
 ) => {
     try {
-        const authHeader = req.headers.authorization;
+        // Use Better Auth's session validation
+        const session = await auth.api.getSession({
+            headers: fromNodeHeaders(req.headers),
+        });
 
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            throw new AppError(401, 'No token provided');
+        if (!session || !session.user) {
+            throw new AppError(401, 'Invalid or expired session');
         }
 
-        const token = authHeader.substring(7);
-
-        // TODO: Implement JWT verification
-        // const decoded = jwt.verify(token, config.jwt.secret);
-
-        // Mock user for now
+        // Attach user to request
         (req as AuthRequest).user = {
-            id: '1',
-            email: 'user@example.com',
-            role: 'user',
+            id: session.user.id,
+            email: session.user.email,
+            role: (session.user as any).role || 'user',
         };
 
         next();
     } catch (error) {
-        next(new AppError(401, 'Invalid or expired token'));
+        next(error instanceof AppError ? error : new AppError(401, 'Authentication failed'));
     }
 };
+
 
 export const authorize = (...roles: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {

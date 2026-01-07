@@ -63,9 +63,5 @@ export const auth = betterAuth({
         bearer(),
         admin(),
     ],
-    trustedOrigins: [
-        "myapp://",
-        "http://localhost:5173",
-        "https://yourdomain.com"
-    ],
+    trustedOrigins: process.env.TRUSTED_ORIGINS ? process.env.TRUSTED_ORIGINS.split(",") : [],
 });

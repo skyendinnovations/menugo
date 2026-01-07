@@ -3,10 +3,11 @@
     "name": "menugo",
     "slug": "menugo-mobile",
     "version": "1.0.0",
-    "scheme": "mobile",
+    "scheme": "menugo",
     "platforms": [
       "ios",
-      "android"
+      "android",
+      "web"
     ],
     "web": {
       "bundler": "metro",

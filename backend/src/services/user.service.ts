@@ -1,5 +1,5 @@
 import { userRepository } from '../repositories/user.repository';
-import { users } from '../db/schemas/auth.schema';
+import { user } from '../db/schemas/auth.schema';
 import { AppError } from '../types';
 import type { PaginationParams } from '../types';
 
@@ -50,7 +50,7 @@ export class UserService {
         return newUser;
     }
 
-    async updateUser(id: string, data: Partial<typeof users.$inferInsert>) {
+    async updateUser(id: string, data: Partial<typeof user.$inferInsert>) {
         const user = await userRepository.findById(id);
 
         if (!user) {

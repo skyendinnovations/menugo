@@ -5,6 +5,8 @@ import { logger } from './src/utils/logger';
 import routes from './src/routes';
 import { requestLogger } from './src/middlewares/logger.middleware';
 import { errorHandler, notFoundHandler } from './src/middlewares/error.middleware';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './auth';
 
 const app = express();
 
@@ -14,6 +16,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 
+app.use('/api/auth', toNodeHandler(auth));
 // Root route
 app.get('/', (req, res) => {
     res.json({
@@ -22,6 +25,7 @@ app.get('/', (req, res) => {
         status: 'running',
     });
 });
+
 
 // API Routes
 app.use('/api', routes);

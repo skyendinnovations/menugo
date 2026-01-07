@@ -12,11 +12,11 @@ const app = express();
 
 // Global Middleware
 app.use(cors(config.cors));
+app.use('/api/auth', toNodeHandler(auth));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 
-app.use('/api/auth', toNodeHandler(auth));
 // Root route
 app.get('/', (req, res) => {
     res.json({

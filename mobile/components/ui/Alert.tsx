@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, ViewProps } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-interface AlertProps {
+interface AlertProps extends ViewProps {
     variant?: 'default' | 'destructive' | 'success';
     title?: string;
     description?: string;
@@ -13,7 +13,9 @@ export function Alert({
     variant = 'default',
     title,
     description,
-    icon = true
+    icon = true,
+    className,
+    ...props
 }: AlertProps) {
     const getVariantStyles = () => {
         switch (variant) {
@@ -49,7 +51,7 @@ export function Alert({
     };
 
     return (
-        <View className={`border rounded-lg p-4 flex-row ${getVariantStyles()}`}>
+        <View className={`border rounded-lg p-4 flex-row ${getVariantStyles()} ${className || ''}`} {...props}>
             {icon && (
                 <MaterialIcons
                     name={getIconName() as any}

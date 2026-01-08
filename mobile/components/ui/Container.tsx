@@ -1,7 +1,11 @@
-import { SafeAreaView } from 'react-native';
+import { SafeAreaView, ViewProps } from 'react-native';
 
-export const Container = ({ children }: { children: React.ReactNode }) => {
-  return <SafeAreaView className={styles.container}>{children}</SafeAreaView>;
+interface ContainerProps extends ViewProps {
+  children: React.ReactNode;
+}
+
+export const Container = ({ children, className, ...props }: ContainerProps) => {
+  return <SafeAreaView className={`${styles.container} ${className || ''}`} {...props}>{children}</SafeAreaView>;
 };
 
 const styles = {

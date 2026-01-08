@@ -1,13 +1,13 @@
 import React from 'react';
-import { View, Text, Image, ImageSourcePropType } from 'react-native';
+import { View, Text, Image, ImageSourcePropType, ViewProps } from 'react-native';
 
-interface AvatarProps {
+interface AvatarProps extends ViewProps {
     source?: ImageSourcePropType;
     fallback?: string;
     size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export function Avatar({ source, fallback, size = 'md' }: AvatarProps) {
+export function Avatar({ source, fallback, size = 'md', className, ...props }: AvatarProps) {
     const getSizeClass = () => {
         switch (size) {
             case 'sm':
@@ -35,7 +35,7 @@ export function Avatar({ source, fallback, size = 'md' }: AvatarProps) {
     };
 
     return (
-        <View className={`${getSizeClass()} rounded-full bg-red-900 border-2 border-red-600 items-center justify-center overflow-hidden`}>
+        <View className={`${getSizeClass()} rounded-full bg-red-900 border-2 border-red-600 items-center justify-center overflow-hidden ${className || ''}`} {...props}>
             {source ? (
                 <Image source={source} className="w-full h-full" resizeMode="cover" />
             ) : (

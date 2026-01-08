@@ -8,7 +8,7 @@ interface CardProps extends ViewProps {
 export function Card({ children, className, ...props }: CardProps) {
     return (
         <View
-            className={`bg-black border border-red-900 rounded-lg overflow-hidden ${className}`}
+            className={`bg-black border border-red-900 rounded-lg overflow-hidden ${className || ''}`}
             {...props}
         >
             {children}
@@ -18,23 +18,23 @@ export function Card({ children, className, ...props }: CardProps) {
 
 export function CardHeader({ children, className, ...props }: CardProps) {
     return (
-        <View className={`p-4 border-b border-red-900 ${className}`} {...props}>
+        <View className={`p-4 border-b border-red-900 ${className || ''}`} {...props}>
             {children}
         </View>
     );
 }
 
-export function CardTitle({ children, className }: { children: React.ReactNode; className?: string }) {
+export function CardTitle({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.ComponentProps<typeof Text>) {
     return (
-        <Text className={`text-white text-lg font-bold ${className}`}>
+        <Text className={`text-white text-lg font-bold ${className || ''}`} {...props}>
             {children}
         </Text>
     );
 }
 
-export function CardDescription({ children, className }: { children: React.ReactNode; className?: string }) {
+export function CardDescription({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.ComponentProps<typeof Text>) {
     return (
-        <Text className={`text-gray-400 text-sm mt-1 ${className}`}>
+        <Text className={`text-gray-400 text-sm mt-1 ${className || ''}`} {...props}>
             {children}
         </Text>
     );
@@ -42,7 +42,7 @@ export function CardDescription({ children, className }: { children: React.React
 
 export function CardContent({ children, className, ...props }: CardProps) {
     return (
-        <View className={`p-4 ${className}`} {...props}>
+        <View className={`p-4 ${className || ''}`} {...props}>
             {children}
         </View>
     );
@@ -50,7 +50,7 @@ export function CardContent({ children, className, ...props }: CardProps) {
 
 export function CardFooter({ children, className, ...props }: CardProps) {
     return (
-        <View className={`p-4 border-t border-red-900 ${className}`} {...props}>
+        <View className={`p-4 border-t border-red-900 ${className || ''}`} {...props}>
             {children}
         </View>
     );

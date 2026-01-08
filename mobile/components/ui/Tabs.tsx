@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, ViewProps, ScrollViewProps, PressableProps } from 'react-native';
 
-interface TabsProps {
+interface TabsProps extends ViewProps {
     defaultValue: string;
     children: React.ReactNode;
 }
 
-interface TabsListProps {
+interface TabsListProps extends ScrollViewProps {
     children: React.ReactNode;
 }
 
-interface TabsTriggerProps {
+interface TabsTriggerProps extends Omit<PressableProps, 'onPress'> {
     value: string;
     children: React.ReactNode;
 }
 
-interface TabsContentProps {
+interface TabsContentProps extends ViewProps {
     value: string;
     children: React.ReactNode;
 }
@@ -25,24 +25,25 @@ const TabsContext = React.createContext<{
     setActiveTab: (value: string) => void;
 } | null>(null);
 
-export function Tabs({ defaultValue, children }: TabsProps) {
+export function Tabs({ defaultValue, children, className, ...props }: TabsProps) {
     const [activeTab, setActiveTab] = useState(defaultValue);
 
     return (
         <TabsContext.Provider value={{ activeTab, setActiveTab }}>
-            <View>
+            <View className={className} {...props}>
                 {children}
             </View>
         </TabsContext.Provider>
     );
 }
 
-export function TabsList({ children }: TabsListProps) {
+export function TabsList({ children, className, ...props }: TabsListProps) {
     return (
         <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            className="border-b border-red-900"
+            className={`border-b border-red-900 ${className || ''}`}
+            {...props}
         >
             <View className="flex-row">
                 {children}
@@ -51,7 +52,7 @@ export function TabsList({ children }: TabsListProps) {
     );
 }
 
-export function TabsTrigger({ value, children }: TabsTriggerProps) {
+export function TabsTrigger({ value, children, className, ...props }: TabsTriggerProps) {
     const context = React.useContext(TabsContext);
 
     if (!context) {
@@ -64,7 +65,8 @@ export function TabsTrigger({ value, children }: TabsTriggerProps) {
         <Pressable
             onPress={() => context.setActiveTab(value)}
             className={`px-6 py-3 border-b-2 ${isActive ? 'border-red-600' : 'border-transparent'
-                }`}
+                } ${className || ''}`}
+            {...props}
         >
             <Text className={`font-semibold ${isActive ? 'text-red-600' : 'text-gray-400'}`}>
                 {children}
@@ -73,7 +75,7 @@ export function TabsTrigger({ value, children }: TabsTriggerProps) {
     );
 }
 
-export function TabsContent({ value, children }: TabsContentProps) {
+export function TabsContent({ value, children, className, ...props }: TabsContentProps) {
     const context = React.useContext(TabsContext);
 
     if (!context) {
@@ -85,7 +87,7 @@ export function TabsContent({ value, children }: TabsContentProps) {
     }
 
     return (
-        <View className="p-4">
+        <View className={`p-4 ${className || ''}`} {...props}>
             {children}
         </View>
     );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, Pressable, TouchableOpacity } from 'react-native';
+import { Modal, View, Text, Pressable, TouchableOpacity, ViewProps, TextProps } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
 interface DialogProps {
@@ -28,41 +28,41 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
     );
 }
 
-export function DialogContent({ children, className }: { children: React.ReactNode; className?: string }) {
+export function DialogContent({ children, className, ...props }: { children: React.ReactNode; className?: string } & ViewProps) {
     return (
-        <View className={`bg-black border border-red-900 rounded-lg p-6 w-full max-w-md ${className}`}>
+        <View className={`bg-black border border-red-900 rounded-lg p-6 w-full max-w-md ${className || ''}`} {...props}>
             {children}
         </View>
     );
 }
 
-export function DialogHeader({ children, className }: { children: React.ReactNode; className?: string }) {
+export function DialogHeader({ children, className, ...props }: { children: React.ReactNode; className?: string } & ViewProps) {
     return (
-        <View className={`mb-4 ${className}`}>
+        <View className={`mb-4 ${className || ''}`} {...props}>
             {children}
         </View>
     );
 }
 
-export function DialogTitle({ children, className }: { children: React.ReactNode; className?: string }) {
+export function DialogTitle({ children, className, ...props }: { children: React.ReactNode; className?: string } & TextProps) {
     return (
-        <Text className={`text-white text-xl font-bold ${className}`}>
+        <Text className={`text-white text-xl font-bold ${className || ''}`} {...props}>
             {children}
         </Text>
     );
 }
 
-export function DialogDescription({ children, className }: { children: React.ReactNode; className?: string }) {
+export function DialogDescription({ children, className, ...props }: { children: React.ReactNode; className?: string } & TextProps) {
     return (
-        <Text className={`text-gray-400 text-sm mt-2 ${className}`}>
+        <Text className={`text-gray-400 text-sm mt-2 ${className || ''}`} {...props}>
             {children}
         </Text>
     );
 }
 
-export function DialogFooter({ children, className }: { children: React.ReactNode; className?: string }) {
+export function DialogFooter({ children, className, ...props }: { children: React.ReactNode; className?: string } & ViewProps) {
     return (
-        <View className={`flex-row justify-end gap-2 mt-6 ${className}`}>
+        <View className={`flex-row justify-end gap-2 mt-6 ${className || ''}`} {...props}>
             {children}
         </View>
     );

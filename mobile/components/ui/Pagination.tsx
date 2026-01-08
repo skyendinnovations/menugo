@@ -1,14 +1,14 @@
 import React from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, ViewProps } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-interface PaginationProps {
+interface PaginationProps extends ViewProps {
     currentPage: number;
     totalPages: number;
     onPageChange: (page: number) => void;
 }
 
-export function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
+export function Pagination({ currentPage, totalPages, onPageChange, className, ...props }: PaginationProps) {
     const pages = [];
     const maxPagesToShow = 5;
 
@@ -24,7 +24,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
     }
 
     return (
-        <View className="flex-row items-center justify-center gap-2 py-4">
+        <View className={`flex-row items-center justify-center gap-2 py-4 ${className || ''}`} {...props}>
             <Pressable
                 onPress={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1}

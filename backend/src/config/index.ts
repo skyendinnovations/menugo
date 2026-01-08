@@ -3,7 +3,7 @@ const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
     : ['http://localhost:3000', 'http://localhost:8081'];
 
 export const config = {
-    port: process.env.PORT || 3000,
+    port: process.env.PORT || 5000,
     nodeEnv: process.env.NODE_ENV || 'development',
     database: {
         url: process.env.DATABASE_URL!,

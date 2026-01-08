@@ -5,23 +5,34 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Container } from '@/components/ui/Container';
-import { signIn } from '@/lib/auth-client';
+import { authAPI, SignInData } from '@/lib/api';
+import { getSession } from '@/lib/auth-client';
 
 export default function SignInScreen() {
   const router = useRouter();
+  const { refetch } = authAPI.useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit() {
-
-
     setLoading(true);
     setError(null);
     try {
-      await signIn.email({ email, password });
-      router.push('/(admin)');
+      const result = await authAPI.signIn({ email, password });
+      console.log('Sign-in successful', result);
+
+      if (result.data?.user) {
+        const session = await getSession();
+        if(session.data?.user.role === 'admin') {
+          router.replace('/(admin)');
+        } else {
+          router.replace('/(user)');
+        }
+      } else {
+        setError('Sign in failed');
+      }
     } catch (e: any) {
       setError(e?.message ?? 'Failed to sign in');
     } finally {

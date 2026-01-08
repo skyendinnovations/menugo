@@ -5,10 +5,9 @@ import { View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Container } from '@/components/ui/Container';
 import { ScreenContent } from '@/components/ScreenContent';
-import { useAuth } from '@/lib/auth-context';
+import { authAPI } from '@/lib/api';
 
 export default function Home() {
-  const { signOut } = useAuth();
   const router = useRouter();
   return (
     <View className={styles.container}>
@@ -24,7 +23,9 @@ export default function Home() {
         <Button title='UI Components Showcase' onPress={() => {
           router.push('/components-showcase');
         }} />
-        <Button title='Sign Out' className='bg-red-600' onPress={() => { signOut(); }} />
+        <Button title='Sign Out' className='bg-red-600' onPress={async () => {
+          await authAPI.signOut(router);
+        }} />
       </Container>
 
     </View>

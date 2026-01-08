@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, Modal, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable, Modal, ScrollView, TouchableOpacity, PressableProps } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export interface SelectOption {
@@ -7,7 +7,7 @@ export interface SelectOption {
     value: string;
 }
 
-interface SelectProps {
+interface SelectProps extends Omit<PressableProps, 'onPress'> {
     value?: string;
     onValueChange: (value: string) => void;
     options: SelectOption[];
@@ -20,7 +20,9 @@ export function Select({
     onValueChange,
     options,
     placeholder = 'Select an option',
-    disabled
+    disabled,
+    className,
+    ...props
 }: SelectProps) {
     const [open, setOpen] = useState(false);
 
@@ -32,7 +34,8 @@ export function Select({
                 onPress={() => !disabled && setOpen(true)}
                 disabled={disabled}
                 className={`bg-black border-2 border-red-900 rounded-lg px-4 py-3 flex-row justify-between items-center ${disabled ? 'opacity-50' : ''
-                    }`}
+                    } ${className || ''}`}
+                {...props}
             >
                 <Text className={selectedOption ? 'text-white' : 'text-gray-500'}>
                     {selectedOption?.label || placeholder}

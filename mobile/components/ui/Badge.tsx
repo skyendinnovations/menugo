@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, ViewProps } from 'react-native';
 
-interface BadgeProps {
+interface BadgeProps extends ViewProps {
     variant?: 'default' | 'destructive' | 'outline' | 'success';
     children: React.ReactNode;
 }
 
-export function Badge({ variant = 'default', children }: BadgeProps) {
+export function Badge({ variant = 'default', children, className, ...props }: BadgeProps) {
     const getVariantStyles = () => {
         switch (variant) {
             case 'destructive':
@@ -25,7 +25,7 @@ export function Badge({ variant = 'default', children }: BadgeProps) {
     };
 
     return (
-        <View className={`border rounded-full px-3 py-1 self-start ${getVariantStyles()}`}>
+        <View className={`border rounded-full px-3 py-1 self-start ${getVariantStyles()} ${className || ''}`} {...props}>
             <Text className={`text-xs font-semibold ${getTextColor()}`}>
                 {children}
             </Text>

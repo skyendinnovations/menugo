@@ -12,7 +12,7 @@ export function Textarea({ error, className, ...props }: TextareaProps) {
             numberOfLines={4}
             textAlignVertical="top"
             className={`bg-black border-2 rounded-lg px-4 py-3 text-white min-h-24 ${error ? 'border-red-600' : 'border-red-900'
-                } ${className}`}
+                } ${className || ''}`}
             placeholderTextColor="#6b7280"
             {...props}
         />

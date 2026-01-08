@@ -1,14 +1,14 @@
 import React from 'react';
-import { Pressable, View, Text, Animated } from 'react-native';
+import { Pressable, View, Text, Animated, PressableProps } from 'react-native';
 
-interface SwitchProps {
+interface SwitchProps extends Omit<PressableProps, 'onPress'> {
     checked: boolean;
     onCheckedChange: (checked: boolean) => void;
     label?: string;
     disabled?: boolean;
 }
 
-export function Switch({ checked, onCheckedChange, label, disabled }: SwitchProps) {
+export function Switch({ checked, onCheckedChange, label, disabled, className, ...props }: SwitchProps) {
     const translateX = React.useRef(new Animated.Value(checked ? 20 : 0)).current;
 
     React.useEffect(() => {
@@ -23,7 +23,8 @@ export function Switch({ checked, onCheckedChange, label, disabled }: SwitchProp
         <Pressable
             onPress={() => !disabled && onCheckedChange(!checked)}
             disabled={disabled}
-            className="flex-row items-center"
+            className={`flex-row items-center ${className || ''}`}
+            {...props}
         >
             <View
                 className={`w-12 h-6 rounded-full p-1 ${checked ? 'bg-red-600' : 'bg-gray-700'

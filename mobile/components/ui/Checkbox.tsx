@@ -1,25 +1,26 @@
 import React from 'react';
-import { Pressable, View, Text } from 'react-native';
+import { Pressable, View, Text, PressableProps } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-interface CheckboxProps {
+interface CheckboxProps extends Omit<PressableProps, 'onPress'> {
     checked: boolean;
     onCheckedChange: (checked: boolean) => void;
     label?: string;
     disabled?: boolean;
 }
 
-export function Checkbox({ checked, onCheckedChange, label, disabled }: CheckboxProps) {
+export function Checkbox({ checked, onCheckedChange, label, disabled, className, ...props }: CheckboxProps) {
     return (
         <Pressable
             onPress={() => !disabled && onCheckedChange(!checked)}
             disabled={disabled}
-            className="flex-row items-center"
+            className={`flex-row items-center ${className || ''}`}
+            {...props}
         >
             <View
                 className={`w-6 h-6 rounded border-2 items-center justify-center ${checked
-                        ? 'bg-red-600 border-red-600'
-                        : 'bg-transparent border-gray-600'
+                    ? 'bg-red-600 border-red-600'
+                    : 'bg-transparent border-gray-600'
                     } ${disabled ? 'opacity-50' : ''}`}
             >
                 {checked && (

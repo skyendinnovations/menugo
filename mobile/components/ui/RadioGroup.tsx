@@ -1,13 +1,13 @@
 import React from 'react';
-import { View, Pressable, Text } from 'react-native';
+import { View, Pressable, Text, ViewProps, PressableProps } from 'react-native';
 
-interface RadioGroupProps {
+interface RadioGroupProps extends ViewProps {
     value: string;
     onValueChange: (value: string) => void;
     children: React.ReactNode;
 }
 
-interface RadioGroupItemProps {
+interface RadioGroupItemProps extends Omit<PressableProps, 'onPress'> {
     value: string;
     label?: string;
 }
@@ -17,17 +17,17 @@ const RadioGroupContext = React.createContext<{
     onValueChange: (value: string) => void;
 } | null>(null);
 
-export function RadioGroup({ value, onValueChange, children }: RadioGroupProps) {
+export function RadioGroup({ value, onValueChange, children, className, ...props }: RadioGroupProps) {
     return (
         <RadioGroupContext.Provider value={{ value, onValueChange }}>
-            <View className="gap-3">
+            <View className={`gap-3 ${className || ''}`} {...props}>
                 {children}
             </View>
         </RadioGroupContext.Provider>
     );
 }
 
-export function RadioGroupItem({ value, label }: RadioGroupItemProps) {
+export function RadioGroupItem({ value, label, className, ...props }: RadioGroupItemProps) {
     const context = React.useContext(RadioGroupContext);
 
     if (!context) {
@@ -39,7 +39,8 @@ export function RadioGroupItem({ value, label }: RadioGroupItemProps) {
     return (
         <Pressable
             onPress={() => context.onValueChange(value)}
-            className="flex-row items-center"
+            className={`flex-row items-center ${className || ''}`}
+            {...props}
         >
             <View className={`w-6 h-6 rounded-full border-2 items-center justify-center ${isSelected ? 'border-red-600' : 'border-gray-600'
                 }`}>

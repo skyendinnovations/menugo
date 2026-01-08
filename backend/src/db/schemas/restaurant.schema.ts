@@ -7,6 +7,7 @@ import { menuCategories } from "./menu.schema";
 import { tableSessions } from "./session.schema";
 import { restaurantInvitations } from "./invitation.schema";
 
+// Table count range enum
 export const tableCountRangeEnum = pgEnum("table_count_range", [
     "under_10",
     "10_to_20",

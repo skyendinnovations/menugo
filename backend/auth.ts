@@ -19,20 +19,31 @@ export const auth = betterAuth({
         additionalFields: {
             role: {
                 type: "string",
+                required: false,
+                defaultValue: "user",
+                input: false,
             },
             banned: {
                 type: "boolean",
+                defaultValue: false,
             }
         },
+        modelName: "user",
+        changeEmail: {
+            enabled: true,
+        }
+    },
+    advanced: {
+        disableCSRFCheck: true,
+        useSecureCookies: false,
     },
     emailAndPassword: {
         enabled: true,
     },
     emailVerification: process.env.SMTP_HOST ? {
-        enabled: true,
         sendOnSignUp: true,
         autoSignInAfterVerification: true,
-    } : { enabled: false },
+    } : undefined,
     magicLink: process.env.SMTP_HOST ? {
         enabled: true,
         sendMagicLink: async ({ email, token, url }: { email: string; token: string; url: string }) => {

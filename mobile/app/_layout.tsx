@@ -1,12 +1,45 @@
 import '../global.css';
 
-import { Stack } from 'expo-router';
-import { AuthProvider } from '@/lib/auth-context';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { authAPI } from '@/lib/api';
+import { useEffect, useState } from 'react';
+import { getSession } from '@/lib/auth-client';
 
 export default function Layout() {
-  return (
-    <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }} />
-    </AuthProvider>
-  );
+  const router = useRouter();
+  const segments = useSegments();
+  const { data, isPending, refetch } = authAPI.useSession();
+  const [forceCheck, setForceCheck] = useState(0);
+  const [manualSession, setManualSession] = useState<any>(null);
+
+  const isAuthenticated = !!data?.user || !!manualSession?.user;
+  const userRole = (data?.user as any)?.role || (manualSession?.user as any)?.role;
+
+  useEffect(() => {
+    if (isPending) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (isAuthenticated && inAuthGroup) {
+      if (userRole === 'admin') {
+        router.replace('/(admin)');
+      } else {
+        router.replace('/(user)');
+      }
+    } else if (!isAuthenticated && !inAuthGroup) {
+      router.replace('/(auth)/sign-in');
+    }
+  }, [isAuthenticated, isPending, segments, userRole, manualSession]);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const session = await getSession();
+      setManualSession(session.data);
+      refetch();
+    };
+
+    checkSession();
+  }, [segments, refetch]);
+
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

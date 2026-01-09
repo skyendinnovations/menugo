@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import userRoutes from './user.routes';
 import restaurantRoutes from './restaurant.routes';
+import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -16,7 +17,7 @@ router.get('/health', (req, res) => {
 // API routes
 router.use('/users', userRoutes);
 
-router.use('/restaurants',restaurantRoutes);
+router.use('/restaurants',authenticate,restaurantRoutes);
 
 // Add more routes here
 // router.use('/products', productRoutes);

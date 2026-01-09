@@ -6,10 +6,15 @@ import type {
 import { generateUniqueRestaurantSlug } from "../utils/helpers";
 
 class RestaurantService {
-  async createRestaurant(payload: CreateRestaurantDTO) {
+  async createRestaurant(userId: string,payload: CreateRestaurantDTO) {
+
     const slug = await generateUniqueRestaurantSlug(payload.name);
     const dbInput: CreateRestaurantDBInput = { ...payload, slug };
-    return restaurantRepository.create(dbInput);
+
+    const createdRestaurant = await restaurantRepository.create(dbInput);
+
+    await restaurantRepository.addRestaurantOwner(createdRestaurant?.id, userId);
+
   }
 
   async getRestaurantById(id: number) {
@@ -40,6 +45,15 @@ class RestaurantService {
     if(!existing) throw new Error("Restaurant not found");
     return restaurantRepository.delete(id);
   }  
+
+  // async getMyRestaurants(userId: string) {
+
+  //   const restaurants = await restaurantRepository.findByUserId(userId);
+
+  //   if(!restaurants) throw new Error("No Restaurants found");
+
+  //   return restaurants;
+  // }
 }
 
 export const restaurantService = new RestaurantService();

@@ -24,4 +24,9 @@ router.delete(
   "/:id",
   restaurantController.deleteRestaurant.bind(restaurantController)
 );
+
+// router.get(
+//   "/my-restaurants",
+//   restaurantController.getMyRestaurants.bind(restaurantController)
+// );
 export default router;

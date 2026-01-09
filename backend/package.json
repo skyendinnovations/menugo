@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "test": "jest --runInBand",
     "start": "bun run index.ts",
     "dev": "bun run --watch index.ts",
     "lint": "eslint \"src/**/*.ts\" && prettier -c \"src/**/*.ts\"",
@@ -20,8 +21,13 @@
     "@types/bun": "latest",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/supertest": "^6.0.3",
     "drizzle-kit": "^0.31.8",
-    "eslint": "^9.39.2"
+    "eslint": "^9.39.2",
+    "jest": "^30.2.0",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.6"
   },
   "peerDependencies": {
     "typescript": "^5"

@@ -21,6 +21,13 @@ export default function RestaurantsLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="[id]"
+        options={{
+          title: 'Restaurant Details',
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

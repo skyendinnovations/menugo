@@ -1,36 +1,59 @@
-import SecureStore from 'expo-secure-store';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 class BaseAPI {
     protected baseURL = process.env.EXPO_PUBLIC_API_URL;
 
     protected async getAuthToken(): Promise<string | null> {
+        console.log(`[${Platform.OS}] Getting auth token...`);
+        
         try {
-            // Check if SecureStore is available (not available in web)
-            if (!SecureStore || typeof SecureStore.getItemAsync !== 'function') {
-                console.warn('SecureStore not available, trying localStorage fallback');
-
-                // Fallback to localStorage for web environments
+            // Web platform - use localStorage
+            if (Platform.OS === 'web') {
                 if (typeof window !== 'undefined' && window.localStorage) {
-                    return localStorage.getItem('menugo_auth_token');
+                    const token = localStorage.getItem('menugo_token');
+                    console.log(`[${Platform.OS}] Token from localStorage:`, !!token);
+                    return token;
                 }
-
                 return null;
             }
 
-            const token = await SecureStore.getItemAsync('menugo_auth_token');
-            return token;
-        } catch (error) {
-            console.error('Failed to get auth token:', error);
-
-            // Fallback to localStorage if SecureStore fails
+            // Mobile platforms (iOS/Android) - use SecureStore
             try {
-                if (typeof window !== 'undefined' && window.localStorage) {
-                    return localStorage.getItem('menugo_auth_token');
+                // Use the synchronous method which is more reliable on mobile
+                const token = SecureStore.getItem('menugo_token');
+                console.log(`[${Platform.OS}] Token from SecureStore (sync):`, !!token);
+                if (token) {
+                    return token;
                 }
-            } catch (fallbackError) {
-                console.error('Fallback storage also failed:', fallbackError);
+            } catch (syncError) {
+                // Fallback to async method if sync fails
+                console.log(`[${Platform.OS}] Sync method failed, trying async:`, syncError);
+                const token = await SecureStore.getItemAsync('menugo_token');
+                console.log(`[${Platform.OS}] Token from SecureStore (async):`, !!token);
+                if (token) return token;
             }
-
+            
+            // If no token found, try to get from better-auth session
+            console.log(`[${Platform.OS}] No token in SecureStore, checking better-auth session...`);
+            try {
+                const { authClient } = await import('../auth-client');
+                const session = await authClient.getSession();
+                console.log(`[${Platform.OS}] Better-auth session:`, JSON.stringify(session.data, null, 2));
+                
+                if (session.data?.session?.token) {
+                    console.log(`[${Platform.OS}] Found token in better-auth session, saving it...`);
+                    await SecureStore.setItemAsync('menugo_token', session.data.session.token);
+                    return session.data.session.token;
+                }
+            } catch (authError) {
+                console.error(`[${Platform.OS}] Error getting better-auth session:`, authError);
+            }
+            
+            console.warn(`[${Platform.OS}] No token found anywhere`);
+            return null;
+        } catch (error) {
+            console.error(`[${Platform.OS}] Failed to get auth token:`, error);
             return null;
         }
     }
@@ -44,6 +67,9 @@ class BaseAPI {
         // Get the auth token
         const token = await this.getAuthToken();
 
+        // Log token status for debugging
+        console.log(`[${Platform.OS}] Making request to ${endpoint}, token present: ${!!token}`);
+
         // Build headers that match backend expectations
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
@@ -53,6 +79,9 @@ class BaseAPI {
         // Add authorization header if token exists
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
+            console.log(`[${Platform.OS}] Authorization header added`);
+        } else {
+            console.warn(`[${Platform.OS}] No token available for ${endpoint}`);
         }
 
         // Merge with any custom headers from options
@@ -70,12 +99,13 @@ class BaseAPI {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
+                console.error(`[${Platform.OS}] API Error (${response.status}):`, errorData);
                 throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
             }
 
             return await response.json();
         } catch (error) {
-            console.error(`API request failed for ${endpoint}:`, error);
+            console.error(`[${Platform.OS}] API request failed for ${endpoint}:`, error);
             throw error;
         }
     }

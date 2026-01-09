@@ -23,6 +23,5 @@ export const rolesRelations = relations(roles, ({ one, many }) => ({
         fields: [roles.restaurantId],
         references: [restaurants.id],
     }),
-    users: many(user),
     invitations: many(restaurantInvitations),
 }));

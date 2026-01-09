@@ -1,7 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index, integer } from "drizzle-orm/pg-core";
-import { restaurants } from "./restaurant.schema";
-import { roles } from "./role.schema";
+import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
     id: text("id").primaryKey(),
@@ -12,13 +10,7 @@ export const user = pgTable("user", {
     banned: boolean("banned").default(false).notNull(),
     role: text("role").default("user").notNull(),
 
-    // Restaurant-specific fields
-    restaurantId: integer("restaurant_id").references(() => restaurants.id, {
-        onDelete: "cascade",
-    }),
-    roleId: integer("role_id").references(() => roles.id, {
-        onDelete: "set null",
-    }),
+    // Super admin flag - global permission
     isSuperAdmin: boolean("is_super_admin").default(false),
     isActive: boolean("is_active").default(true),
 
@@ -88,17 +80,9 @@ export const verification = pgTable(
     (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
-export const userRelations = relations(user, ({ one, many }) => ({
+export const userRelations = relations(user, ({ many }) => ({
     sessions: many(session),
     accounts: many(account),
-    restaurant: one(restaurants, {
-        fields: [user.restaurantId],
-        references: [restaurants.id],
-    }),
-    userRole: one(roles, {
-        fields: [user.roleId],
-        references: [roles.id],
-    }),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({

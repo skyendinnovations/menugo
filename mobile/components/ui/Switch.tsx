@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, View, Text, Animated, PressableProps } from 'react-native';
+import { Pressable, View, Text, Animated, PressableProps, Platform } from 'react-native';
 
 interface SwitchProps extends Omit<PressableProps, 'onPress'> {
     checked: boolean;
@@ -19,11 +19,18 @@ export function Switch({ checked, onCheckedChange, label, disabled, className, .
         }).start();
     }, [checked]);
 
+    const handlePress = () => {
+        if (!disabled) {
+            onCheckedChange(!checked);
+        }
+    };
+
     return (
         <Pressable
-            onPress={() => !disabled && onCheckedChange(!checked)}
+            onPress={handlePress}
             disabled={disabled}
             className={`flex-row items-center ${className || ''}`}
+            style={Platform.OS === 'web' ? { cursor: disabled ? 'not-allowed' : 'pointer' } : undefined}
             {...props}
         >
             <View

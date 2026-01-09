@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "jest --runInBand",
+    "test": "bun test",
     "start": "bun run index.ts",
     "dev": "bun run --watch index.ts",
     "lint": "eslint \"src/**/*.ts\" && prettier -c \"src/**/*.ts\"",

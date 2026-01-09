@@ -1,18 +1,7 @@
-export interface CreateRestaurantDTO {
-  name: string;
-  tableCount?: number;
-  workflowSettings?: {
-    hasKitchenView: boolean;
-    orderFlow: string[];
-  };
-}
+import type { InferInsertModel } from "drizzle-orm";
+import type { restaurants } from "../db/schemas";
 
-export interface CreateRestaurantDBInput {
-  name: string;
-  slug: string;
-  tableCount?: number;
-  workflowSettings?: {
-    hasKitchenView: boolean;
-    orderFlow: string[];
-  };
-}
+type RestaurantInsertBase = InferInsertModel<typeof restaurants>;
+
+export type CreateRestaurantDTO = Omit<RestaurantInsertBase,"slug">;
+export type CreateRestaurantDBInput = RestaurantInsertBase;

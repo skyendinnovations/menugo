@@ -38,7 +38,7 @@ export const restaurants = pgTable("restaurants", {
         orderFlow: ["received", "preparing", "ready", "served", "paid"],
     }),
 
-    // Operating hours
+    // Operating hours (kept from friend's changes)
     operatingHours: jsonb("operating_hours"),
 
     isActive: boolean("is_active").default(true),

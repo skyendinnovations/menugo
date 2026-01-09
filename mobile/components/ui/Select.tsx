@@ -13,6 +13,7 @@ interface SelectProps extends Omit<PressableProps, 'onPress'> {
     options: SelectOption[];
     placeholder?: string;
     disabled?: boolean;
+    variant?: 'default' | 'underline';
 }
 
 export function Select({
@@ -22,27 +23,32 @@ export function Select({
     placeholder = 'Select an option',
     disabled,
     className,
+    variant = 'default',
     ...props
 }: SelectProps) {
     const [open, setOpen] = useState(false);
 
     const selectedOption = options.find(opt => opt.value === value);
+    
+    const isUnderline = variant === 'underline';
 
     return (
         <>
             <Pressable
                 onPress={() => !disabled && setOpen(true)}
                 disabled={disabled}
-                className={`bg-black border-2 border-red-900 rounded-lg px-4 py-3 flex-row justify-between items-center ${disabled ? 'opacity-50' : ''
-                    } ${className || ''}`}
+                className={isUnderline 
+                    ? `border-b-2 border-red-600 pb-1 flex-row justify-between items-center ${disabled ? 'opacity-50' : ''} ${className || ''}`
+                    : `bg-black border-2 border-red-900 rounded-lg px-4 py-3 flex-row justify-between items-center ${disabled ? 'opacity-50' : ''} ${className || ''}`
+                }
                 {...props}
             >
-                <Text className={selectedOption ? 'text-white' : 'text-gray-500'}>
+                <Text className={`${selectedOption ? 'text-white' : 'text-gray-500'} ${isUnderline ? 'text-base font-medium flex-1' : ''}`}>
                     {selectedOption?.label || placeholder}
                 </Text>
                 <MaterialIcons
                     name={open ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
-                    size={24}
+                    size={isUnderline ? 20 : 24}
                     color="#dc2626"
                 />
             </Pressable>

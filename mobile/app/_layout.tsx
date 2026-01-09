@@ -1,6 +1,7 @@
 import '../global.css';
 
 import { Stack, useRouter, useSegments } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { authAPI } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { getSession } from '@/lib/auth-client';
@@ -41,5 +42,9 @@ export default function Layout() {
     checkSession();
   }, [segments, refetch]);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <SafeAreaProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </SafeAreaProvider>
+  );
 }

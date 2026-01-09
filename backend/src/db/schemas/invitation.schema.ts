@@ -7,6 +7,7 @@ import { user } from "./auth.schema";
 export const invitationStatusEnum = pgEnum("invitation_status", [
     "pending",
     "accepted",
+    "rejected",
     "expired",
 ]);
 
@@ -15,15 +16,21 @@ export const restaurantInvitations = pgTable("restaurant_invitations", {
     restaurantId: integer("restaurant_id")
         .references(() => restaurants.id, { onDelete: "cascade" })
         .notNull(),
-    roleId: integer("role_id")
-        .references(() => roles.id, { onDelete: "cascade" })
-        .notNull(),
+
+    // Store role IDs as array since a user can be invited with multiple roles
+    roleIds: integer("role_ids").array().notNull(),
 
     email: text("email").notNull(),
     token: text("token").notNull().unique(),
     inviterId: text("inviter_id").references(() => user.id, {
         onDelete: "set null",
     }),
+
+    // Track if accepted and moved to members table
+    acceptedByUserId: text("accepted_by_user_id").references(() => user.id, {
+        onDelete: "set null",
+    }),
+    acceptedAt: timestamp("accepted_at"),
 
     status: invitationStatusEnum("status").default("pending"),
 
@@ -43,12 +50,12 @@ export const restaurantInvitationsRelations = relations(
             fields: [restaurantInvitations.restaurantId],
             references: [restaurants.id],
         }),
-        role: one(roles, {
-            fields: [restaurantInvitations.roleId],
-            references: [roles.id],
-        }),
         inviter: one(user, {
             fields: [restaurantInvitations.inviterId],
+            references: [user.id],
+        }),
+        acceptedByUser: one(user, {
+            fields: [restaurantInvitations.acceptedByUserId],
             references: [user.id],
         }),
     })

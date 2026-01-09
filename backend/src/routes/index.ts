@@ -17,7 +17,7 @@ router.get('/health', (req, res) => {
 // API routes
 router.use('/users', userRoutes);
 
-router.use('/restaurants',authenticate,restaurantRoutes);
+router.use('/restaurants', authenticate, restaurantRoutes);
 
 // Add more routes here
 // router.use('/products', productRoutes);

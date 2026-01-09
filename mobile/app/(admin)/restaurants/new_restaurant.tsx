@@ -55,26 +55,26 @@ export default function NewRestaurantScreen() {
 
   return (
     <ScrollView className="flex-1 bg-black">
-      <View className="p-4">
+      <View className="p-6">
         {/* Header */}
-        <View className="mb-6">
-          <Text className="text-3xl font-bold text-white mb-2">
+        <View className="mb-8 pt-2">
+          <Text className="text-4xl font-bold text-white mb-3">
             Add New Restaurant
           </Text>
-          <Text className="text-gray-400">
+          <Text className="text-gray-400 text-base">
             Fill in the details to create a new restaurant
           </Text>
         </View>
 
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader className="p-4">
-            <CardTitle className="text-white text-xl">
+        <Card className="bg-gray-900 border-gray-800 rounded-xl overflow-hidden">
+          <CardHeader className="p-5 border-b border-gray-800">
+            <CardTitle className="text-white text-2xl font-bold">
               Restaurant Information
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4">
+          <CardContent className="p-5">
             {/* Restaurant Name */}
-            <View className="mb-4">
+            <View className="mb-6">
               <Label required>Restaurant Name</Label>
               <Input
                 placeholder="Enter restaurant name"
@@ -86,14 +86,14 @@ export default function NewRestaurantScreen() {
                 error={errors.name}
               />
               {errors.name && (
-                <Text className="text-red-600 text-xs mt-1">
+                <Text className="text-red-500 text-sm mt-1.5 font-medium">
                   Restaurant name is required
                 </Text>
               )}
             </View>
 
             {/* Description */}
-            <View className="mb-4">
+            <View className="mb-6">
               <Label>Description</Label>
               <Textarea
                 placeholder="Enter restaurant description (optional)"
@@ -105,7 +105,7 @@ export default function NewRestaurantScreen() {
             </View>
 
             {/* Address */}
-            <View className="mb-4">
+            <View className="mb-6">
               <Label>Address</Label>
               <Input
                 placeholder="Enter restaurant address"
@@ -117,7 +117,7 @@ export default function NewRestaurantScreen() {
             </View>
 
             {/* Phone */}
-            <View className="mb-4">
+            <View className="mb-6">
               <Label required>Phone Number</Label>
               <Input
                 placeholder="Enter phone number"
@@ -130,14 +130,14 @@ export default function NewRestaurantScreen() {
                 error={errors.phone}
               />
               {errors.phone && (
-                <Text className="text-red-600 text-xs mt-1">
+                <Text className="text-red-500 text-sm mt-1.5 font-medium">
                   Phone number is required
                 </Text>
               )}
             </View>
 
             {/* Email */}
-            <View className="mb-4">
+            <View className="mb-6">
               <Label required>Email</Label>
               <Input
                 placeholder="Enter email address"
@@ -151,17 +151,17 @@ export default function NewRestaurantScreen() {
                 error={errors.email}
               />
               {errors.email && (
-                <Text className="text-red-600 text-xs mt-1">
+                <Text className="text-red-500 text-sm mt-1.5 font-medium">
                   Email is required
                 </Text>
               )}
             </View>
 
             {/* Active Status */}
-            <View className="mb-4">
-              <View className="flex-row items-center justify-between bg-gray-800 rounded-lg p-4">
-                <View>
-                  <Text className="text-white font-semibold mb-1">
+            <View className="mb-0">
+              <View className="flex-row items-center justify-between bg-gray-800 rounded-xl p-5">
+                <View className="flex-1">
+                  <Text className="text-white font-bold text-base mb-1">
                     Active Status
                   </Text>
                   <Text className="text-gray-400 text-sm">
@@ -180,21 +180,21 @@ export default function NewRestaurantScreen() {
         </Card>
 
         {/* Action Buttons */}
-        <View className="mt-6 mb-8">
+        <View className="mt-8 mb-10">
           <TouchableOpacity
             onPress={handleSubmit}
-            className="bg-red-600 rounded-lg p-4 mb-3"
+            className="bg-red-600 rounded-xl p-5 mb-4 shadow-lg active:bg-red-700"
           >
-            <Text className="text-white text-center font-semibold text-lg">
+            <Text className="text-white text-center font-bold text-lg tracking-wide">
               Create Restaurant
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleCancel}
-            className="bg-gray-800 rounded-lg p-4 border border-gray-700"
+            className="bg-gray-800 rounded-xl p-5 border-2 border-gray-700 active:bg-gray-700"
           >
-            <Text className="text-gray-300 text-center font-semibold text-lg">
+            <Text className="text-gray-300 text-center font-bold text-lg tracking-wide">
               Cancel
             </Text>
           </TouchableOpacity>

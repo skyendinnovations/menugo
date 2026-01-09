@@ -4,19 +4,13 @@ export default function RestaurantsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: {
-          backgroundColor: '#000000',
-        },
-        headerTintColor: '#ffffff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
+        headerShown: false,
       }}
     >
       <Stack.Screen
         name="index"
         options={{
-          title: 'My Restaurants',
+          headerShown: false,
         }}
       />
       <Stack.Screen
@@ -24,6 +18,7 @@ export default function RestaurantsLayout() {
         options={{
           title: 'Add Restaurant',
           presentation: 'modal',
+          headerShown: false,
         }}
       />
     </Stack>

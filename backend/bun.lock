@@ -11,6 +11,7 @@
         "cors": "^2.8.5",
         "drizzle-orm": "^0.45.1",
         "express": "^5.2.1",
+        "sonare": "^0.0.1",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -945,6 +946,8 @@
     "signal-exit": ["signal-exit@4.1.0", "", {}, "sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw=="],
 
     "slash": ["slash@3.0.0", "", {}, "sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q=="],
+
+    "sonare": ["sonare@0.0.1", "", {}, "sha512-/iu0cJymYfrqgsSoBzsPWSAktewpWMnLCKFIuMgpeGIOQNGChY4Vhb8Y3t1sL18ir6JGqppx1bZ+KnbYHV3VWg=="],
 
     "source-map": ["source-map@0.6.1", "", {}, "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g=="],
 

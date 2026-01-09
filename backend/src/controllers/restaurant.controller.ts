@@ -4,7 +4,15 @@ import { restaurantService } from "../services/restaurant.service";
 class RestaurantController {
   async createRestaurant(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurant = await restaurantService.createRestaurant(req.body);
+      const userId= req.user?.id;
+      if(!userId){
+        return res.status(401).json({
+          success: false,
+          message: "User not authenticated",
+        });
+      }
+
+      const restaurant = await restaurantService.createRestaurant(userId, req.body);
 
       return res.status(201).json({
         success: true,
@@ -73,6 +81,21 @@ class RestaurantController {
       next(error);
     }
   }
+
+  // async getMyRestaurants(req: Request, res: Response, next: NextFunction) {
+  //   try {
+  //     const userId = req.user!.id;
+  //     console.log(userId);
+  //     const restaurants = await restaurantService.getMyRestaurants(userId);
+  //     return res.status(200).json({
+  //       success: true,
+  //       message: "My Restaurants retrieved successfully",
+  //       data: restaurants,
+  //     });
+  //   } catch (error) {
+  //     next(error);
+  //   }
+  // }
 }
 
 export const restaurantController = new RestaurantController();

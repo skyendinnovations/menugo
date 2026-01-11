@@ -101,12 +101,32 @@ const originalSignIn = authClient.signIn;
 export const signIn = {
     ...originalSignIn,
     email: async (params: { email: string; password: string }) => {
+        console.log('[Auth] Attempting sign-in...');
         const result = await originalSignIn.email(params);
+        console.log('[Auth] Sign-in result:', JSON.stringify(result, null, 2));
+        
         if (result.data?.user) {
+            // Extract token from various possible locations
+            let token = result.data.token || result.data?.session?.token;
+            
+            // If no token in response, try to get from session
+            if (!token) {
+                const sessionData = await authClient.getSession();
+                token = sessionData.data?.session?.token;
+                console.log('[Auth] Token from session:', token);
+            }
+            
+            console.log('[Auth] Saving session with token:', !!token);
             sessionManager.saveSession({
                 user: result.data.user,
-                token: result.data.token,
+                token: token || null,
             });
+            
+            // Verify token was saved
+            const savedToken = sessionManager.getToken();
+            console.log('[Auth] Verified saved token:', !!savedToken);
+        } else {
+            console.warn('[Auth] No user data in sign-in result');
         }
         return result;
     },

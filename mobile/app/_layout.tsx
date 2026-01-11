@@ -1,6 +1,7 @@
 import '../global.css';
 
 import { Stack, useRouter, useSegments } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { authAPI } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { getSession } from '@/lib/auth-client';
@@ -11,12 +12,19 @@ export default function Layout() {
   const { data, isPending, refetch } = authAPI.useSession();
   const [forceCheck, setForceCheck] = useState(0);
   const [manualSession, setManualSession] = useState<any>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   const isAuthenticated = !!data?.user || !!manualSession?.user;
   const userRole = (data?.user as any)?.role || (manualSession?.user as any)?.role;
 
+  // Set mounted state after first render
   useEffect(() => {
-    if (isPending) return;
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    // Don't navigate until mounted and auth is loaded
+    if (!isMounted || isPending) return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
@@ -29,7 +37,7 @@ export default function Layout() {
     } else if (!isAuthenticated && !inAuthGroup) {
       router.replace('/(auth)/sign-in');
     }
-  }, [isAuthenticated, isPending, segments, userRole, manualSession]);
+  }, [isAuthenticated, isPending, segments, userRole, manualSession, isMounted]);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -41,5 +49,9 @@ export default function Layout() {
     checkSession();
   }, [segments, refetch]);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <SafeAreaProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </SafeAreaProvider>
+  );
 }

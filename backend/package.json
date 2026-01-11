@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "jest --runInBand",
+    "test": "bun test",
     "start": "bun run index.ts",
     "dev": "bun run --watch index.ts",
     "lint": "eslint \"src/**/*.ts\" && prettier -c \"src/**/*.ts\"",
@@ -39,6 +39,7 @@
     "cors": "^2.8.5",
     "drizzle-orm": "^0.45.1",
     "express": "^5.2.1",
+    "pg": "^8.16.3",
     "sonare": "^0.0.1"
   }
 }

@@ -1,23 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Pressable, Platform, StatusBar, useWindowDimensions, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Pressable, Platform, StatusBar, useWindowDimensions, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Slot, Link, useRouter, usePathname } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Avatar, Select } from '@/components/ui';
-import { authAPI } from '@/lib/api';
+import { authAPI, restaurantAPI, Restaurant } from '@/lib/api';
+import { useAuth } from '@/lib/hooks/useAuth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Dummy Data
-const DUMMY_USER = {
-  name: 'John Doe',
-  email: 'john@example.com',
-  role: 'Admin',
-};
-
-const DUMMY_RESTAURANTS = [
-  { id: '1', name: 'The Golden Dragon' },
-  { id: '2', name: 'Bella Italia' },
-  { id: '3', name: 'Sushi Master' },
-];
+const SELECTED_RESTAURANT_KEY = '@selected_restaurant_id';
 
 export default function AdminLayout() {
   const router = useRouter();
@@ -26,8 +17,74 @@ export default function AdminLayout() {
   const isWeb = Platform.OS === 'web';
   const isLargeScreen = width >= 1024;
   const isMediumScreen = width >= 768;
-  const [selectedRestaurant, setSelectedRestaurant] = useState(DUMMY_RESTAURANTS[0].name);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string>('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  // Get real user data
+  const { data: session, isPending: isLoadingUser } = useAuth();
+  const user = session?.user;
+
+  // Load saved restaurant selection
+  useEffect(() => {
+    const loadSavedSelection = async () => {
+      try {
+        if (Platform.OS === 'web') {
+          const saved = localStorage.getItem(SELECTED_RESTAURANT_KEY);
+          if (saved) return saved;
+        } else {
+          const saved = await AsyncStorage.getItem(SELECTED_RESTAURANT_KEY);
+          if (saved) return saved;
+        }
+      } catch (error) {
+        console.error('Failed to load saved restaurant:', error);
+      }
+      return null;
+    };
+
+    const fetchRestaurants = async () => {
+      try {
+        const response = await restaurantAPI.getRestaurants();
+        if (response && response.data && response.data.length > 0) {
+          setRestaurants(response.data);
+          
+          // Try to load saved selection
+          const savedId = await loadSavedSelection();
+          
+          // Check if saved restaurant still exists
+          if (savedId && response.data.some(r => r.id.toString() === savedId)) {
+            setSelectedRestaurantId(savedId);
+          } else {
+            // Set the first restaurant as selected by default
+            setSelectedRestaurantId(response.data[0].id.toString());
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch restaurants:', error);
+      }
+    };
+    
+    fetchRestaurants();
+  }, []);
+
+  // Save restaurant selection when it changes
+  useEffect(() => {
+    const saveSelection = async () => {
+      if (!selectedRestaurantId) return;
+      
+      try {
+        if (Platform.OS === 'web') {
+          localStorage.setItem(SELECTED_RESTAURANT_KEY, selectedRestaurantId);
+        } else {
+          await AsyncStorage.setItem(SELECTED_RESTAURANT_KEY, selectedRestaurantId);
+        }
+      } catch (error) {
+        console.error('Failed to save restaurant selection:', error);
+      }
+    };
+
+    saveSelection();
+  }, [selectedRestaurantId]);
 
   const handleSignOut = async () => {
     try {
@@ -165,24 +222,34 @@ export default function AdminLayout() {
                 {/* Restaurant Selector */}
                 <View className="flex-1" style={{ maxWidth: isWeb ? 280 : width * 0.6 }}>
                   <Text className="text-gray-400 text-xs mb-1">Restaurant</Text>
-                  <Select
-                    value={selectedRestaurant}
-                    onValueChange={setSelectedRestaurant}
-                    options={DUMMY_RESTAURANTS.map(r => ({ label: r.name, value: r.name }))}
-                    variant="underline"
-                  />
+                  {restaurants.length > 0 ? (
+                    <Select
+                      value={selectedRestaurantId}
+                      onValueChange={setSelectedRestaurantId}
+                      options={restaurants.map(r => ({ label: r.name, value: r.id.toString() }))}
+                      variant="underline"
+                    />
+                  ) : (
+                    <Text className="text-gray-500 text-sm">No restaurants</Text>
+                  )}
                 </View>
               </View>
 
               {/* Right: User Profile */}
               <View className="flex-row items-center flex-shrink-0">
-                {isWeb && isMediumScreen && (
-                  <View className="mr-3 items-end">
-                    <Text className="text-white font-semibold text-sm">{DUMMY_USER.name}</Text>
-                    <Text className="text-gray-400 text-xs">{DUMMY_USER.role}</Text>
-                  </View>
+                {isLoadingUser ? (
+                  <ActivityIndicator size="small" color="#dc2626" />
+                ) : (
+                  <>
+                    {isWeb && isMediumScreen && user && (
+                      <View className="mr-3 items-end">
+                        <Text className="text-white font-semibold text-sm">{user.name}</Text>
+                        <Text className="text-gray-400 text-xs capitalize">{user.role}</Text>
+                      </View>
+                    )}
+                    <Avatar fallback={user?.name || 'User'} size="md" />
+                  </>
                 )}
-                <Avatar fallback={DUMMY_USER.name} size="md" />
               </View>
             </View>
           </View>

@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, useWindowDimensions, ActivityIndicator, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Input, Label, Textarea, Switch, Card, CardHeader, CardTitle, CardContent, Select, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui';
 import { restaurantAPI } from '@/lib/api';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type TableCountRange = 'under_10' | '10_to_20' | '20_to_40' | '40_to_50';
 
@@ -26,11 +24,16 @@ type FormData = {
 
 export default function NewRestaurantScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isWeb = Platform.OS === 'web';
+  const isLargeScreen = width >= 1024;
+  const isMediumScreen = width >= 768;
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successDialog, setSuccessDialog] = useState(false);
   const [errorDialog, setErrorDialog] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const progressAnim = React.useRef(new Animated.Value(33.33)).current;
   
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -48,18 +51,140 @@ export default function NewRestaurantScreen() {
   });
 
   const [errors, setErrors] = useState({
-    name: false,
+    name: '',
+    email: '',
+    phone: '',
+    website: '',
+    workersCount: '',
+    seatingCapacity: '',
+    operatingHours: '',
   });
+
+  const validateEmail = (email: string): boolean => {
+    if (!email) return true; // Optional field
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    if (!phone) return true; // Optional field
+    const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+    return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 10;
+  };
+
+  const validateURL = (url: string): boolean => {
+    if (!url) return true; // Optional field
+    // Check if it has a domain extension like .com, .org, .net, etc.
+    const domainRegex = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{2,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)$/;
+    return domainRegex.test(url.trim());
+  };
 
   const validateStep1 = () => {
     const newErrors = {
-      name: !formData.name.trim(),
+      name: '',
+      email: '',
+      phone: '',
+      website: '',
+      workersCount: '',
+      seatingCapacity: '',
+      operatingHours: '',
     };
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Restaurant name is required';
+    } else if (formData.name.trim().length < 3) {
+      newErrors.name = 'Name must be at least 3 characters long';
+    }
 
     setErrors(newErrors);
 
     if (newErrors.name) {
-      setErrorMessage('Restaurant name is required');
+      setErrorMessage(newErrors.name);
+      setErrorDialog(true);
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateStep2 = () => {
+    const newErrors = {
+      name: '',
+      email: '',
+      phone: '',
+      website: '',
+      workersCount: '',
+      seatingCapacity: '',
+      operatingHours: '',
+    };
+
+    if (formData.email && !validateEmail(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (formData.phone && !validatePhone(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number (min 10 digits)';
+    }
+
+    if (formData.website && !validateURL(formData.website)) {
+      newErrors.website = 'Please enter a valid URL with domain (e.g., example.com)';
+    }
+
+    if (formData.logo && !validateURL(formData.logo)) {
+      newErrors.website = 'Please enter a valid logo URL';
+    }
+
+    setErrors(newErrors);
+
+    if (newErrors.email || newErrors.phone || newErrors.website) {
+      setErrorMessage(newErrors.email || newErrors.phone || newErrors.website);
+      setErrorDialog(true);
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateStep3 = () => {
+    const newErrors = {
+      name: '',
+      email: '',
+      phone: '',
+      website: '',
+      workersCount: '',
+      seatingCapacity: '',
+      operatingHours: '',
+    };
+
+    if (formData.workersCount) {
+      const workers = parseInt(formData.workersCount);
+      if (isNaN(workers) || workers < 1 || workers > 1000) {
+        newErrors.workersCount = 'Workers count must be between 1 and 1000';
+      }
+    }
+
+    if (formData.seatingCapacity) {
+      const capacity = parseInt(formData.seatingCapacity);
+      if (isNaN(capacity) || capacity < 1 || capacity > 10000) {
+        newErrors.seatingCapacity = 'Seating capacity must be between 1 and 10000';
+      }
+    }
+
+    if (formData.operatingHours) {
+      try {
+        const parsed = JSON.parse(formData.operatingHours);
+        if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+          newErrors.operatingHours = 'Operating hours must be a valid JSON object';
+        }
+      } catch (e) {
+        newErrors.operatingHours = 'Invalid JSON format for operating hours';
+      }
+    }
+
+    setErrors(newErrors);
+
+    if (newErrors.workersCount || newErrors.seatingCapacity || newErrors.operatingHours) {
+      setErrorMessage(newErrors.workersCount || newErrors.seatingCapacity || newErrors.operatingHours);
       setErrorDialog(true);
       return false;
     }
@@ -70,16 +195,36 @@ export default function NewRestaurantScreen() {
   const handleNext = () => {
     if (currentStep === 1 && validateStep1()) {
       setCurrentStep(2);
-    } else if (currentStep === 2) {
+      Animated.timing(progressAnim, {
+        toValue: 66.66,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    } else if (currentStep === 2 && validateStep2()) {
       setCurrentStep(3);
+      Animated.timing(progressAnim, {
+        toValue: 100,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
     }
   };
 
   const handleBack = () => {
     if (currentStep === 2) {
       setCurrentStep(1);
+      Animated.timing(progressAnim, {
+        toValue: 33.33,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
     } else if (currentStep === 3) {
       setCurrentStep(2);
+      Animated.timing(progressAnim, {
+        toValue: 66.66,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
     }
   };
 
@@ -87,26 +232,37 @@ export default function NewRestaurantScreen() {
     // Prevent double submission
     if (isSubmitting) return;
 
+    // Validate step 3 before submission
+    if (!validateStep3()) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       // Prepare data for backend
       const payload: any = {
-        name: formData.name,
+        name: formData.name.trim(),
         isActive: formData.isActive,
       };
 
       // Add optional fields if they have values
-      if (formData.description) payload.description = formData.description;
-      if (formData.address) payload.address = formData.address;
-      if (formData.phone) payload.phone = formData.phone;
-      if (formData.email) payload.email = formData.email;
-      if (formData.website) payload.website = formData.website;
-      if (formData.logo) payload.logo = formData.logo;
+      if (formData.description.trim()) payload.description = formData.description.trim();
+      if (formData.address.trim()) payload.address = formData.address.trim();
+      if (formData.phone.trim()) payload.phone = formData.phone.trim();
+      if (formData.email.trim()) payload.email = formData.email.trim();
+      if (formData.website.trim()) payload.website = formData.website.trim();
+      if (formData.logo.trim()) payload.logo = formData.logo.trim();
       if (formData.tableCountRange) payload.tableCountRange = formData.tableCountRange;
-      if (formData.workersCount) payload.workersCount = parseInt(formData.workersCount);
-      if (formData.seatingCapacity) payload.seatingCapacity = parseInt(formData.seatingCapacity);
-      if (formData.operatingHours) {
+      if (formData.workersCount.trim()) {
+        const workers = parseInt(formData.workersCount);
+        if (!isNaN(workers)) payload.workersCount = workers;
+      }
+      if (formData.seatingCapacity.trim()) {
+        const capacity = parseInt(formData.seatingCapacity);
+        if (!isNaN(capacity)) payload.seatingCapacity = capacity;
+      }
+      if (formData.operatingHours.trim()) {
         try {
           payload.operatingHours = JSON.parse(formData.operatingHours);
         } catch (e) {
@@ -125,7 +281,6 @@ export default function NewRestaurantScreen() {
       console.log('API Response:', response);
 
       // Show success dialog
-      setIsSubmitting(false);
       setSuccessDialog(true);
     } catch (error: any) {
       console.error('Failed to create restaurant:', error);
@@ -140,273 +295,362 @@ export default function NewRestaurantScreen() {
     router.back();
   };
 
-  const renderStepIndicator = () => (
-    <View style={{ 
-      flexDirection: 'row', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      marginBottom: 32,
-      paddingHorizontal: 16
-    }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, maxWidth: 400 }}>
-        {/* Step 1 */}
-        <View style={{ alignItems: 'center', flex: 1 }}>
-          <View style={{ 
-            width: 48, 
-            height: 48, 
-            borderRadius: 24, 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            backgroundColor: currentStep >= 1 ? '#dc2626' : '#374151',
-            borderWidth: 3,
-            borderColor: currentStep === 1 ? '#fee2e2' : 'transparent',
-            shadowColor: currentStep === 1 ? '#dc2626' : 'transparent',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: currentStep === 1 ? 8 : 0
-          }}>
-            {currentStep > 1 ? (
-              <MaterialIcons name="check" size={24} color="white" />
-            ) : (
-              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 18 }}>1</Text>
-            )}
-          </View>
-          <Text style={{ 
-            color: currentStep === 1 ? '#dc2626' : currentStep > 1 ? '#10b981' : '#6b7280', 
-            fontSize: 11, 
-            fontWeight: '600',
-            marginTop: 6
-          }}>
-            Basic Info
-          </Text>
+  const renderStepIndicator = () => {
+    const steps = [
+      { number: 1, label: 'Basic Info', icon: 'restaurant' },
+      { number: 2, label: 'Contact', icon: 'contact-mail' },
+      { number: 3, label: 'Details', icon: 'settings' },
+    ];
+
+    return (
+      <View style={{ marginBottom: isWeb ? 40 : 32 }}>
+        {/* Progress Bar */}
+        <View style={{ 
+          height: 4, 
+          backgroundColor: '#1f2937', 
+          borderRadius: 2, 
+          marginBottom: 24,
+          overflow: 'hidden'
+        }}>
+          <Animated.View 
+            style={{ 
+              height: '100%', 
+              backgroundColor: '#dc2626',
+              borderRadius: 2,
+              width: progressAnim.interpolate({
+                inputRange: [0, 100],
+                outputRange: ['0%', '100%'],
+              }),
+            }} 
+          />
         </View>
 
-        {/* Connector 1 */}
+        {/* Step Indicators */}
         <View style={{ 
-          flex: 1, 
-          height: 3, 
-          backgroundColor: currentStep >= 2 ? '#dc2626' : '#374151',
-          marginHorizontal: -8,
-          marginBottom: 20
-        }} />
-
-        {/* Step 2 */}
-        <View style={{ alignItems: 'center', flex: 1 }}>
-          <View style={{ 
-            width: 48, 
-            height: 48, 
-            borderRadius: 24, 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            backgroundColor: currentStep >= 2 ? '#dc2626' : '#374151',
-            borderWidth: 3,
-            borderColor: currentStep === 2 ? '#fee2e2' : 'transparent',
-            shadowColor: currentStep === 2 ? '#dc2626' : 'transparent',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: currentStep === 2 ? 8 : 0
-          }}>
-            {currentStep > 2 ? (
-              <MaterialIcons name="check" size={24} color="white" />
-            ) : (
-              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 18 }}>2</Text>
-            )}
-          </View>
-          <Text style={{ 
-            color: currentStep === 2 ? '#dc2626' : currentStep > 2 ? '#10b981' : '#6b7280', 
-            fontSize: 11, 
-            fontWeight: '600',
-            marginTop: 6
-          }}>
-            Contact
-          </Text>
-        </View>
-
-        {/* Connector 2 */}
-        <View style={{ 
-          flex: 1, 
-          height: 3, 
-          backgroundColor: currentStep === 3 ? '#dc2626' : '#374151',
-          marginHorizontal: -8,
-          marginBottom: 20
-        }} />
-
-        {/* Step 3 */}
-        <View style={{ alignItems: 'center', flex: 1 }}>
-          <View style={{ 
-            width: 48, 
-            height: 48, 
-            borderRadius: 24, 
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: currentStep === 3 ? '#dc2626' : '#374151',
-            borderWidth: 3,
-            borderColor: currentStep === 3 ? '#fee2e2' : 'transparent',
-            shadowColor: currentStep === 3 ? '#dc2626' : 'transparent',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: currentStep === 3 ? 8 : 0
-          }}>
-            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 18 }}>3</Text>
-          </View>
-          <Text style={{ 
-            color: currentStep === 3 ? '#dc2626' : '#6b7280', 
-            fontSize: 11, 
-            fontWeight: '600',
-            marginTop: 6
-          }}>
-            Details
-          </Text>
+          flexDirection: 'row', 
+          justifyContent: 'space-between',
+          paddingHorizontal: isWeb && isLargeScreen ? 40 : 0,
+        }}>
+          {steps.map((step, index) => {
+            const isActive = currentStep === step.number;
+            const isCompleted = currentStep > step.number;
+            
+            return (
+              <View key={step.number} style={{ flex: 1, alignItems: 'center' }}>
+                <View style={{ 
+                  width: isWeb && isLargeScreen ? 64 : 56, 
+                  height: isWeb && isLargeScreen ? 64 : 56, 
+                  borderRadius: isWeb && isLargeScreen ? 32 : 28,
+                  backgroundColor: isCompleted ? '#10b981' : isActive ? '#dc2626' : '#1f2937',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: isActive ? 3 : 0,
+                  borderColor: '#fecaca',
+                  ...Platform.select({
+                    web: {
+                      boxShadow: isActive ? '0 10px 25px rgba(220, 38, 38, 0.3)' : 'none',
+                    },
+                    default: {
+                      elevation: isActive ? 8 : 0,
+                      shadowColor: '#dc2626',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: isActive ? 0.3 : 0,
+                      shadowRadius: 8,
+                    }
+                  })
+                }}>
+                  {isCompleted ? (
+                    <MaterialIcons name="check-circle" size={isWeb && isLargeScreen ? 32 : 28} color="white" />
+                  ) : (
+                    <MaterialIcons name={step.icon as any} size={isWeb && isLargeScreen ? 28 : 24} color="white" />
+                  )}
+                </View>
+                <Text style={{ 
+                  marginTop: 12,
+                  fontSize: isWeb && isLargeScreen ? 14 : 12,
+                  fontWeight: isActive || isCompleted ? '700' : '600',
+                  color: isCompleted ? '#10b981' : isActive ? '#dc2626' : '#6b7280',
+                  textAlign: 'center'
+                }}>
+                  {step.label}
+                </Text>
+              </View>
+            );
+          })}
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderCurrentStep = () => {
+    const cardStyle = {
+      backgroundColor: '#0f172a',
+      borderRadius: isWeb && isLargeScreen ? 20 : 16,
+      borderWidth: 1,
+      borderColor: '#1e293b',
+      overflow: 'hidden' as const,
+      ...Platform.select({
+        web: {
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
+        },
+        default: {
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 12,
+        }
+      })
+    };
+
     if (currentStep === 1) {
       return (
-        <Card className="bg-gray-900 border-gray-800 rounded-xl overflow-hidden">
-          <CardHeader className="p-6 border-b border-gray-800 bg-gradient-to-r from-gray-900 to-gray-800">
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={cardStyle}>
+          <View style={{ 
+            padding: isWeb && isLargeScreen ? 32 : 24,
+            paddingBottom: isWeb && isLargeScreen ? 28 : 20,
+            borderBottomWidth: 1,
+            borderBottomColor: '#1e293b',
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
               <View style={{ 
-                backgroundColor: '#dc2626', 
-                padding: 10, 
+                width: 44,
+                height: 44,
                 borderRadius: 12,
-                marginRight: 12
+                backgroundColor: '#dc2626',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 14
               }}>
-                <MaterialIcons name="store" size={24} color="white" />
+                <MaterialIcons name="restaurant" size={24} color="white" />
               </View>
               <View style={{ flex: 1 }}>
-                <CardTitle className="text-white text-xl font-bold">
+                <Text style={{ 
+                  fontSize: isWeb && isLargeScreen ? 22 : 20, 
+                  fontWeight: '700', 
+                  color: '#ffffff',
+                  marginBottom: 4
+                }}>
                   Basic Information
-                </CardTitle>
-                <Text style={{ color: '#9ca3af', fontSize: 13, marginTop: 2 }}>
-                  Enter your restaurant's core details
+                </Text>
+                <Text style={{ fontSize: 13, color: '#94a3b8' }}>
+                  Tell us about your restaurant
                 </Text>
               </View>
             </View>
-          </CardHeader>
-          <CardContent className="p-6">
+          </View>
+          
+          <View style={{ padding: isWeb && isLargeScreen ? 32 : 24 }}>
             {/* Restaurant Name */}
-            <View className="mb-6">
+            <View style={{ marginBottom: 24 }}>
               <Label required>Restaurant Name</Label>
               <Input
-                placeholder="Enter restaurant name"
+                placeholder="e.g., The Golden Spoon"
                 value={formData.name}
                 onChangeText={(text) => {
                   setFormData({ ...formData, name: text });
-                  setErrors({ ...errors, name: false });
+                  // Instant validation
+                  if (!text.trim()) {
+                    setErrors({ ...errors, name: 'Restaurant name is required' });
+                  } else if (text.trim().length < 3) {
+                    setErrors({ ...errors, name: 'Name must be at least 3 characters long' });
+                  } else {
+                    setErrors({ ...errors, name: '' });
+                  }
                 }}
-                error={errors.name}
+                error={!!errors.name}
+                maxLength={100}
               />
               {errors.name && (
-                <Text style={{ marginTop: 6, color: '#ef4444', fontSize: 12, fontWeight: '500' }}>
-                  Restaurant name is required
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                  <MaterialIcons name="error-outline" size={16} color="#ef4444" />
+                  <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                    {errors.name}
+                  </Text>
+                </View>
+              )}
+              {!errors.name && formData.name.length > 0 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#05402820', padding: 10, borderRadius: 8 }}>
+                  <MaterialIcons name="check-circle" size={16} color="#10b981" />
+                  <Text style={{ marginLeft: 6, color: '#10b981', fontSize: 13, fontWeight: '500' }}>
+                    Perfect! That's a great name
+                  </Text>
+                </View>
               )}
             </View>
 
             {/* Description */}
-            <View className="mb-6">
+            <View style={{ marginBottom: 24 }}>
               <Label>Description</Label>
               <Textarea
-                placeholder="Tell us about your restaurant..."
+                placeholder="What makes your restaurant special? Cuisine type, atmosphere, signature dishes..."
                 value={formData.description}
                 onChangeText={(text) =>
                   setFormData({ ...formData, description: text })
                 }
+                maxLength={500}
               />
-              <Text style={{ color: '#6b7280', fontSize: 11, marginTop: 4 }}>
-                Optional - Share what makes your restaurant special
-              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+                <Text style={{ color: '#64748b', fontSize: 11 }}>
+                  Optional
+                </Text>
+                <Text style={{ color: formData.description.length > 450 ? '#f59e0b' : '#64748b', fontSize: 11, fontWeight: '600' }}>
+                  {formData.description.length}/500
+                </Text>
+              </View>
             </View>
 
             {/* Address */}
-            <View className="mb-0">
+            <View style={{ marginBottom: 0 }}>
               <Label>Address</Label>
               <Textarea
-                placeholder="Enter complete address"
+                placeholder="Street address, city, state, zip code"
                 value={formData.address}
                 onChangeText={(text) =>
                   setFormData({ ...formData, address: text })
                 }
+                maxLength={300}
               />
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 6 }}>
+                <Text style={{ color: formData.address.length > 250 ? '#f59e0b' : '#64748b', fontSize: 11, fontWeight: '600' }}>
+                  {formData.address.length}/300
+                </Text>
+              </View>
             </View>
-          </CardContent>
-        </Card>
+          </View>
+        </View>
       );
     }
 
     if (currentStep === 2) {
       return (
-        <Card className="bg-gray-900 border-gray-800 rounded-xl overflow-hidden">
-          <CardHeader className="p-6 border-b border-gray-800 bg-gradient-to-r from-gray-900 to-gray-800">
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={cardStyle}>
+          <View style={{ 
+            padding: isWeb && isLargeScreen ? 32 : 24,
+            paddingBottom: isWeb && isLargeScreen ? 28 : 20,
+            borderBottomWidth: 1,
+            borderBottomColor: '#1e293b',
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
               <View style={{ 
-                backgroundColor: '#dc2626', 
-                padding: 10, 
+                width: 44,
+                height: 44,
                 borderRadius: 12,
-                marginRight: 12
+                backgroundColor: '#dc2626',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 14
               }}>
-                <MaterialIcons name="contact-phone" size={24} color="white" />
+                <MaterialIcons name="contact-mail" size={24} color="white" />
               </View>
               <View style={{ flex: 1 }}>
-                <CardTitle className="text-white text-xl font-bold">
-                  Contact Details
-                </CardTitle>
-                <Text style={{ color: '#9ca3af', fontSize: 13, marginTop: 2 }}>
+                <Text style={{ 
+                  fontSize: isWeb && isLargeScreen ? 22 : 20, 
+                  fontWeight: '700', 
+                  color: '#ffffff',
+                  marginBottom: 4
+                }}>
+                  Contact Information
+                </Text>
+                <Text style={{ fontSize: 13, color: '#94a3b8' }}>
                   How can customers reach you?
                 </Text>
               </View>
             </View>
-          </CardHeader>
-          <CardContent className="p-6">
+          </View>
+          
+          <View style={{ padding: isWeb && isLargeScreen ? 32 : 24 }}>
             {/* Phone */}
-            <View className="mb-6">
+            <View style={{ marginBottom: 24 }}>
               <Label>Phone Number</Label>
               <Input
                 placeholder="+1 (555) 123-4567"
                 value={formData.phone}
-                onChangeText={(text) => 
-                  setFormData({ ...formData, phone: text })
-                }
+                onChangeText={(text) => {
+                  setFormData({ ...formData, phone: text });
+                  // Instant validation
+                  if (text && !validatePhone(text)) {
+                    setErrors({ ...errors, phone: 'Please enter a valid phone number (min 10 digits)' });
+                  } else {
+                    setErrors({ ...errors, phone: '' });
+                  }
+                }}
                 keyboardType="phone-pad"
+                error={!!errors.phone}
+                maxLength={20}
               />
+              {errors.phone && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                  <MaterialIcons name="error-outline" size={16} color="#ef4444" />
+                  <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                    {errors.phone}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Email */}
-            <View className="mb-6">
+            <View style={{ marginBottom: 24 }}>
               <Label>Email Address</Label>
               <Input
                 placeholder="contact@restaurant.com"
                 value={formData.email}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, email: text })
-                }
+                onChangeText={(text) => {
+                  setFormData({ ...formData, email: text });
+                  // Instant validation
+                  if (text && !validateEmail(text)) {
+                    setErrors({ ...errors, email: 'Please enter a valid email address' });
+                  } else {
+                    setErrors({ ...errors, email: '' });
+                  }
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                error={!!errors.email}
+                maxLength={100}
               />
+              {errors.email && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                  <MaterialIcons name="error-outline" size={16} color="#ef4444" />
+                  <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                    {errors.email}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Website */}
-            <View className="mb-6">
+            <View style={{ marginBottom: 24 }}>
               <Label>Website</Label>
               <Input
-                placeholder="https://yourrestaurant.com"
+                placeholder="yourrestaurant.com"
                 value={formData.website}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, website: text })
-                }
+                onChangeText={(text) => {
+                  setFormData({ ...formData, website: text });
+                  // Instant validation
+                  if (text && !validateURL(text)) {
+                    setErrors({ ...errors, website: 'Please enter a valid URL with domain (e.g., example.com)' });
+                  } else {
+                    setErrors({ ...errors, website: '' });
+                  }
+                }}
                 keyboardType="url"
                 autoCapitalize="none"
+                error={!!errors.website}
+                maxLength={200}
               />
+              {errors.website && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                  <MaterialIcons name="error-outline" size={16} color="#ef4444" />
+                  <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                    {errors.website}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Logo URL */}
-            <View className="mb-0">
+            <View style={{ marginBottom: 0 }}>
               <Label>Logo URL</Label>
               <Input
                 placeholder="https://example.com/logo.png"
@@ -416,58 +660,73 @@ export default function NewRestaurantScreen() {
                 }
                 keyboardType="url"
                 autoCapitalize="none"
+                maxLength={500}
               />
-              <Text style={{ color: '#6b7280', fontSize: 11, marginTop: 4 }}>
-                Optional - Direct link to your restaurant logo
+              <Text style={{ color: '#64748b', fontSize: 11, marginTop: 6 }}>
+                Optional - Direct link to your restaurant logo image
               </Text>
             </View>
-          </CardContent>
-        </Card>
+          </View>
+        </View>
       );
     }
 
     if (currentStep === 3) {
       return (
-        <Card className="bg-gray-900 border-gray-800 rounded-xl overflow-hidden">
-          <CardHeader className="p-6 border-b border-gray-800 bg-gradient-to-r from-gray-900 to-gray-800">
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={cardStyle}>
+          <View style={{ 
+            padding: isWeb && isLargeScreen ? 32 : 24,
+            paddingBottom: isWeb && isLargeScreen ? 28 : 20,
+            borderBottomWidth: 1,
+            borderBottomColor: '#1e293b',
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
               <View style={{ 
-                backgroundColor: '#dc2626', 
-                padding: 10, 
+                width: 44,
+                height: 44,
                 borderRadius: 12,
-                marginRight: 12
+                backgroundColor: '#dc2626',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 14
               }}>
                 <MaterialIcons name="settings" size={24} color="white" />
               </View>
               <View style={{ flex: 1 }}>
-                <CardTitle className="text-white text-xl font-bold">
+                <Text style={{ 
+                  fontSize: isWeb && isLargeScreen ? 22 : 20, 
+                  fontWeight: '700', 
+                  color: '#ffffff',
+                  marginBottom: 4
+                }}>
                   Operational Details
-                </CardTitle>
-                <Text style={{ color: '#9ca3af', fontSize: 13, marginTop: 2 }}>
+                </Text>
+                <Text style={{ fontSize: 13, color: '#94a3b8' }}>
                   Configure your restaurant settings
                 </Text>
               </View>
             </View>
-          </CardHeader>
-          <CardContent className="p-6">
+          </View>
+          
+          <View style={{ padding: isWeb && isLargeScreen ? 32 : 24 }}>
             {/* Capacity Section */}
             <View style={{ 
-              backgroundColor: '#111827', 
-              padding: 16, 
-              borderRadius: 12, 
-              marginBottom: 20,
+              backgroundColor: '#1e293b', 
+              padding: isWeb && isLargeScreen ? 24 : 20, 
+              borderRadius: 16, 
+              marginBottom: 24,
               borderWidth: 1,
-              borderColor: '#374151'
+              borderColor: '#334155'
             }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <MaterialIcons name="table-restaurant" size={20} color="#dc2626" />
-                <Text style={{ color: '#f3f4f6', fontSize: 15, fontWeight: '700', marginLeft: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                <MaterialIcons name="table-restaurant" size={22} color="#dc2626" />
+                <Text style={{ color: '#f1f5f9', fontSize: 16, fontWeight: '700', marginLeft: 10 }}>
                   Capacity Information
                 </Text>
               </View>
 
               {/* Table Count Range */}
-              <View className="mb-4">
+              <View style={{ marginBottom: 18 }}>
                 <Label>Table Count Range</Label>
                 <Select
                   value={formData.tableCountRange}
@@ -485,77 +744,160 @@ export default function NewRestaurantScreen() {
               </View>
 
               {/* Workers Count */}
-              <View className="mb-4">
+              <View style={{ marginBottom: 18 }}>
                 <Label>Number of Workers</Label>
                 <Input
                   placeholder="e.g., 15"
                   value={formData.workersCount}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, workersCount: text })
-                  }
+                  onChangeText={(text) => {
+                    const numericText = text.replace(/[^0-9]/g, '');
+                    setFormData({ ...formData, workersCount: numericText });
+                    if (numericText) {
+                      const workers = parseInt(numericText);
+                      if (isNaN(workers) || workers < 1 || workers > 1000) {
+                        setErrors({ ...errors, workersCount: 'Workers count must be between 1 and 1000' });
+                      } else {
+                        setErrors({ ...errors, workersCount: '' });
+                      }
+                    } else {
+                      setErrors({ ...errors, workersCount: '' });
+                    }
+                  }}
                   keyboardType="numeric"
+                  error={!!errors.workersCount}
+                  maxLength={4}
                 />
+                {errors.workersCount && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                    <MaterialIcons name="error-outline" size={16} color="#ef4444" />
+                    <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                      {errors.workersCount}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Seating Capacity */}
-              <View className="mb-0">
+              <View style={{ marginBottom: 0 }}>
                 <Label>Seating Capacity</Label>
                 <Input
                   placeholder="e.g., 80"
                   value={formData.seatingCapacity}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, seatingCapacity: text })
-                  }
+                  onChangeText={(text) => {
+                    const numericText = text.replace(/[^0-9]/g, '');
+                    setFormData({ ...formData, seatingCapacity: numericText });
+                    if (numericText) {
+                      const capacity = parseInt(numericText);
+                      if (isNaN(capacity) || capacity < 1 || capacity > 10000) {
+                        setErrors({ ...errors, seatingCapacity: 'Seating capacity must be between 1 and 10000' });
+                      } else {
+                        setErrors({ ...errors, seatingCapacity: '' });
+                      }
+                    } else {
+                      setErrors({ ...errors, seatingCapacity: '' });
+                    }
+                  }}
                   keyboardType="numeric"
+                  error={!!errors.seatingCapacity}
+                  maxLength={5}
                 />
+                {errors.seatingCapacity && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                    <MaterialIcons name="error-outline" size={16} color="#ef4444" />
+                    <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                      {errors.seatingCapacity}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
             {/* Operating Hours */}
-            <View className="mb-6">
+            <View style={{ marginBottom: 24 }}>
               <Label>Operating Hours (JSON format)</Label>
               <Textarea
                 placeholder='{"monday": "9:00-17:00", "tuesday": "9:00-17:00"}'
                 value={formData.operatingHours}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, operatingHours: text })
-                }
+                onChangeText={(text) => {
+                  setFormData({ ...formData, operatingHours: text });
+                  if (text.trim()) {
+                    try {
+                      const parsed = JSON.parse(text);
+                      if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+                        setErrors({ ...errors, operatingHours: 'Operating hours must be a valid JSON object' });
+                      } else {
+                        setErrors({ ...errors, operatingHours: '' });
+                      }
+                    } catch (e) {
+                      setErrors({ ...errors, operatingHours: 'Invalid JSON format' });
+                    }
+                  } else {
+                    setErrors({ ...errors, operatingHours: '' });
+                  }
+                }}
+                error={!!errors.operatingHours}
+                maxLength={1000}
               />
-              <View style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                marginTop: 6,
-                backgroundColor: '#1f2937',
-                padding: 8,
-                borderRadius: 8
-              }}>
-                <MaterialIcons name="lightbulb-outline" size={14} color="#6b7280" />
-                <Text style={{ color: '#9ca3af', fontSize: 11, marginLeft: 6, flex: 1 }}>
-                  Enter as JSON object. Leave empty to configure later
-                </Text>
-              </View>
+              {errors.operatingHours ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                  <MaterialIcons name="error-outline" size={16} color="#ef4444" />
+                  <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                    {errors.operatingHours}
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'flex-start', 
+                  marginTop: 8,
+                  backgroundColor: '#1e293b',
+                  padding: 12,
+                  borderRadius: 10,
+                  borderLeftWidth: 3,
+                  borderLeftColor: '#3b82f6'
+                }}>
+                  <MaterialIcons name="info-outline" size={18} color="#3b82f6" style={{ marginTop: 1 }} />
+                  <Text style={{ color: '#94a3b8', fontSize: 12, marginLeft: 8, flex: 1, lineHeight: 18 }}>
+                    Enter as JSON object. Leave empty to configure later
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Active Status */}
-            <View className="mb-0">
+            <View style={{ marginBottom: 0 }}>
               <View style={{ 
                 flexDirection: 'row', 
                 alignItems: 'center', 
                 justifyContent: 'space-between', 
-                backgroundColor: '#111827', 
-                borderRadius: 12, 
-                padding: 18,
+                backgroundColor: '#1e293b', 
+                borderRadius: 16, 
+                padding: 20,
                 borderWidth: 1,
-                borderColor: '#374151'
+                borderColor: '#334155'
               }}>
-                <View className="flex-1">
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                    <MaterialIcons name="power-settings-new" size={20} color="#10b981" />
-                    <Text className="text-white font-bold text-base ml-2">
+                <View style={{ flex: 1, marginRight: 16 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                    <View style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      backgroundColor: formData.isActive ? '#05402820' : '#7f1d1d20',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: 10
+                    }}>
+                      <MaterialIcons 
+                        name="power-settings-new" 
+                        size={18} 
+                        color={formData.isActive ? '#10b981' : '#ef4444'} 
+                      />
+                    </View>
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: '#f1f5f9' }}>
                       Active Status
                     </Text>
                   </View>
-                  <Text className="text-gray-400 text-sm">
+                  <Text style={{ fontSize: 13, color: '#94a3b8', marginLeft: 42 }}>
                     Restaurant will be {formData.isActive ? 'visible' : 'hidden'} to customers
                   </Text>
                 </View>
@@ -567,8 +909,8 @@ export default function NewRestaurantScreen() {
                 />
               </View>
             </View>
-          </CardContent>
-        </Card>
+          </View>
+        </View>
       );
     }
 
@@ -581,20 +923,37 @@ export default function NewRestaurantScreen() {
         <View className="mt-6 mb-8">
           <TouchableOpacity
             onPress={handleNext}
-            style={{ backgroundColor: '#dc2626', borderRadius: 12, padding: 16, marginBottom: 12 }}
-            activeOpacity={0.7}
+            style={{ 
+              backgroundColor: '#dc2626', 
+              borderRadius: 12, 
+              padding: 16, 
+              marginBottom: 12,
+              shadowColor: '#dc2626',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 8
+            }}
+            activeOpacity={0.8}
           >
-            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
-              Next Step →
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+                Continue to Contact Details
+              </Text>
+              <MaterialIcons name="arrow-forward" size={20} color="white" style={{ marginLeft: 8 }} />
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleCancel}
-            style={{ padding: 16 }}
+            style={{ 
+              padding: 16,
+              borderRadius: 12,
+              backgroundColor: 'transparent'
+            }}
             activeOpacity={0.7}
           >
-            <Text style={{ color: '#6b7280', textAlign: 'center', fontWeight: '600', fontSize: 16 }}>
+            <Text style={{ color: '#9ca3af', textAlign: 'center', fontWeight: '600', fontSize: 15 }}>
               Cancel
             </Text>
           </TouchableOpacity>
@@ -607,30 +966,57 @@ export default function NewRestaurantScreen() {
         <View className="mt-6 mb-8">
           <TouchableOpacity
             onPress={handleNext}
-            style={{ backgroundColor: '#dc2626', borderRadius: 12, padding: 16, marginBottom: 12 }}
-            activeOpacity={0.7}
+            style={{ 
+              backgroundColor: '#dc2626', 
+              borderRadius: 12, 
+              padding: 16, 
+              marginBottom: 12,
+              shadowColor: '#dc2626',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 8
+            }}
+            activeOpacity={0.8}
           >
-            <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
-              Next Step →
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+                Continue to Details
+              </Text>
+              <MaterialIcons name="arrow-forward" size={20} color="white" style={{ marginLeft: 8 }} />
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleBack}
-            style={{ backgroundColor: '#1f2937', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 2, borderColor: '#374151' }}
-            activeOpacity={0.7}
+            style={{ 
+              backgroundColor: '#1f2937', 
+              borderRadius: 12, 
+              padding: 16, 
+              marginBottom: 12, 
+              borderWidth: 2, 
+              borderColor: '#374151' 
+            }}
+            activeOpacity={0.8}
           >
-            <Text style={{ color: '#d1d5db', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
-              ← Back
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <MaterialIcons name="arrow-back" size={20} color="#d1d5db" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#d1d5db', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+                Back to Basic Info
+              </Text>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleCancel}
-            style={{ padding: 16 }}
+            style={{ 
+              padding: 16,
+              borderRadius: 12,
+              backgroundColor: 'transparent'
+            }}
             activeOpacity={0.7}
           >
-            <Text style={{ color: '#6b7280', textAlign: 'center', fontWeight: '600', fontSize: 16 }}>
+            <Text style={{ color: '#9ca3af', textAlign: 'center', fontWeight: '600', fontSize: 15 }}>
               Cancel
             </Text>
           </TouchableOpacity>
@@ -647,23 +1033,31 @@ export default function NewRestaurantScreen() {
             style={{ 
               backgroundColor: isSubmitting ? '#991b1b' : '#dc2626', 
               borderRadius: 12, 
-              padding: 16, 
+              padding: 18, 
               marginBottom: 12,
-              opacity: isSubmitting ? 0.7 : 1
+              opacity: isSubmitting ? 0.7 : 1,
+              shadowColor: isSubmitting ? 'transparent' : '#dc2626',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: isSubmitting ? 0 : 8
             }}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
           >
             {isSubmitting ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                <ActivityIndicator color="white" size="small" style={{ marginRight: 8 }} />
+                <ActivityIndicator color="white" size="small" style={{ marginRight: 10 }} />
                 <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
-                  Creating...
+                  Creating Restaurant...
                 </Text>
               </View>
             ) : (
-              <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
-                Create Restaurant
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                <MaterialIcons name="check-circle" size={22} color="white" style={{ marginRight: 8 }} />
+                <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+                  Create Restaurant
+                </Text>
+              </View>
             )}
           </TouchableOpacity>
 
@@ -679,11 +1073,14 @@ export default function NewRestaurantScreen() {
               borderColor: '#374151',
               opacity: isSubmitting ? 0.5 : 1
             }}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
           >
-            <Text style={{ color: '#d1d5db', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
-              ← Back
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <MaterialIcons name="arrow-back" size={20} color="#d1d5db" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#d1d5db', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+                Back to Contact
+              </Text>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -691,11 +1088,13 @@ export default function NewRestaurantScreen() {
             disabled={isSubmitting}
             style={{ 
               padding: 16,
+              borderRadius: 12,
+              backgroundColor: 'transparent',
               opacity: isSubmitting ? 0.5 : 1
             }}
             activeOpacity={0.7}
           >
-            <Text style={{ color: '#6b7280', textAlign: 'center', fontWeight: '600', fontSize: 16 }}>
+            <Text style={{ color: '#9ca3af', textAlign: 'center', fontWeight: '600', fontSize: 15 }}>
               Cancel
             </Text>
           </TouchableOpacity>
@@ -718,39 +1117,40 @@ export default function NewRestaurantScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#000000' }}>
+    <View style={{ flex: 1, backgroundColor: '#020617' }}>
       <KeyboardAvoidingView 
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 20}
-        enabled
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
         <ScrollView 
           style={{ flex: 1 }}
           contentContainerStyle={{ 
-            paddingHorizontal: 16, 
-            paddingVertical: 24,
-            paddingBottom: Platform.OS !== 'web' ? 100 : 24,
-            alignItems: 'center',
-            flexGrow: 1
+            paddingHorizontal: isWeb && isLargeScreen ? 40 : 20, 
+            paddingVertical: isWeb && isLargeScreen ? 48 : 32,
+            paddingBottom: Platform.OS !== 'web' ? 100 : isWeb && isLargeScreen ? 48 : 32,
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          bounces={true}
-          alwaysBounceVertical={false}
-          scrollEventThrottle={16}
         >
           <View style={{ 
             width: '100%', 
-            maxWidth: Platform.OS === 'web' ? 800 : SCREEN_WIDTH - 32
+            maxWidth: isWeb && isLargeScreen ? 900 : '100%',
+            marginHorizontal: 'auto'
           }}>
             {/* Header */}
-            <View style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 28, fontWeight: 'bold', color: 'white', marginBottom: 8 }}>
-                Add New Restaurant
+            <View style={{ marginBottom: isWeb && isLargeScreen ? 40 : 32 }}>
+              <Text style={{ 
+                fontSize: isWeb && isLargeScreen ? 36 : 28, 
+                fontWeight: '800', 
+                color: '#ffffff', 
+                marginBottom: 10,
+                letterSpacing: -0.5
+              }}>
+                Create New Restaurant
               </Text>
-              <Text style={{ color: '#9ca3af', fontSize: 14 }}>
-                {getStepTitle()}
+              <Text style={{ color: '#94a3b8', fontSize: isWeb && isLargeScreen ? 16 : 14, lineHeight: 22 }}>
+                Let's set up your restaurant profile in just a few steps
               </Text>
             </View>
 

@@ -1,23 +1,16 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text } from 'react-native';
 import { useState } from 'react';
 import { Stack, Link, useRouter } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Container } from '@/components/ui/Container';
-import { getSession, signIn } from '@/lib/auth-client';
+import { getSession } from '@/lib/auth-client';
 import React from 'react';
 import { authAPI } from '@/lib/api';
-import { Ionicons } from '@expo/vector-icons';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Alert } from '@/components/ui/Alert';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 
 export function SignInForm() {
   const router = useRouter();
@@ -32,7 +25,6 @@ export function SignInForm() {
     setError(null);
     try {
       const result = await authAPI.signIn({ email, password });
-      console.log('Sign-in successful', result);
 
       if (result.data?.user) {
         const session = await getSession();
@@ -56,7 +48,9 @@ export function SignInForm() {
       <Container>
         <Text className="mb-20 mt-20 text-2xl font-semibold text-white">Welcome back!</Text>
 
-        {error ? <Alert variant="destructive" title="Error" description={error} className='mb-10' /> : null}
+        {error ? (
+          <Alert variant="destructive" title="Error" description={error} className="mb-10" />
+        ) : null}
         <Card className="border-2 px-3 pb-20 pt-10">
           <View className="gap-3">
             <View>
@@ -76,18 +70,13 @@ export function SignInForm() {
               <Label nativeID="password" required>
                 Password
               </Label>
-              <Input
+
+              <PasswordInput
                 id="password"
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
-                secureTextEntry={!showPassword}
               />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={{ position: 'absolute', right: 10, top: 35 }}>
-                <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color="gray" />
-              </TouchableOpacity>
             </View>
             <Button
               title={loading ? 'Signing in…' : 'Sign In'}

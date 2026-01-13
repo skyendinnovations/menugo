@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { Stack, Link, useRouter } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Container } from '@/components/ui/Container';
-import { Select } from '@/components/ui/Select';
-import { authAPI, SignUpData } from '@/lib/api';
-import { Ionicons } from '@expo/vector-icons';
+import { authAPI } from '@/lib/api';
+
+import { PasswordInput } from '@/components/ui/PasswordInput';
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -30,7 +30,6 @@ export default function SignUpScreen() {
         password,
         role,
       });
-      console.log('Sign-up successful', result);
       // Force refetch the session to update the auth router
       await refetch();
       router.push('/(auth)/sign-in');
@@ -45,7 +44,7 @@ export default function SignUpScreen() {
     <ScrollView className="flex flex-1 bg-black py-20">
       <Stack.Screen options={{ title: 'Sign Up', headerShown: false }} />
       <Container>
-        <Text className="mb-4 text-2xl font-semibold text-white mb-10">Create account</Text>
+        <Text className="mb-10 text-2xl font-semibold text-white">Create account</Text>
         {error ? <Text className="mb-2 text-red-600">{error}</Text> : null}
         <View className="gap-3">
           <View>
@@ -65,18 +64,12 @@ export default function SignUpScreen() {
           </View>
           <View>
             <Label nativeID="password">Password</Label>
-            <Input
+            <PasswordInput
               id="password"
               value={password}
               onChangeText={setPassword}
               placeholder="••••••••"
-              secureTextEntry={!showPassword}
             />
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              style={{ position: 'absolute', right: 10, top: 35 }}>
-              <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color="gray" />
-            </TouchableOpacity>
           </View>
           <View className="mt-5">
             <Label nativeID="role">Account Type</Label>
@@ -86,8 +79,8 @@ export default function SignUpScreen() {
                 onPress={() => setRole('user')}
                 className={
                   role === 'user'
-                    ? 'flex-1 bg-red-700'
-                    : 'flex-1 border border-gray-700 bg-transparent'
+                    ? 'flex-1 bg-red-600'
+                    : 'flex-1 border border-gray-600 bg-transparent'
                 }
               />
               <Button
@@ -95,8 +88,8 @@ export default function SignUpScreen() {
                 onPress={() => setRole('admin')}
                 className={
                   role === 'admin'
-                    ? 'flex-1 bg-red-700'
-                    : 'flex-1 border border-gray-700 bg-transparent'
+                    ? 'flex-1 bg-red-600'
+                    : 'flex-1 border border-gray-600 bg-transparent'
                 }
               />
             </View>
@@ -106,10 +99,10 @@ export default function SignUpScreen() {
               title={loading ? 'Creating…' : 'Sign Up'}
               onPress={onSubmit}
               disabled={loading || !email || !password || !name}
-              className="bg-red-700"
+              className="bg-red-600"
             />
             <Link href="/(auth)/sign-in" asChild>
-              <Button title="Already have an account? Sign In" className="bg-red-700" />
+              <Button title="Already have an account? Sign In" className="bg-red-600" />
             </Link>
           </View>
         </View>

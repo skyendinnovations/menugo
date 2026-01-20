@@ -53,6 +53,34 @@ class RestaurantRepository {
         return allRestaurants;
     }
 
+    async findByUserId(userId: string) {
+        // Find restaurants where the user is a member
+        const userRestaurants = await db
+            .select({
+                id: restaurants.id,
+                name: restaurants.name,
+                slug: restaurants.slug,
+                description: restaurants.description,
+                address: restaurants.address,
+                phone: restaurants.phone,
+                email: restaurants.email,
+                website: restaurants.website,
+                logo: restaurants.logo,
+                tableCountRange: restaurants.tableCountRange,
+                workersCount: restaurants.workersCount,
+                seatingCapacity: restaurants.seatingCapacity,
+                workflowSettings: restaurants.workflowSettings,
+                operatingHours: restaurants.operatingHours,
+                isActive: restaurants.isActive,
+                createdAt: restaurants.createdAt,
+                updatedAt: restaurants.updatedAt,
+            })
+            .from(restaurants)
+            .innerJoin(restaurantMembers, eq(restaurants.id, restaurantMembers.restaurantId))
+            .where(eq(restaurantMembers.userId, userId));
+        return userRestaurants;
+    }
+
     async update(id: number, data: CreateRestaurantDBInput) {
         const [restaurant] = await db
             .update(restaurants)

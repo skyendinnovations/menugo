@@ -5,8 +5,7 @@ export default function RestaurantsLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-      }}
-    >
+      }}>
       <Stack.Screen
         name="index"
         options={{
@@ -14,7 +13,7 @@ export default function RestaurantsLayout() {
         }}
       />
       <Stack.Screen
-        name="new_restaurant"
+        name="new"
         options={{
           title: 'Add Restaurant',
           presentation: 'modal',

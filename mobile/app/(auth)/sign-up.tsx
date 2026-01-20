@@ -30,7 +30,6 @@ export default function SignUpScreen() {
         password,
         role,
       });
-      // Force refetch the session to update the auth router
       await refetch();
       router.push('/(auth)/sign-in');
     } catch (e: any) {

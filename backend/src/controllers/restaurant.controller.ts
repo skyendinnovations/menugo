@@ -43,7 +43,15 @@ class RestaurantController {
 
   async getRestaurants(req: Request, res: Response, next: NextFunction) {
     try {
-      const restaurants = await restaurantService.getAllRestaurants();
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "User not authenticated",
+        });
+      }
+
+      const restaurants = await restaurantService.getRestaurantsByUserId(userId);
       return res.status(200).json({
         success: true,
         message: "Restaurants retrieved successfully",

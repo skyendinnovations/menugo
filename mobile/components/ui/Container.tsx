@@ -5,7 +5,11 @@ interface ContainerProps extends ViewProps {
 }
 
 export const Container = ({ children, className, ...props }: ContainerProps) => {
-  return <SafeAreaView className={`${styles.container} ${className || ''}`} {...props}>{children}</SafeAreaView>;
+  return (
+    <SafeAreaView className={`${styles.container} ${className || ''}`} {...props}>
+      {children}
+    </SafeAreaView>
+  );
 };
 
 const styles = {

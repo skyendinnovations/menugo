@@ -54,6 +54,10 @@ class RestaurantService {
     return restaurantRepository.findAll();
   }
 
+  async getRestaurantsByUserId(userId: string) {
+    return restaurantRepository.findByUserId(userId);
+  }
+
   async updateRestaurant(id: number, payload: CreateRestaurantDTO) {
     const existing = await restaurantRepository.findById(id);
     if (!existing) throw new Error("Restaurant not found");

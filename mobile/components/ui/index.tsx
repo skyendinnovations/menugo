@@ -2,22 +2,15 @@
 export { Alert } from './Alert';
 export { Avatar } from './Avatar';
 export { Badge } from './Badge';
-export {
-    Card,
-    CardHeader,
-    CardTitle,
-    CardDescription,
-    CardContent,
-    CardFooter
-} from './Card';
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './Card';
 export { Checkbox } from './Checkbox';
 export {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from './Dialog';
 export { Input } from './Input';
 export { Label } from './Label';
@@ -27,13 +20,6 @@ export { Select } from './Select';
 export type { SelectOption } from './Select';
 export { Separator } from './Separator';
 export { Switch } from './Switch';
-export {
-    Table,
-    TableHeader,
-    TableBody,
-    TableRow,
-    TableHead,
-    TableCell
-} from './Table';
+export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './Table';
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './Tabs';
 export { Textarea } from './Textarea';

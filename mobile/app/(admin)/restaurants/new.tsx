@@ -1,9 +1,51 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, useWindowDimensions, ActivityIndicator, Animated } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  useWindowDimensions,
+  ActivityIndicator,
+  Animated,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Input, Label, Textarea, Switch, Card, CardHeader, CardTitle, CardContent, Select, Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui';
+import {
+  Input,
+  Label,
+  Textarea,
+  Switch,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  Select,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui';
 import { restaurantAPI } from '@/lib/api';
+import * as SecureStore from 'expo-secure-store';
+
+const SELECTED_RESTAURANT_KEY = '@selected_restaurant_id';
+const HAS_RESTAURANTS_KEY = '@has_restaurants';
+
+const secureStorage = {
+  setItem: (key: string, value: string): void => {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(key, value);
+      }
+    } else {
+      SecureStore.setItem(key, value);
+    }
+  },
+};
 
 type TableCountRange = 'under_10' | '10_to_20' | '20_to_40' | '40_to_50';
 
@@ -34,7 +76,7 @@ export default function NewRestaurantScreen() {
   const [errorDialog, setErrorDialog] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const progressAnim = React.useRef(new Animated.Value(33.33)).current;
-  
+
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
@@ -74,8 +116,8 @@ export default function NewRestaurantScreen() {
 
   const validateURL = (url: string): boolean => {
     if (!url) return true; // Optional field
-    // Check if it has a domain extension like .com, .org, .net, etc.
-    const domainRegex = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{2,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)$/;
+    const domainRegex =
+      /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{2,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)$/;
     return domainRegex.test(url.trim());
   };
 
@@ -184,7 +226,9 @@ export default function NewRestaurantScreen() {
     setErrors(newErrors);
 
     if (newErrors.workersCount || newErrors.seatingCapacity || newErrors.operatingHours) {
-      setErrorMessage(newErrors.workersCount || newErrors.seatingCapacity || newErrors.operatingHours);
+      setErrorMessage(
+        newErrors.workersCount || newErrors.seatingCapacity || newErrors.operatingHours
+      );
       setErrorDialog(true);
       return false;
     }
@@ -229,10 +273,8 @@ export default function NewRestaurantScreen() {
   };
 
   const handleSubmit = async () => {
-    // Prevent double submission
     if (isSubmitting) return;
 
-    // Validate step 3 before submission
     if (!validateStep3()) {
       return;
     }
@@ -273,12 +315,14 @@ export default function NewRestaurantScreen() {
         }
       }
 
-      console.log('Submitting restaurant data:', payload);
-
       // Call the API
       const response = await restaurantAPI.createRestaurant(payload);
-      
-      console.log('API Response:', response);
+
+      // Save restaurant to SecureStore
+      if (response.data?.id) {
+        secureStorage.setItem(SELECTED_RESTAURANT_KEY, response.data.id.toString());
+        secureStorage.setItem(HAS_RESTAURANTS_KEY, 'true');
+      }
 
       // Show success dialog
       setSuccessDialog(true);
@@ -305,73 +349,85 @@ export default function NewRestaurantScreen() {
     return (
       <View style={{ marginBottom: isWeb ? 40 : 32 }}>
         {/* Progress Bar */}
-        <View style={{ 
-          height: 4, 
-          backgroundColor: '#1f2937', 
-          borderRadius: 2, 
-          marginBottom: 24,
-          overflow: 'hidden'
-        }}>
-          <Animated.View 
-            style={{ 
-              height: '100%', 
+        <View
+          style={{
+            height: 4,
+            backgroundColor: '#1f2937',
+            borderRadius: 2,
+            marginBottom: 24,
+            overflow: 'hidden',
+          }}>
+          <Animated.View
+            style={{
+              height: '100%',
               backgroundColor: '#dc2626',
               borderRadius: 2,
               width: progressAnim.interpolate({
                 inputRange: [0, 100],
                 outputRange: ['0%', '100%'],
               }),
-            }} 
+            }}
           />
         </View>
 
         {/* Step Indicators */}
-        <View style={{ 
-          flexDirection: 'row', 
-          justifyContent: 'space-between',
-          paddingHorizontal: isWeb && isLargeScreen ? 40 : 0,
-        }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            paddingHorizontal: isWeb && isLargeScreen ? 40 : 0,
+          }}>
           {steps.map((step, index) => {
             const isActive = currentStep === step.number;
             const isCompleted = currentStep > step.number;
-            
+
             return (
               <View key={step.number} style={{ flex: 1, alignItems: 'center' }}>
-                <View style={{ 
-                  width: isWeb && isLargeScreen ? 64 : 56, 
-                  height: isWeb && isLargeScreen ? 64 : 56, 
-                  borderRadius: isWeb && isLargeScreen ? 32 : 28,
-                  backgroundColor: isCompleted ? '#10b981' : isActive ? '#dc2626' : '#1f2937',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderWidth: isActive ? 3 : 0,
-                  borderColor: '#fecaca',
-                  ...Platform.select({
-                    web: {
-                      boxShadow: isActive ? '0 10px 25px rgba(220, 38, 38, 0.3)' : 'none',
-                    },
-                    default: {
-                      elevation: isActive ? 8 : 0,
-                      shadowColor: '#dc2626',
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: isActive ? 0.3 : 0,
-                      shadowRadius: 8,
-                    }
-                  })
-                }}>
+                <View
+                  style={{
+                    width: isWeb && isLargeScreen ? 64 : 56,
+                    height: isWeb && isLargeScreen ? 64 : 56,
+                    borderRadius: isWeb && isLargeScreen ? 32 : 28,
+                    backgroundColor: isCompleted ? '#10b981' : isActive ? '#dc2626' : '#1f2937',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: isActive ? 3 : 0,
+                    borderColor: '#fecaca',
+                    ...Platform.select({
+                      web: {
+                        boxShadow: isActive ? '0 10px 25px rgba(220, 38, 38, 0.3)' : 'none',
+                      },
+                      default: {
+                        elevation: isActive ? 8 : 0,
+                        shadowColor: '#dc2626',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: isActive ? 0.3 : 0,
+                        shadowRadius: 8,
+                      },
+                    }),
+                  }}>
                   {isCompleted ? (
-                    <MaterialIcons name="check-circle" size={isWeb && isLargeScreen ? 32 : 28} color="white" />
+                    <MaterialIcons
+                      name="check-circle"
+                      size={isWeb && isLargeScreen ? 32 : 28}
+                      color="white"
+                    />
                   ) : (
-                    <MaterialIcons name={step.icon as any} size={isWeb && isLargeScreen ? 28 : 24} color="white" />
+                    <MaterialIcons
+                      name={step.icon as any}
+                      size={isWeb && isLargeScreen ? 28 : 24}
+                      color="white"
+                    />
                   )}
                 </View>
-                <Text style={{ 
-                  marginTop: 12,
-                  fontSize: isWeb && isLargeScreen ? 14 : 12,
-                  fontWeight: isActive || isCompleted ? '700' : '600',
-                  color: isCompleted ? '#10b981' : isActive ? '#dc2626' : '#6b7280',
-                  textAlign: 'center'
-                }}>
+                <Text
+                  style={{
+                    marginTop: 12,
+                    fontSize: isWeb && isLargeScreen ? 14 : 12,
+                    fontWeight: isActive || isCompleted ? '700' : '600',
+                    color: isCompleted ? '#10b981' : isActive ? '#dc2626' : '#6b7280',
+                    textAlign: 'center',
+                  }}>
                   {step.label}
                 </Text>
               </View>
@@ -399,38 +455,41 @@ export default function NewRestaurantScreen() {
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.3,
           shadowRadius: 12,
-        }
-      })
+        },
+      }),
     };
 
     if (currentStep === 1) {
       return (
         <View style={cardStyle}>
-          <View style={{ 
-            padding: isWeb && isLargeScreen ? 32 : 24,
-            paddingBottom: isWeb && isLargeScreen ? 28 : 20,
-            borderBottomWidth: 1,
-            borderBottomColor: '#1e293b',
-          }}>
+          <View
+            style={{
+              padding: isWeb && isLargeScreen ? 32 : 24,
+              paddingBottom: isWeb && isLargeScreen ? 28 : 20,
+              borderBottomWidth: 1,
+              borderBottomColor: '#1e293b',
+            }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <View style={{ 
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                backgroundColor: '#dc2626',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: 14
-              }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  backgroundColor: '#dc2626',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 14,
+                }}>
                 <MaterialIcons name="restaurant" size={24} color="white" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ 
-                  fontSize: isWeb && isLargeScreen ? 22 : 20, 
-                  fontWeight: '700', 
-                  color: '#ffffff',
-                  marginBottom: 4
-                }}>
+                <Text
+                  style={{
+                    fontSize: isWeb && isLargeScreen ? 22 : 20,
+                    fontWeight: '700',
+                    color: '#ffffff',
+                    marginBottom: 4,
+                  }}>
                   Basic Information
                 </Text>
                 <Text style={{ fontSize: 13, color: '#94a3b8' }}>
@@ -439,7 +498,7 @@ export default function NewRestaurantScreen() {
               </View>
             </View>
           </View>
-          
+
           <View style={{ padding: isWeb && isLargeScreen ? 32 : 24 }}>
             {/* Restaurant Name */}
             <View style={{ marginBottom: 24 }}>
@@ -462,17 +521,41 @@ export default function NewRestaurantScreen() {
                 maxLength={100}
               />
               {errors.name && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginTop: 8,
+                    backgroundColor: '#7f1d1d20',
+                    padding: 10,
+                    borderRadius: 8,
+                  }}>
                   <MaterialIcons name="error-outline" size={16} color="#ef4444" />
-                  <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                  <Text
+                    style={{
+                      marginLeft: 6,
+                      color: '#ef4444',
+                      fontSize: 13,
+                      fontWeight: '500',
+                      flex: 1,
+                    }}>
                     {errors.name}
                   </Text>
                 </View>
               )}
               {!errors.name && formData.name.length > 0 && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#05402820', padding: 10, borderRadius: 8 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginTop: 8,
+                    backgroundColor: '#05402820',
+                    padding: 10,
+                    borderRadius: 8,
+                  }}>
                   <MaterialIcons name="check-circle" size={16} color="#10b981" />
-                  <Text style={{ marginLeft: 6, color: '#10b981', fontSize: 13, fontWeight: '500' }}>
+                  <Text
+                    style={{ marginLeft: 6, color: '#10b981', fontSize: 13, fontWeight: '500' }}>
                     Perfect! That's a great name
                   </Text>
                 </View>
@@ -485,16 +568,17 @@ export default function NewRestaurantScreen() {
               <Textarea
                 placeholder="What makes your restaurant special? Cuisine type, atmosphere, signature dishes..."
                 value={formData.description}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, description: text })
-                }
+                onChangeText={(text) => setFormData({ ...formData, description: text })}
                 maxLength={500}
               />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
-                <Text style={{ color: '#64748b', fontSize: 11 }}>
-                  Optional
-                </Text>
-                <Text style={{ color: formData.description.length > 450 ? '#f59e0b' : '#64748b', fontSize: 11, fontWeight: '600' }}>
+                <Text style={{ color: '#64748b', fontSize: 11 }}>Optional</Text>
+                <Text
+                  style={{
+                    color: formData.description.length > 450 ? '#f59e0b' : '#64748b',
+                    fontSize: 11,
+                    fontWeight: '600',
+                  }}>
                   {formData.description.length}/500
                 </Text>
               </View>
@@ -506,13 +590,16 @@ export default function NewRestaurantScreen() {
               <Textarea
                 placeholder="Street address, city, state, zip code"
                 value={formData.address}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, address: text })
-                }
+                onChangeText={(text) => setFormData({ ...formData, address: text })}
                 maxLength={300}
               />
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 6 }}>
-                <Text style={{ color: formData.address.length > 250 ? '#f59e0b' : '#64748b', fontSize: 11, fontWeight: '600' }}>
+                <Text
+                  style={{
+                    color: formData.address.length > 250 ? '#f59e0b' : '#64748b',
+                    fontSize: 11,
+                    fontWeight: '600',
+                  }}>
                   {formData.address.length}/300
                 </Text>
               </View>
@@ -525,40 +612,41 @@ export default function NewRestaurantScreen() {
     if (currentStep === 2) {
       return (
         <View style={cardStyle}>
-          <View style={{ 
-            padding: isWeb && isLargeScreen ? 32 : 24,
-            paddingBottom: isWeb && isLargeScreen ? 28 : 20,
-            borderBottomWidth: 1,
-            borderBottomColor: '#1e293b',
-          }}>
+          <View
+            style={{
+              padding: isWeb && isLargeScreen ? 32 : 24,
+              paddingBottom: isWeb && isLargeScreen ? 28 : 20,
+              borderBottomWidth: 1,
+              borderBottomColor: '#1e293b',
+            }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <View style={{ 
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                backgroundColor: '#dc2626',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: 14
-              }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  backgroundColor: '#dc2626',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 14,
+                }}>
                 <MaterialIcons name="contact-mail" size={24} color="white" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ 
-                  fontSize: isWeb && isLargeScreen ? 22 : 20, 
-                  fontWeight: '700', 
-                  color: '#ffffff',
-                  marginBottom: 4
-                }}>
+                <Text
+                  style={{
+                    fontSize: isWeb && isLargeScreen ? 22 : 20,
+                    fontWeight: '700',
+                    color: '#ffffff',
+                    marginBottom: 4,
+                  }}>
                   Contact Information
                 </Text>
-                <Text style={{ fontSize: 13, color: '#94a3b8' }}>
-                  How can customers reach you?
-                </Text>
+                <Text style={{ fontSize: 13, color: '#94a3b8' }}>How can customers reach you?</Text>
               </View>
             </View>
           </View>
-          
+
           <View style={{ padding: isWeb && isLargeScreen ? 32 : 24 }}>
             {/* Phone */}
             <View style={{ marginBottom: 24 }}>
@@ -570,7 +658,10 @@ export default function NewRestaurantScreen() {
                   setFormData({ ...formData, phone: text });
                   // Instant validation
                   if (text && !validatePhone(text)) {
-                    setErrors({ ...errors, phone: 'Please enter a valid phone number (min 10 digits)' });
+                    setErrors({
+                      ...errors,
+                      phone: 'Please enter a valid phone number (min 10 digits)',
+                    });
                   } else {
                     setErrors({ ...errors, phone: '' });
                   }
@@ -580,9 +671,24 @@ export default function NewRestaurantScreen() {
                 maxLength={20}
               />
               {errors.phone && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginTop: 8,
+                    backgroundColor: '#7f1d1d20',
+                    padding: 10,
+                    borderRadius: 8,
+                  }}>
                   <MaterialIcons name="error-outline" size={16} color="#ef4444" />
-                  <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                  <Text
+                    style={{
+                      marginLeft: 6,
+                      color: '#ef4444',
+                      fontSize: 13,
+                      fontWeight: '500',
+                      flex: 1,
+                    }}>
                     {errors.phone}
                   </Text>
                 </View>
@@ -610,9 +716,24 @@ export default function NewRestaurantScreen() {
                 maxLength={100}
               />
               {errors.email && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginTop: 8,
+                    backgroundColor: '#7f1d1d20',
+                    padding: 10,
+                    borderRadius: 8,
+                  }}>
                   <MaterialIcons name="error-outline" size={16} color="#ef4444" />
-                  <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                  <Text
+                    style={{
+                      marginLeft: 6,
+                      color: '#ef4444',
+                      fontSize: 13,
+                      fontWeight: '500',
+                      flex: 1,
+                    }}>
                     {errors.email}
                   </Text>
                 </View>
@@ -629,7 +750,10 @@ export default function NewRestaurantScreen() {
                   setFormData({ ...formData, website: text });
                   // Instant validation
                   if (text && !validateURL(text)) {
-                    setErrors({ ...errors, website: 'Please enter a valid URL with domain (e.g., example.com)' });
+                    setErrors({
+                      ...errors,
+                      website: 'Please enter a valid URL with domain (e.g., example.com)',
+                    });
                   } else {
                     setErrors({ ...errors, website: '' });
                   }
@@ -640,9 +764,24 @@ export default function NewRestaurantScreen() {
                 maxLength={200}
               />
               {errors.website && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginTop: 8,
+                    backgroundColor: '#7f1d1d20',
+                    padding: 10,
+                    borderRadius: 8,
+                  }}>
                   <MaterialIcons name="error-outline" size={16} color="#ef4444" />
-                  <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                  <Text
+                    style={{
+                      marginLeft: 6,
+                      color: '#ef4444',
+                      fontSize: 13,
+                      fontWeight: '500',
+                      flex: 1,
+                    }}>
                     {errors.website}
                   </Text>
                 </View>
@@ -655,9 +794,7 @@ export default function NewRestaurantScreen() {
               <Input
                 placeholder="https://example.com/logo.png"
                 value={formData.logo}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, logo: text })
-                }
+                onChangeText={(text) => setFormData({ ...formData, logo: text })}
                 keyboardType="url"
                 autoCapitalize="none"
                 maxLength={500}
@@ -674,31 +811,34 @@ export default function NewRestaurantScreen() {
     if (currentStep === 3) {
       return (
         <View style={cardStyle}>
-          <View style={{ 
-            padding: isWeb && isLargeScreen ? 32 : 24,
-            paddingBottom: isWeb && isLargeScreen ? 28 : 20,
-            borderBottomWidth: 1,
-            borderBottomColor: '#1e293b',
-          }}>
+          <View
+            style={{
+              padding: isWeb && isLargeScreen ? 32 : 24,
+              paddingBottom: isWeb && isLargeScreen ? 28 : 20,
+              borderBottomWidth: 1,
+              borderBottomColor: '#1e293b',
+            }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <View style={{ 
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                backgroundColor: '#dc2626',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: 14
-              }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  backgroundColor: '#dc2626',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 14,
+                }}>
                 <MaterialIcons name="settings" size={24} color="white" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ 
-                  fontSize: isWeb && isLargeScreen ? 22 : 20, 
-                  fontWeight: '700', 
-                  color: '#ffffff',
-                  marginBottom: 4
-                }}>
+                <Text
+                  style={{
+                    fontSize: isWeb && isLargeScreen ? 22 : 20,
+                    fontWeight: '700',
+                    color: '#ffffff',
+                    marginBottom: 4,
+                  }}>
                   Operational Details
                 </Text>
                 <Text style={{ fontSize: 13, color: '#94a3b8' }}>
@@ -707,17 +847,18 @@ export default function NewRestaurantScreen() {
               </View>
             </View>
           </View>
-          
+
           <View style={{ padding: isWeb && isLargeScreen ? 32 : 24 }}>
             {/* Capacity Section */}
-            <View style={{ 
-              backgroundColor: '#1e293b', 
-              padding: isWeb && isLargeScreen ? 24 : 20, 
-              borderRadius: 16, 
-              marginBottom: 24,
-              borderWidth: 1,
-              borderColor: '#334155'
-            }}>
+            <View
+              style={{
+                backgroundColor: '#1e293b',
+                padding: isWeb && isLargeScreen ? 24 : 20,
+                borderRadius: 16,
+                marginBottom: 24,
+                borderWidth: 1,
+                borderColor: '#334155',
+              }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
                 <MaterialIcons name="table-restaurant" size={22} color="#dc2626" />
                 <Text style={{ color: '#f1f5f9', fontSize: 16, fontWeight: '700', marginLeft: 10 }}>
@@ -755,7 +896,10 @@ export default function NewRestaurantScreen() {
                     if (numericText) {
                       const workers = parseInt(numericText);
                       if (isNaN(workers) || workers < 1 || workers > 1000) {
-                        setErrors({ ...errors, workersCount: 'Workers count must be between 1 and 1000' });
+                        setErrors({
+                          ...errors,
+                          workersCount: 'Workers count must be between 1 and 1000',
+                        });
                       } else {
                         setErrors({ ...errors, workersCount: '' });
                       }
@@ -768,9 +912,24 @@ export default function NewRestaurantScreen() {
                   maxLength={4}
                 />
                 {errors.workersCount && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginTop: 8,
+                      backgroundColor: '#7f1d1d20',
+                      padding: 10,
+                      borderRadius: 8,
+                    }}>
                     <MaterialIcons name="error-outline" size={16} color="#ef4444" />
-                    <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                    <Text
+                      style={{
+                        marginLeft: 6,
+                        color: '#ef4444',
+                        fontSize: 13,
+                        fontWeight: '500',
+                        flex: 1,
+                      }}>
                       {errors.workersCount}
                     </Text>
                   </View>
@@ -789,7 +948,10 @@ export default function NewRestaurantScreen() {
                     if (numericText) {
                       const capacity = parseInt(numericText);
                       if (isNaN(capacity) || capacity < 1 || capacity > 10000) {
-                        setErrors({ ...errors, seatingCapacity: 'Seating capacity must be between 1 and 10000' });
+                        setErrors({
+                          ...errors,
+                          seatingCapacity: 'Seating capacity must be between 1 and 10000',
+                        });
                       } else {
                         setErrors({ ...errors, seatingCapacity: '' });
                       }
@@ -802,9 +964,24 @@ export default function NewRestaurantScreen() {
                   maxLength={5}
                 />
                 {errors.seatingCapacity && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginTop: 8,
+                      backgroundColor: '#7f1d1d20',
+                      padding: 10,
+                      borderRadius: 8,
+                    }}>
                     <MaterialIcons name="error-outline" size={16} color="#ef4444" />
-                    <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                    <Text
+                      style={{
+                        marginLeft: 6,
+                        color: '#ef4444',
+                        fontSize: 13,
+                        fontWeight: '500',
+                        flex: 1,
+                      }}>
                       {errors.seatingCapacity}
                     </Text>
                   </View>
@@ -824,7 +1001,10 @@ export default function NewRestaurantScreen() {
                     try {
                       const parsed = JSON.parse(text);
                       if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-                        setErrors({ ...errors, operatingHours: 'Operating hours must be a valid JSON object' });
+                        setErrors({
+                          ...errors,
+                          operatingHours: 'Operating hours must be a valid JSON object',
+                        });
                       } else {
                         setErrors({ ...errors, operatingHours: '' });
                       }
@@ -839,25 +1019,53 @@ export default function NewRestaurantScreen() {
                 maxLength={1000}
               />
               {errors.operatingHours ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, backgroundColor: '#7f1d1d20', padding: 10, borderRadius: 8 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginTop: 8,
+                    backgroundColor: '#7f1d1d20',
+                    padding: 10,
+                    borderRadius: 8,
+                  }}>
                   <MaterialIcons name="error-outline" size={16} color="#ef4444" />
-                  <Text style={{ marginLeft: 6, color: '#ef4444', fontSize: 13, fontWeight: '500', flex: 1 }}>
+                  <Text
+                    style={{
+                      marginLeft: 6,
+                      color: '#ef4444',
+                      fontSize: 13,
+                      fontWeight: '500',
+                      flex: 1,
+                    }}>
                     {errors.operatingHours}
                   </Text>
                 </View>
               ) : (
-                <View style={{ 
-                  flexDirection: 'row', 
-                  alignItems: 'flex-start', 
-                  marginTop: 8,
-                  backgroundColor: '#1e293b',
-                  padding: 12,
-                  borderRadius: 10,
-                  borderLeftWidth: 3,
-                  borderLeftColor: '#3b82f6'
-                }}>
-                  <MaterialIcons name="info-outline" size={18} color="#3b82f6" style={{ marginTop: 1 }} />
-                  <Text style={{ color: '#94a3b8', fontSize: 12, marginLeft: 8, flex: 1, lineHeight: 18 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                    marginTop: 8,
+                    backgroundColor: '#1e293b',
+                    padding: 12,
+                    borderRadius: 10,
+                    borderLeftWidth: 3,
+                    borderLeftColor: '#3b82f6',
+                  }}>
+                  <MaterialIcons
+                    name="info-outline"
+                    size={18}
+                    color="#3b82f6"
+                    style={{ marginTop: 1 }}
+                  />
+                  <Text
+                    style={{
+                      color: '#94a3b8',
+                      fontSize: 12,
+                      marginLeft: 8,
+                      flex: 1,
+                      lineHeight: 18,
+                    }}>
                     Enter as JSON object. Leave empty to configure later
                   </Text>
                 </View>
@@ -866,31 +1074,33 @@ export default function NewRestaurantScreen() {
 
             {/* Active Status */}
             <View style={{ marginBottom: 0 }}>
-              <View style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                justifyContent: 'space-between', 
-                backgroundColor: '#1e293b', 
-                borderRadius: 16, 
-                padding: 20,
-                borderWidth: 1,
-                borderColor: '#334155'
-              }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: '#1e293b',
+                  borderRadius: 16,
+                  padding: 20,
+                  borderWidth: 1,
+                  borderColor: '#334155',
+                }}>
                 <View style={{ flex: 1, marginRight: 16 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                    <View style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      backgroundColor: formData.isActive ? '#05402820' : '#7f1d1d20',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: 10
-                    }}>
-                      <MaterialIcons 
-                        name="power-settings-new" 
-                        size={18} 
-                        color={formData.isActive ? '#10b981' : '#ef4444'} 
+                    <View
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        backgroundColor: formData.isActive ? '#05402820' : '#7f1d1d20',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 10,
+                      }}>
+                      <MaterialIcons
+                        name="power-settings-new"
+                        size={18}
+                        color={formData.isActive ? '#10b981' : '#ef4444'}
                       />
                     </View>
                     <Text style={{ fontSize: 16, fontWeight: '700', color: '#f1f5f9' }}>
@@ -903,9 +1113,7 @@ export default function NewRestaurantScreen() {
                 </View>
                 <Switch
                   checked={formData.isActive}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, isActive: checked })
-                  }
+                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
                 />
               </View>
             </View>
@@ -920,40 +1128,45 @@ export default function NewRestaurantScreen() {
   const renderButtons = () => {
     if (currentStep === 1) {
       return (
-        <View className="mt-6 mb-8">
+        <View style={{ marginTop: 24, marginBottom: 32 }}>
           <TouchableOpacity
             onPress={handleNext}
-            style={{ 
-              backgroundColor: '#dc2626', 
-              borderRadius: 12, 
-              padding: 16, 
+            style={{
+              backgroundColor: '#dc2626',
+              borderRadius: 12,
+              padding: 16,
               marginBottom: 12,
               shadowColor: '#dc2626',
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.3,
               shadowRadius: 8,
-              elevation: 8
+              elevation: 8,
             }}
-            activeOpacity={0.8}
-          >
+            activeOpacity={0.8}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+              <Text
+                style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
                 Continue to Contact Details
               </Text>
-              <MaterialIcons name="arrow-forward" size={20} color="white" style={{ marginLeft: 8 }} />
+              <MaterialIcons
+                name="arrow-forward"
+                size={20}
+                color="white"
+                style={{ marginLeft: 8 }}
+              />
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleCancel}
-            style={{ 
+            style={{
               padding: 16,
               borderRadius: 12,
-              backgroundColor: 'transparent'
+              backgroundColor: 'transparent',
             }}
-            activeOpacity={0.7}
-          >
-            <Text style={{ color: '#9ca3af', textAlign: 'center', fontWeight: '600', fontSize: 15 }}>
+            activeOpacity={0.7}>
+            <Text
+              style={{ color: '#9ca3af', textAlign: 'center', fontWeight: '600', fontSize: 15 }}>
               Cancel
             </Text>
           </TouchableOpacity>
@@ -963,45 +1176,55 @@ export default function NewRestaurantScreen() {
 
     if (currentStep === 2) {
       return (
-        <View className="mt-6 mb-8">
+        <View style={{ marginTop: 24, marginBottom: 32 }}>
           <TouchableOpacity
             onPress={handleNext}
-            style={{ 
-              backgroundColor: '#dc2626', 
-              borderRadius: 12, 
-              padding: 16, 
+            style={{
+              backgroundColor: '#dc2626',
+              borderRadius: 12,
+              padding: 16,
               marginBottom: 12,
               shadowColor: '#dc2626',
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.3,
               shadowRadius: 8,
-              elevation: 8
+              elevation: 8,
             }}
-            activeOpacity={0.8}
-          >
+            activeOpacity={0.8}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+              <Text
+                style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
                 Continue to Details
               </Text>
-              <MaterialIcons name="arrow-forward" size={20} color="white" style={{ marginLeft: 8 }} />
+              <MaterialIcons
+                name="arrow-forward"
+                size={20}
+                color="white"
+                style={{ marginLeft: 8 }}
+              />
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleBack}
-            style={{ 
-              backgroundColor: '#1f2937', 
-              borderRadius: 12, 
-              padding: 16, 
-              marginBottom: 12, 
-              borderWidth: 2, 
-              borderColor: '#374151' 
+            style={{
+              backgroundColor: '#1f2937',
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 12,
+              borderWidth: 2,
+              borderColor: '#374151',
             }}
-            activeOpacity={0.8}
-          >
+            activeOpacity={0.8}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcons name="arrow-back" size={20} color="#d1d5db" style={{ marginRight: 8 }} />
-              <Text style={{ color: '#d1d5db', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+              <MaterialIcons
+                name="arrow-back"
+                size={20}
+                color="#d1d5db"
+                style={{ marginRight: 8 }}
+              />
+              <Text
+                style={{ color: '#d1d5db', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
                 Back to Basic Info
               </Text>
             </View>
@@ -1009,14 +1232,14 @@ export default function NewRestaurantScreen() {
 
           <TouchableOpacity
             onPress={handleCancel}
-            style={{ 
+            style={{
               padding: 16,
               borderRadius: 12,
-              backgroundColor: 'transparent'
+              backgroundColor: 'transparent',
             }}
-            activeOpacity={0.7}
-          >
-            <Text style={{ color: '#9ca3af', textAlign: 'center', fontWeight: '600', fontSize: 15 }}>
+            activeOpacity={0.7}>
+            <Text
+              style={{ color: '#9ca3af', textAlign: 'center', fontWeight: '600', fontSize: 15 }}>
               Cancel
             </Text>
           </TouchableOpacity>
@@ -1026,35 +1249,43 @@ export default function NewRestaurantScreen() {
 
     if (currentStep === 3) {
       return (
-        <View className="mt-6 mb-8">
+        <View style={{ marginTop: 24, marginBottom: 32 }}>
           <TouchableOpacity
             onPress={handleSubmit}
             disabled={isSubmitting}
-            style={{ 
-              backgroundColor: isSubmitting ? '#991b1b' : '#dc2626', 
-              borderRadius: 12, 
-              padding: 18, 
+            style={{
+              backgroundColor: isSubmitting ? '#991b1b' : '#dc2626',
+              borderRadius: 12,
+              padding: 18,
               marginBottom: 12,
               opacity: isSubmitting ? 0.7 : 1,
               shadowColor: isSubmitting ? 'transparent' : '#dc2626',
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.3,
               shadowRadius: 8,
-              elevation: isSubmitting ? 0 : 8
+              elevation: isSubmitting ? 0 : 8,
             }}
-            activeOpacity={0.8}
-          >
+            activeOpacity={0.8}>
             {isSubmitting ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                 <ActivityIndicator color="white" size="small" style={{ marginRight: 10 }} />
-                <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+                <Text
+                  style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
                   Creating Restaurant...
                 </Text>
               </View>
             ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                <MaterialIcons name="check-circle" size={22} color="white" style={{ marginRight: 8 }} />
-                <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                <MaterialIcons
+                  name="check-circle"
+                  size={22}
+                  color="white"
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
                   Create Restaurant
                 </Text>
               </View>
@@ -1064,20 +1295,25 @@ export default function NewRestaurantScreen() {
           <TouchableOpacity
             onPress={handleBack}
             disabled={isSubmitting}
-            style={{ 
-              backgroundColor: '#1f2937', 
-              borderRadius: 12, 
-              padding: 16, 
+            style={{
+              backgroundColor: '#1f2937',
+              borderRadius: 12,
+              padding: 16,
               marginBottom: 12,
-              borderWidth: 2, 
+              borderWidth: 2,
               borderColor: '#374151',
-              opacity: isSubmitting ? 0.5 : 1
+              opacity: isSubmitting ? 0.5 : 1,
             }}
-            activeOpacity={0.8}
-          >
+            activeOpacity={0.8}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-              <MaterialIcons name="arrow-back" size={20} color="#d1d5db" style={{ marginRight: 8 }} />
-              <Text style={{ color: '#d1d5db', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+              <MaterialIcons
+                name="arrow-back"
+                size={20}
+                color="#d1d5db"
+                style={{ marginRight: 8 }}
+              />
+              <Text
+                style={{ color: '#d1d5db', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
                 Back to Contact
               </Text>
             </View>
@@ -1086,15 +1322,15 @@ export default function NewRestaurantScreen() {
           <TouchableOpacity
             onPress={handleCancel}
             disabled={isSubmitting}
-            style={{ 
+            style={{
               padding: 16,
               borderRadius: 12,
               backgroundColor: 'transparent',
-              opacity: isSubmitting ? 0.5 : 1
+              opacity: isSubmitting ? 0.5 : 1,
             }}
-            activeOpacity={0.7}
-          >
-            <Text style={{ color: '#9ca3af', textAlign: 'center', fontWeight: '600', fontSize: 15 }}>
+            activeOpacity={0.7}>
+            <Text
+              style={{ color: '#9ca3af', textAlign: 'center', fontWeight: '600', fontSize: 15 }}>
               Cancel
             </Text>
           </TouchableOpacity>
@@ -1118,38 +1354,43 @@ export default function NewRestaurantScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#020617' }}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-      >
-        <ScrollView 
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}>
+        <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ 
-            paddingHorizontal: isWeb && isLargeScreen ? 40 : 20, 
+          contentContainerStyle={{
+            paddingHorizontal: isWeb && isLargeScreen ? 40 : 20,
             paddingVertical: isWeb && isLargeScreen ? 48 : 32,
             paddingBottom: Platform.OS !== 'web' ? 100 : isWeb && isLargeScreen ? 48 : 32,
           }}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={{ 
-            width: '100%', 
-            maxWidth: isWeb && isLargeScreen ? 900 : '100%',
-            marginHorizontal: 'auto'
-          }}>
+          showsVerticalScrollIndicator={false}>
+          <View
+            style={{
+              width: '100%',
+              maxWidth: isWeb && isLargeScreen ? 900 : '100%',
+              marginHorizontal: 'auto',
+            }}>
             {/* Header */}
             <View style={{ marginBottom: isWeb && isLargeScreen ? 40 : 32 }}>
-              <Text style={{ 
-                fontSize: isWeb && isLargeScreen ? 36 : 28, 
-                fontWeight: '800', 
-                color: '#ffffff', 
-                marginBottom: 10,
-                letterSpacing: -0.5
-              }}>
+              <Text
+                style={{
+                  fontSize: isWeb && isLargeScreen ? 36 : 28,
+                  fontWeight: '800',
+                  color: '#ffffff',
+                  marginBottom: 10,
+                  letterSpacing: -0.5,
+                }}>
                 Create New Restaurant
               </Text>
-              <Text style={{ color: '#94a3b8', fontSize: isWeb && isLargeScreen ? 16 : 14, lineHeight: 22 }}>
+              <Text
+                style={{
+                  color: '#94a3b8',
+                  fontSize: isWeb && isLargeScreen ? 16 : 14,
+                  lineHeight: 22,
+                }}>
                 Let's set up your restaurant profile in just a few steps
               </Text>
             </View>
@@ -1171,12 +1412,13 @@ export default function NewRestaurantScreen() {
         <DialogContent>
           <DialogHeader>
             <View style={{ alignItems: 'center', marginBottom: 12 }}>
-              <View style={{ 
-                backgroundColor: '#059669', 
-                borderRadius: 50, 
-                padding: 16,
-                marginBottom: 12
-              }}>
+              <View
+                style={{
+                  backgroundColor: '#059669',
+                  borderRadius: 50,
+                  padding: 16,
+                  marginBottom: 12,
+                }}>
                 <MaterialIcons name="check-circle" size={48} color="white" />
               </View>
               <DialogTitle>Success!</DialogTitle>
@@ -1189,12 +1431,18 @@ export default function NewRestaurantScreen() {
             <TouchableOpacity
               onPress={() => {
                 setSuccessDialog(false);
-                router.back();
+                router.replace('/(admin)');
               }}
-              style={{ backgroundColor: '#dc2626', paddingHorizontal: 32, paddingVertical: 12, borderRadius: 8 }}
-              activeOpacity={0.8}
-            >
-              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>OK</Text>
+              style={{
+                backgroundColor: '#dc2626',
+                paddingHorizontal: 32,
+                paddingVertical: 12,
+                borderRadius: 8,
+              }}
+              activeOpacity={0.8}>
+              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+                Go to Dashboard
+              </Text>
             </TouchableOpacity>
           </DialogFooter>
         </DialogContent>
@@ -1205,12 +1453,13 @@ export default function NewRestaurantScreen() {
         <DialogContent>
           <DialogHeader>
             <View style={{ alignItems: 'center', marginBottom: 12 }}>
-              <View style={{ 
-                backgroundColor: '#991b1b', 
-                borderRadius: 50, 
-                padding: 16,
-                marginBottom: 12
-              }}>
+              <View
+                style={{
+                  backgroundColor: '#991b1b',
+                  borderRadius: 50,
+                  padding: 16,
+                  marginBottom: 12,
+                }}>
                 <MaterialIcons name="error" size={48} color="white" />
               </View>
               <DialogTitle>Error</DialogTitle>
@@ -1222,9 +1471,13 @@ export default function NewRestaurantScreen() {
           <DialogFooter style={{ justifyContent: 'center' }}>
             <TouchableOpacity
               onPress={() => setErrorDialog(false)}
-              style={{ backgroundColor: '#dc2626', paddingHorizontal: 32, paddingVertical: 12, borderRadius: 8 }}
-              activeOpacity={0.8}
-            >
+              style={{
+                backgroundColor: '#dc2626',
+                paddingHorizontal: 32,
+                paddingVertical: 12,
+                borderRadius: 8,
+              }}
+              activeOpacity={0.8}>
               <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>OK</Text>
             </TouchableOpacity>
           </DialogFooter>

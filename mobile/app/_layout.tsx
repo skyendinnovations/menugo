@@ -17,13 +17,11 @@ export default function Layout() {
   const isAuthenticated = !!data?.user || !!manualSession?.user;
   const userRole = (data?.user as any)?.role || (manualSession?.user as any)?.role;
 
-  // Set mounted state after first render
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    // Don't navigate until mounted and auth is loaded
     if (!isMounted || isPending) return;
 
     const inAuthGroup = segments[0] === '(auth)';

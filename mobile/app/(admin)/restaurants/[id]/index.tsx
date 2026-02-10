@@ -58,16 +58,21 @@ export default function RestaurantDashboard() {
 
   return (
     <>
-      <Stack.Screen options={{ title: restaurant?.name || 'Restaurant' }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView className="flex-1 bg-black p-4">
         {restaurant && (
           <View className="mb-6">
-            <Text className="text-white text-2xl font-bold">{restaurant.name}</Text>
+            <View className="flex-row items-center gap-3">
+              <TouchableOpacity onPress={() => router.back()}>
+                <MaterialIcons name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+              <Text className="text-white text-2xl font-bold">{restaurant.name}</Text>
+            </View>
             {restaurant.description && (
-              <Text className="text-gray-400 mt-1">{restaurant.description}</Text>
+              <Text className="text-gray-400 mt-1 ml-9">{restaurant.description}</Text>
             )}
             {restaurant.address && (
-              <Text className="text-gray-500 text-sm mt-1">{restaurant.address}</Text>
+              <Text className="text-gray-500 text-sm mt-1 ml-9">{restaurant.address}</Text>
             )}
           </View>
         )}

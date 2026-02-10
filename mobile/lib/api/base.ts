@@ -1,19 +1,16 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 class BaseAPI {
     protected baseURL = process.env.EXPO_PUBLIC_API_URL;
 
     protected async getAuthToken(): Promise<string | null> {
         try {
-            // Check if SecureStore is available (not available in web)
-            if (!SecureStore || typeof SecureStore.getItemAsync !== 'function') {
-                console.warn('SecureStore not available, trying localStorage fallback');
-
-                // Fallback to localStorage for web environments
+            // On web, SecureStore native module is not available - use localStorage directly
+            if (Platform.OS === 'web') {
                 if (typeof window !== 'undefined' && window.localStorage) {
                     return localStorage.getItem('menugo_token');
                 }
-
                 return null;
             }
 

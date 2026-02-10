@@ -1,4 +1,4 @@
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { restaurantAPI } from '@/lib/api';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/Label';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Textarea } from '@/components/ui/Textarea';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function EditRestaurant() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -64,8 +65,15 @@ export default function EditRestaurant() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Edit Restaurant' }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView className="flex-1 bg-black p-4">
+        <View className="flex-row items-center gap-3 mb-4">
+          <TouchableOpacity onPress={() => router.back()}>
+            <MaterialIcons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text className="text-white text-xl font-bold">Edit Restaurant</Text>
+        </View>
+
         {error ? <Alert variant="destructive" description={error} className="mb-4" /> : null}
 
         <View className="gap-4">

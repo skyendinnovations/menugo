@@ -1,5 +1,5 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { orderAPI, type Order } from '@/lib/api';
@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const STATUS_COLORS: Record<string, 'default' | 'destructive' | 'success' | 'outline'> = {
   received: 'default',
@@ -19,6 +20,7 @@ const STATUS_COLORS: Record<string, 'default' | 'destructive' | 'success' | 'out
 
 export default function OrdersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -105,10 +107,15 @@ export default function OrdersScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Orders' }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black">
         <View className="flex-row justify-between items-center p-4">
-          <Text className="text-white text-xl font-bold">Orders</Text>
+          <View className="flex-row items-center gap-3">
+            <TouchableOpacity onPress={() => router.back()}>
+              <MaterialIcons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text className="text-white text-xl font-bold">Orders</Text>
+          </View>
           <TouchableOpacity onPress={fetchOrders}>
             <Text className="text-red-500">Refresh</Text>
           </TouchableOpacity>

@@ -39,7 +39,7 @@ export default function UserHomePage() {
           title={signOutLoading ? 'Signing Out...' : 'Sign Out'}
           onPress={handleSignOut}
           disabled={signOutLoading}
-          className="bg-gray-800"
+          className="bg-red-900"
         />
       </View>
     </View>

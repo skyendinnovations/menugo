@@ -19,6 +19,7 @@ export default function Layout() {
     if (isPending) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inPublicGroup = segments[0] === 'order';
 
     if (isAuthenticated && inAuthGroup) {
       if (userRole === 'admin') {
@@ -26,7 +27,7 @@ export default function Layout() {
       } else {
         router.replace('/(user)');
       }
-    } else if (!isAuthenticated && !inAuthGroup) {
+    } else if (!isAuthenticated && !inAuthGroup && !inPublicGroup) {
       router.replace('/(auth)/sign-in');
     }
   }, [isAuthenticated, isPending, segments, userRole, manualSession]);

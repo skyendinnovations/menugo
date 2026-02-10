@@ -53,8 +53,8 @@ class RestaurantService {
     return restaurant;
   }
 
-  async getAllRestaurants() {
-    return restaurantRepository.findAll();
+  async getAllRestaurants(userId: string) {
+    return restaurantRepository.findByUserId(userId);
   }
 
   async updateRestaurant(id: number, payload: CreateRestaurantDTO) {

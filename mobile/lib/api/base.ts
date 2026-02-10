@@ -1,4 +1,4 @@
-import SecureStore from 'expo-secure-store';
+import * as SecureStore from 'expo-secure-store';
 
 class BaseAPI {
     protected baseURL = process.env.EXPO_PUBLIC_API_URL;
@@ -11,13 +11,13 @@ class BaseAPI {
 
                 // Fallback to localStorage for web environments
                 if (typeof window !== 'undefined' && window.localStorage) {
-                    return localStorage.getItem('menugo_auth_token');
+                    return localStorage.getItem('menugo_token');
                 }
 
                 return null;
             }
 
-            const token = await SecureStore.getItemAsync('menugo_auth_token');
+            const token = await SecureStore.getItemAsync('menugo_token');
             return token;
         } catch (error) {
             console.error('Failed to get auth token:', error);
@@ -25,7 +25,7 @@ class BaseAPI {
             // Fallback to localStorage if SecureStore fails
             try {
                 if (typeof window !== 'undefined' && window.localStorage) {
-                    return localStorage.getItem('menugo_auth_token');
+                    return localStorage.getItem('menugo_token');
                 }
             } catch (fallbackError) {
                 console.error('Fallback storage also failed:', fallbackError);

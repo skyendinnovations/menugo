@@ -53,6 +53,15 @@ class RestaurantRepository {
         return allRestaurants;
     }
 
+    async findByUserId(userId: string) {
+        const result = await db
+            .select({ restaurant: restaurants })
+            .from(restaurants)
+            .innerJoin(restaurantMembers, eq(restaurantMembers.restaurantId, restaurants.id))
+            .where(eq(restaurantMembers.userId, userId));
+        return result.map((r) => r.restaurant);
+    }
+
     async update(id: number, data: CreateRestaurantDBInput) {
         const [restaurant] = await db
             .update(restaurants)

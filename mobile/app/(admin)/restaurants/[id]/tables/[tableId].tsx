@@ -1,10 +1,11 @@
-import { View, Text, ActivityIndicator, Image, Share, Platform } from 'react-native';
+import { View, Text, ActivityIndicator, Image, Share } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { tableAPI, type Table, type QRData } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function TableDetail() {
   const { id, tableId } = useLocalSearchParams<{ id: string; tableId: string }>();
@@ -49,8 +50,8 @@ export default function TableDetail() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-black justify-center items-center">
-        <ActivityIndicator size="large" color="#dc2626" />
+      <View className="flex-1 bg-slate-900 justify-center items-center">
+        <ActivityIndicator size="large" color="#F97316" />
       </View>
     );
   }
@@ -58,7 +59,7 @@ export default function TableDetail() {
   return (
     <>
       <Stack.Screen options={{ title: `Table #${table?.tableNumber || ''}` }} />
-      <View className="flex-1 bg-black p-4">
+      <View className="flex-1 bg-slate-900 px-5 pt-4">
         {table && (
           <Card className="mb-4">
             <CardHeader>
@@ -66,7 +67,7 @@ export default function TableDetail() {
             </CardHeader>
             <CardContent>
               <View className="flex-row justify-between items-center">
-                <Text className="text-gray-400">Capacity: {table.capacity}</Text>
+                <Text className="text-slate-400">Capacity: {table.capacity}</Text>
                 <Badge variant={table.isActive ? 'success' : 'destructive'}>
                   {table.isActive ? 'Active' : 'Inactive'}
                 </Badge>
@@ -82,7 +83,7 @@ export default function TableDetail() {
             </CardHeader>
             <CardContent className="items-center">
               {qrData.qrDataUrl && (
-                <View className="bg-white p-4 rounded-lg mb-4">
+                <View className="bg-white p-4 rounded-2xl mb-4">
                   <Image
                     source={{ uri: qrData.qrDataUrl }}
                     style={{ width: 250, height: 250 }}
@@ -90,13 +91,14 @@ export default function TableDetail() {
                   />
                 </View>
               )}
-              <Text className="text-gray-400 text-sm text-center mb-4">
+              <Text className="text-slate-400 text-sm text-center mb-4">
                 {qrData.url}
               </Text>
               <Button
                 title="Share QR Code"
                 onPress={handleShare}
-                className="bg-red-600 w-full"
+                icon={<MaterialIcons name="share" size={18} color="#fff" />}
+                size="lg"
               />
             </CardContent>
           </Card>

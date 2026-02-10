@@ -1,4 +1,4 @@
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -6,6 +6,7 @@ import { memberAPI, type Member } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Avatar } from '@/components/ui/Avatar';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function MembersScreen() {
@@ -42,50 +43,58 @@ export default function MembersScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-black p-4">
-        <View className="flex-row justify-between items-center mb-4">
-          <View className="flex-row items-center gap-3">
-            <TouchableOpacity onPress={() => router.back()}>
-              <MaterialIcons name="arrow-back" size={24} color="#fff" />
+      <View className="flex-1 bg-slate-900 px-5 pt-4">
+        <View className="flex-row justify-between items-center mb-5">
+          <View className="flex-row items-center gap-4">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center"
+            >
+              <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
             </TouchableOpacity>
             <Text className="text-white text-xl font-bold">Members</Text>
           </View>
           <Button
             title="+ Invite"
+            size="sm"
             onPress={() => router.push(`/(admin)/restaurants/${id}/members/invite` as any)}
-            className="bg-red-600 rounded-lg px-4 py-2"
           />
         </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#dc2626" />
+          <View className="flex-1 justify-center items-center">
+            <ActivityIndicator size="large" color="#F97316" />
+          </View>
         ) : (
           <FlatList
             data={members}
             keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={{ paddingBottom: 20 }}
             renderItem={({ item }) => (
               <Card className="mb-3">
                 <CardContent>
                   <View className="flex-row justify-between items-center">
-                    <View className="flex-1">
-                      <Text className="text-white font-bold">{item.userName}</Text>
-                      <Text className="text-gray-400 text-sm">{item.userEmail}</Text>
-                      <View className="flex-row gap-1 mt-2 flex-wrap">
-                        {item.isOwner && <Badge variant="destructive">Owner</Badge>}
-                        {item.roles
-                          ?.filter((r) => !(item.isOwner && r.roleName.toLowerCase() === 'owner'))
-                          .map((r) => (
-                            <Badge key={r.roleId} variant="outline">
-                              {r.roleName}
-                            </Badge>
-                          ))}
+                    <View className="flex-row items-center gap-4 flex-1">
+                      <Avatar fallback={item.userName} />
+                      <View className="flex-1">
+                        <Text className="text-white font-bold">{item.userName}</Text>
+                        <Text className="text-slate-400 text-sm">{item.userEmail}</Text>
+                        <View className="flex-row gap-1.5 mt-2 flex-wrap">
+                          {item.isOwner && <Badge variant="destructive">Owner</Badge>}
+                          {item.roles
+                            ?.filter((r) => !(item.isOwner && r.roleName.toLowerCase() === 'owner'))
+                            .map((r) => (
+                              <Badge key={r.roleId} variant="outline">{r.roleName}</Badge>
+                            ))}
+                        </View>
                       </View>
                     </View>
                     {!item.isOwner && (
                       <Button
                         title="Remove"
+                        size="sm"
+                        variant="danger"
                         onPress={() => handleRemove(item.id)}
-                        className="bg-gray-700 px-3 py-1"
                       />
                     )}
                   </View>
@@ -93,7 +102,7 @@ export default function MembersScreen() {
               </Card>
             )}
             ListEmptyComponent={
-              <Text className="text-gray-500 text-center py-8">No members yet</Text>
+              <Text className="text-slate-500 text-center py-10">No members yet</Text>
             }
           />
         )}

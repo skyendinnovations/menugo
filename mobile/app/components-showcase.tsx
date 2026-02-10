@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, View, Text, Pressable } from 'react-native';
+import { ScrollView, View, Text } from 'react-native';
 import { Stack } from 'expo-router';
 import {
     Alert,
@@ -59,13 +59,12 @@ export default function ComponentShowcase() {
     ];
 
     return (
-        <View className="flex-1 bg-gray-950">
+        <View className="flex-1 bg-slate-900">
             <Stack.Screen options={{ title: 'UI Components', headerShown: true }} />
 
-            <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
-                {/* Header */}
+            <ScrollView className="flex-1" contentContainerStyle={{ padding: 20 }}>
                 <Text className="text-3xl font-bold text-white mb-2">UI Components</Text>
-                <Text className="text-gray-400 mb-6">Red & Black Theme for Mobile</Text>
+                <Text className="text-slate-400 mb-6">Design System Showcase</Text>
 
                 <Separator className="mb-6" />
 
@@ -114,6 +113,21 @@ export default function ComponentShowcase() {
 
                 <Separator />
 
+                {/* Buttons */}
+                <ComponentSection title="Buttons">
+                    <View className="gap-3">
+                        <Button title="Primary" onPress={() => {}} />
+                        <Button title="Secondary" variant="secondary" onPress={() => {}} />
+                        <Button title="Ghost" variant="ghost" onPress={() => {}} />
+                        <Button title="Danger" variant="danger" onPress={() => {}} />
+                        <Button title="Success" variant="success" onPress={() => {}} />
+                        <Button title="Small" size="sm" onPress={() => {}} />
+                        <Button title="Large" size="lg" onPress={() => {}} />
+                    </View>
+                </ComponentSection>
+
+                <Separator />
+
                 {/* Cards */}
                 <ComponentSection title="Cards">
                     <Card>
@@ -122,12 +136,12 @@ export default function ComponentShowcase() {
                             <CardDescription>This is a card description</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Text className="text-gray-300">
-                                Card content goes here. This is a beautiful card component with red and black theme.
+                            <Text className="text-slate-300">
+                                Card content goes here. Styled with the new design system.
                             </Text>
                         </CardContent>
                         <CardFooter>
-                            <Button title="Action" onPress={() => { }} />
+                            <Button title="Action" onPress={() => {}} />
                         </CardFooter>
                     </Card>
                 </ComponentSection>
@@ -136,7 +150,7 @@ export default function ComponentShowcase() {
 
                 {/* Form Controls */}
                 <ComponentSection title="Form Controls">
-                    <View className="gap-4">
+                    <View className="gap-5">
                         <View>
                             <Label required>Email Address</Label>
                             <Input
@@ -208,19 +222,17 @@ export default function ComponentShowcase() {
                                 </DialogDescription>
                             </DialogHeader>
                             <DialogFooter>
-                                <View className="flex-row gap-2">
-                                    <Pressable
+                                <View className="flex-row gap-3">
+                                    <Button
+                                        title="Cancel"
+                                        variant="ghost"
                                         onPress={() => setDialogOpen(false)}
-                                        className="bg-gray-700 px-4 py-2 rounded-lg"
-                                    >
-                                        <Text className="text-white">Cancel</Text>
-                                    </Pressable>
-                                    <Pressable
+                                    />
+                                    <Button
+                                        title="Confirm"
+                                        variant="danger"
                                         onPress={() => setDialogOpen(false)}
-                                        className="bg-red-600 px-4 py-2 rounded-lg"
-                                    >
-                                        <Text className="text-white">Confirm</Text>
-                                    </Pressable>
+                                    />
                                 </View>
                             </DialogFooter>
                         </DialogContent>
@@ -290,7 +302,7 @@ export default function ComponentShowcase() {
                         totalPages={10}
                         onPageChange={setCurrentPage}
                     />
-                    <Text className="text-center text-gray-400 mt-2">
+                    <Text className="text-center text-slate-400 mt-2">
                         Current Page: {currentPage}
                     </Text>
                 </ComponentSection>
@@ -310,7 +322,7 @@ function ComponentSection({
 }) {
     return (
         <View className="mb-6">
-            <Text className="text-xl font-bold text-red-600 mb-4">{title}</Text>
+            <Text className="text-xl font-bold text-brand mb-4">{title}</Text>
             <View className="gap-3">
                 {children}
             </View>

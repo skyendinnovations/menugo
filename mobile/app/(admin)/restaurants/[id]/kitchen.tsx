@@ -9,9 +9,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 const COLUMNS = ['received', 'preparing', 'ready'] as const;
 
 const COLUMN_COLORS: Record<string, string> = {
-  received: '#f59e0b',
-  preparing: '#f97316',
-  ready: '#22c55e',
+  received: '#F59E0B',
+  preparing: '#F97316',
+  ready: '#22C55E',
 };
 
 function getElapsedMinutes(createdAt?: string): number {
@@ -20,9 +20,9 @@ function getElapsedMinutes(createdAt?: string): number {
 }
 
 function getUrgencyColor(minutes: number): string {
-  if (minutes < 5) return '#22c55e';
-  if (minutes < 15) return '#f59e0b';
-  return '#ef4444';
+  if (minutes < 5) return '#22C55E';
+  if (minutes < 15) return '#F59E0B';
+  return '#EF4444';
 }
 
 export default function KitchenView() {
@@ -45,7 +45,7 @@ export default function KitchenView() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 10000); // Auto-refresh every 10s
+    const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
   }, [fetchOrders]);
 
@@ -57,7 +57,6 @@ export default function KitchenView() {
     };
     const next = nextMap[currentStatus];
     if (!next) return;
-
     try {
       await orderAPI.updateOrderStatus(restaurantId, orderId, next);
       fetchOrders();
@@ -74,24 +73,21 @@ export default function KitchenView() {
       <TouchableOpacity
         key={order.id}
         onPress={() => handleAdvanceStatus(order.id, order.status)}
+        activeOpacity={0.7}
         className="mb-3"
       >
         <Card>
-          <CardContent className="p-3">
-            <View className="flex-row justify-between items-center mb-2">
+          <CardContent className="p-4">
+            <View className="flex-row justify-between items-center mb-3">
               <Text className="text-white font-bold text-lg">{order.orderNumber}</Text>
-              <View className="flex-row items-center gap-2">
-                <MaterialIcons name="access-time" size={16} color={urgencyColor} />
-                <Text style={{ color: urgencyColor }} className="font-bold">
-                  {elapsed}m
-                </Text>
+              <View className="flex-row items-center gap-2 bg-slate-700 rounded-full px-3 py-1">
+                <MaterialIcons name="access-time" size={14} color={urgencyColor} />
+                <Text style={{ color: urgencyColor }} className="font-bold text-sm">{elapsed}m</Text>
               </View>
             </View>
 
             {order.tableNumber && (
-              <Badge variant="outline" className="mb-2">
-                Table {order.tableNumber}
-              </Badge>
+              <Badge variant="outline" className="mb-3">Table {order.tableNumber}</Badge>
             )}
 
             {order.items?.map((item, idx) => (
@@ -100,22 +96,16 @@ export default function KitchenView() {
                   {item.quantity}x {item.itemName}
                 </Text>
                 {item.variantName && (
-                  <Text className="text-gray-400 text-sm ml-4">
-                    {item.variantName}
-                  </Text>
+                  <Text className="text-slate-400 text-sm ml-4">{item.variantName}</Text>
                 )}
                 {item.notes && (
-                  <Text className="text-yellow-400 text-sm ml-4">
-                    Note: {item.notes}
-                  </Text>
+                  <Text className="text-amber-400 text-sm ml-4">Note: {item.notes}</Text>
                 )}
               </View>
             ))}
 
-            <View className="mt-2 pt-2 border-t border-red-900/50">
-              <Text className="text-gray-400 text-xs text-center">
-                Tap to advance status
-              </Text>
+            <View className="mt-3 pt-3 border-t border-slate-700">
+              <Text className="text-slate-500 text-xs text-center">Tap to advance status</Text>
             </View>
           </CardContent>
         </Card>
@@ -125,20 +115,23 @@ export default function KitchenView() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-black justify-center items-center">
-        <ActivityIndicator size="large" color="#dc2626" />
+      <View className="flex-1 bg-slate-900 justify-center items-center">
+        <ActivityIndicator size="large" color="#F97316" />
       </View>
     );
   }
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Kitchen' }} />
-      <View className="flex-1 bg-black">
-        <View className="flex-row justify-between items-center p-3">
+      <Stack.Screen options={{ title: 'Kitchen', headerStyle: { backgroundColor: '#0F172A' }, headerTintColor: '#F8FAFC', headerShadowVisible: false }} />
+      <View className="flex-1 bg-slate-900">
+        <View className="flex-row justify-between items-center px-4 py-3">
           <Text className="text-white text-xl font-bold">Kitchen View</Text>
-          <TouchableOpacity onPress={fetchOrders}>
-            <MaterialIcons name="refresh" size={24} color="#dc2626" />
+          <TouchableOpacity
+            onPress={fetchOrders}
+            className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center"
+          >
+            <MaterialIcons name="refresh" size={22} color="#F97316" />
           </TouchableOpacity>
         </View>
 
@@ -147,24 +140,19 @@ export default function KitchenView() {
             {COLUMNS.map((col) => {
               const colOrders = orders.filter((o) => o.status === col);
               return (
-                <View key={col} className="w-80 mx-1">
+                <View key={col} className="w-80 mx-1.5">
                   <View
-                    className="rounded-t-lg p-3 items-center"
-                    style={{ backgroundColor: COLUMN_COLORS[col] + '30' }}
+                    className="rounded-xl p-3 items-center mb-2"
+                    style={{ backgroundColor: COLUMN_COLORS[col] + '18' }}
                   >
-                    <Text
-                      className="font-bold text-base uppercase"
-                      style={{ color: COLUMN_COLORS[col] }}
-                    >
+                    <Text className="font-bold text-sm uppercase" style={{ color: COLUMN_COLORS[col] }}>
                       {col} ({colOrders.length})
                     </Text>
                   </View>
-                  <ScrollView className="flex-1 p-2">
+                  <ScrollView className="flex-1">
                     {colOrders.map(renderOrderCard)}
                     {colOrders.length === 0 && (
-                      <Text className="text-gray-600 text-center py-8">
-                        No orders
-                      </Text>
+                      <Text className="text-slate-600 text-center py-10">No orders</Text>
                     )}
                   </ScrollView>
                 </View>

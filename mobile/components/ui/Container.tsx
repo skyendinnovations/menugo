@@ -5,9 +5,9 @@ interface ContainerProps extends ViewProps {
 }
 
 export const Container = ({ children, className, ...props }: ContainerProps) => {
-  return <SafeAreaView className={`${styles.container} ${className || ''}`} {...props}>{children}</SafeAreaView>;
-};
-
-const styles = {
-  container: 'flex flex-1 m-6',
+  return (
+    <SafeAreaView className={`flex flex-1 px-6 ${className || ''}`} {...props}>
+      {children}
+    </SafeAreaView>
+  );
 };

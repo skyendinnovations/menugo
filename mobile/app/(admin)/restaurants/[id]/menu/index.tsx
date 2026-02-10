@@ -1,4 +1,4 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -26,12 +26,9 @@ export default function MenuScreen() {
       const catRes = await menuAPI.getCategories(restaurantId);
       const cats = catRes.data || [];
       setCategories(cats);
-
       if (cats.length > 0 && !selectedCategory) {
         setSelectedCategory(cats[0].id);
       }
-
-      // Fetch items for all categories
       const itemMap: Record<number, MenuItem[]> = {};
       for (const cat of cats) {
         try {
@@ -60,114 +57,114 @@ export default function MenuScreen() {
     }
   };
 
-  const currentItems = selectedCategory ? items[selectedCategory] || [] : [];
-
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-black">
-        <View className="flex-row justify-between items-center p-4">
-          <View className="flex-row items-center gap-3">
-            <TouchableOpacity onPress={() => router.back()}>
-              <MaterialIcons name="arrow-back" size={24} color="#fff" />
+      <View className="flex-1 bg-slate-900">
+        <View className="flex-row justify-between items-center px-5 py-4">
+          <View className="flex-row items-center gap-4">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center"
+            >
+              <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
             </TouchableOpacity>
             <Text className="text-white text-xl font-bold">Menu</Text>
           </View>
           <View className="flex-row gap-2">
             <Button
               title="+ Category"
+              size="sm"
+              variant="secondary"
               onPress={() => router.push(`/(admin)/restaurants/${id}/menu/category-form` as any)}
-              className="bg-gray-700 rounded-lg px-3 py-2"
             />
             <Button
               title="+ Item"
+              size="sm"
               onPress={() => router.push(`/(admin)/restaurants/${id}/menu/item-form` as any)}
-              className="bg-red-600 rounded-lg px-3 py-2"
             />
           </View>
         </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#dc2626" />
-        ) : categories.length === 0 ? (
           <View className="flex-1 justify-center items-center">
-            <MaterialIcons name="restaurant-menu" size={64} color="#374151" />
-            <Text className="text-gray-400 text-lg mt-4">No menu categories yet</Text>
+            <ActivityIndicator size="large" color="#F97316" />
+          </View>
+        ) : categories.length === 0 ? (
+          <View className="flex-1 justify-center items-center px-6">
+            <View className="w-20 h-20 rounded-full bg-slate-800 items-center justify-center mb-4">
+              <MaterialIcons name="restaurant-menu" size={40} color="#64748B" />
+            </View>
+            <Text className="text-slate-400 text-lg font-medium">No menu categories yet</Text>
             <Button
               title="Add Category"
               onPress={() => router.push(`/(admin)/restaurants/${id}/menu/category-form` as any)}
-              className="mt-4 bg-red-600"
+              className="mt-5"
             />
           </View>
         ) : (
-          <>
-            <Tabs defaultValue={String(categories[0]?.id || '')}>
-              <TabsList>
-                {categories.map((cat) => (
-                  <TabsTrigger
-                    key={cat.id}
-                    value={String(cat.id)}
-                    onPress={() => setSelectedCategory(cat.id)}
-                  >
-                    <Text>{cat.name}</Text>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-
+          <Tabs defaultValue={String(categories[0]?.id || '')}>
+            <TabsList>
               {categories.map((cat) => (
-                <TabsContent key={cat.id} value={String(cat.id)}>
-                  <FlatList
-                    data={items[cat.id] || []}
-                    keyExtractor={(item) => String(item.id)}
-                    renderItem={({ item }) => (
-                      <Card className="mb-3">
-                        <CardContent>
-                          <View className="flex-row justify-between items-center">
-                            <View className="flex-1">
-                              <View className="flex-row items-center gap-2">
-                                <Text className="text-white font-bold text-base">{item.name}</Text>
-                                {item.isVeg && (
-                                  <Badge variant="success">Veg</Badge>
-                                )}
-                              </View>
-                              {item.description && (
-                                <Text className="text-gray-400 text-sm mt-1" numberOfLines={2}>
-                                  {item.description}
-                                </Text>
-                              )}
-                              <Text className="text-red-500 font-semibold mt-1">
-                                ${item.price}
-                              </Text>
-                            </View>
-                            <View className="items-end gap-2">
-                              <Switch
-                                checked={item.isAvailable ?? true}
-                                onCheckedChange={() => handleToggleAvailability(item.id)}
-                              />
-                              <TouchableOpacity
-                                onPress={() =>
-                                  router.push(
-                                    `/(admin)/restaurants/${id}/menu/item-form?itemId=${item.id}` as any
-                                  )
-                                }
-                              >
-                                <MaterialIcons name="edit" size={20} color="#6b7280" />
-                              </TouchableOpacity>
-                            </View>
-                          </View>
-                        </CardContent>
-                      </Card>
-                    )}
-                    ListEmptyComponent={
-                      <Text className="text-gray-500 text-center py-8">
-                        No items in this category
-                      </Text>
-                    }
-                  />
-                </TabsContent>
+                <TabsTrigger
+                  key={cat.id}
+                  value={String(cat.id)}
+                  onPressIn={() => setSelectedCategory(cat.id)}
+                >
+                  <Text>{cat.name}</Text>
+                </TabsTrigger>
               ))}
-            </Tabs>
-          </>
+            </TabsList>
+
+            {categories.map((cat) => (
+              <TabsContent key={cat.id} value={String(cat.id)}>
+                <FlatList
+                  data={items[cat.id] || []}
+                  keyExtractor={(item) => String(item.id)}
+                  contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+                  renderItem={({ item }) => (
+                    <Card className="mb-3">
+                      <CardContent>
+                        <View className="flex-row justify-between items-center">
+                          <View className="flex-1 mr-4">
+                            <View className="flex-row items-center gap-2">
+                              <Text className="text-white font-bold text-base">{item.name}</Text>
+                              {item.isVeg && <Badge variant="success">Veg</Badge>}
+                            </View>
+                            {item.description && (
+                              <Text className="text-slate-400 text-sm mt-1" numberOfLines={2}>
+                                {item.description}
+                              </Text>
+                            )}
+                            <Text className="text-brand font-semibold mt-1.5">${item.price}</Text>
+                          </View>
+                          <View className="items-end gap-3">
+                            <Switch
+                              checked={item.isAvailable ?? true}
+                              onCheckedChange={() => handleToggleAvailability(item.id)}
+                            />
+                            <TouchableOpacity
+                              onPress={() =>
+                                router.push(
+                                  `/(admin)/restaurants/${id}/menu/item-form?itemId=${item.id}` as any
+                                )
+                              }
+                              className="w-9 h-9 rounded-lg bg-slate-700 items-center justify-center"
+                            >
+                              <MaterialIcons name="edit" size={18} color="#94A3B8" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </CardContent>
+                    </Card>
+                  )}
+                  ListEmptyComponent={
+                    <Text className="text-slate-500 text-center py-10">No items in this category</Text>
+                  }
+                />
+              </TabsContent>
+            ))}
+          </Tabs>
         )}
       </View>
     </>

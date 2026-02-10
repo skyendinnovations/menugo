@@ -1,8 +1,8 @@
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Modal, ScrollView } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useState, useCallback, useEffect } from 'react';
-import { orderAPI, type Order, type Session } from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { orderAPI, type Order } from '@/lib/api';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -80,49 +80,49 @@ export default function CashierView() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-black justify-center items-center">
-        <ActivityIndicator size="large" color="#dc2626" />
+      <View className="flex-1 bg-slate-900 justify-center items-center">
+        <ActivityIndicator size="large" color="#F97316" />
       </View>
     );
   }
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Cashier' }} />
-      <View className="flex-1 bg-black p-4">
+      <Stack.Screen options={{ title: 'Cashier', headerStyle: { backgroundColor: '#0F172A' }, headerTintColor: '#F8FAFC', headerShadowVisible: false }} />
+      <View className="flex-1 bg-slate-900 px-5 pt-2">
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-white text-xl font-bold">Active Sessions</Text>
-          <TouchableOpacity onPress={fetchSessions}>
-            <MaterialIcons name="refresh" size={24} color="#dc2626" />
+          <TouchableOpacity
+            onPress={fetchSessions}
+            className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center"
+          >
+            <MaterialIcons name="refresh" size={22} color="#F97316" />
           </TouchableOpacity>
         </View>
 
         <FlatList
           data={sessions}
           keyExtractor={(item, idx) => String(item.session?.id || idx)}
+          contentContainerStyle={{ paddingBottom: 20 }}
           renderItem={({ item }) => {
             const session = item.session || item;
             return (
-              <TouchableOpacity onPress={() => handleViewBill(item)}>
+              <TouchableOpacity onPress={() => handleViewBill(item)} activeOpacity={0.7}>
                 <Card className="mb-3">
                   <CardContent>
                     <View className="flex-row justify-between items-center">
                       <View>
-                        <Text className="text-white font-bold text-base">
-                          Table #{item.tableNumber}
-                        </Text>
-                        <Text className="text-gray-400 text-sm">
+                        <Text className="text-white font-bold text-base">Table #{item.tableNumber}</Text>
+                        <Text className="text-slate-400 text-sm mt-0.5">
                           Code: {session.joinCode} | Persons: {session.personsCount}
                         </Text>
-                        <Text className="text-gray-500 text-xs mt-1">
+                        <Text className="text-slate-500 text-xs mt-1">
                           Started: {new Date(session.startTime).toLocaleTimeString()}
                         </Text>
                       </View>
-                      <View className="items-end">
-                        <Badge variant="outline">
-                          ${session.calculatedTotal || '0.00'}
-                        </Badge>
-                        <MaterialIcons name="chevron-right" size={24} color="#6b7280" />
+                      <View className="items-end gap-2">
+                        <Badge variant="default">${session.calculatedTotal || '0.00'}</Badge>
+                        <MaterialIcons name="chevron-right" size={22} color="#64748B" />
                       </View>
                     </View>
                   </CardContent>
@@ -131,29 +131,32 @@ export default function CashierView() {
             );
           }}
           ListEmptyComponent={
-            <View className="flex-1 justify-center items-center py-12">
-              <MaterialIcons name="receipt" size={64} color="#374151" />
-              <Text className="text-gray-500 mt-4">No active sessions</Text>
+            <View className="flex-1 justify-center items-center py-16">
+              <View className="w-20 h-20 rounded-full bg-slate-800 items-center justify-center mb-4">
+                <MaterialIcons name="receipt" size={40} color="#64748B" />
+              </View>
+              <Text className="text-slate-500 text-base">No active sessions</Text>
             </View>
           }
         />
 
-        {/* Bill Modal */}
         <Modal visible={showBill} animationType="slide" transparent>
-          <View className="flex-1 bg-black/90 justify-end">
-            <View className="bg-black border-t border-red-900 rounded-t-2xl p-4 max-h-[85%]">
-              <View className="flex-row justify-between items-center mb-4">
+          <View className="flex-1 bg-black/60 justify-end">
+            <View className="bg-slate-800 border-t border-slate-700 rounded-t-3xl p-5 max-h-[85%]">
+              <View className="flex-row justify-between items-center mb-5">
                 <Text className="text-white text-xl font-bold">Bill Summary</Text>
-                <TouchableOpacity onPress={() => setShowBill(false)}>
-                  <MaterialIcons name="close" size={24} color="#fff" />
+                <TouchableOpacity
+                  onPress={() => setShowBill(false)}
+                  className="w-10 h-10 rounded-full bg-slate-700 items-center justify-center"
+                >
+                  <MaterialIcons name="close" size={22} color="#F8FAFC" />
                 </TouchableOpacity>
               </View>
 
               {selectedSession && (
                 <View className="mb-4">
-                  <Text className="text-gray-400">
-                    Table #{selectedSession.tableNumber} | Code:{' '}
-                    {(selectedSession.session || selectedSession).joinCode}
+                  <Text className="text-slate-400">
+                    Table #{selectedSession.tableNumber} | Code: {(selectedSession.session || selectedSession).joinCode}
                   </Text>
                 </View>
               )}
@@ -163,19 +166,17 @@ export default function CashierView() {
                   <View key={order.id} className="mb-4">
                     <View className="flex-row justify-between items-center mb-1">
                       <Text className="text-white font-bold">{order.orderNumber}</Text>
-                      <Badge
-                        variant={order.status === 'cancelled' ? 'destructive' : 'default'}
-                      >
+                      <Badge variant={order.status === 'cancelled' ? 'destructive' : 'default'}>
                         {order.status}
                       </Badge>
                     </View>
                     {order.items?.map((item, idx) => (
                       <View key={idx} className="flex-row justify-between py-1 ml-4">
-                        <Text className="text-gray-300">
+                        <Text className="text-slate-300 text-sm">
                           {item.quantity}x {item.itemName}
                           {item.variantName ? ` (${item.variantName})` : ''}
                         </Text>
-                        <Text className="text-gray-400">
+                        <Text className="text-slate-400 text-sm">
                           ${(parseFloat(item.priceAtOrder) * item.quantity).toFixed(2)}
                         </Text>
                       </View>
@@ -184,18 +185,18 @@ export default function CashierView() {
                 ))}
               </ScrollView>
 
-              <View className="border-t border-red-900 pt-4 mt-4">
-                <View className="flex-row justify-between mb-4">
+              <View className="border-t border-slate-700 pt-5 mt-4">
+                <View className="flex-row justify-between mb-5">
                   <Text className="text-white text-xl font-bold">Total</Text>
-                  <Text className="text-white text-xl font-bold">
-                    ${calculateTotal().toFixed(2)}
-                  </Text>
+                  <Text className="text-white text-xl font-bold">${calculateTotal().toFixed(2)}</Text>
                 </View>
                 <Button
-                  title={closing ? 'Closing...' : 'Close Session & Settle Bill'}
+                  title="Close Session & Settle Bill"
+                  loading={closing}
                   onPress={handleCloseSession}
                   disabled={closing}
-                  className="bg-green-600"
+                  variant="success"
+                  size="lg"
                 />
               </View>
             </View>

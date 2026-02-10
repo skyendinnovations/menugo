@@ -127,6 +127,10 @@ class MemberService {
     return memberRepository.remove(memberId);
   }
 
+  async getMyInvitations(email: string) {
+    return invitationRepository.findAllPendingByEmail(email);
+  }
+
   async getInvitations(restaurantId: number) {
     return invitationRepository.findByRestaurant(restaurantId);
   }

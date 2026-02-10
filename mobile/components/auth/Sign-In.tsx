@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native';
+import { View, Text, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { Stack, Link, useRouter } from 'expo-router';
 import { Button } from '@/components/ui/Button';
@@ -8,9 +8,9 @@ import { Container } from '@/components/ui/Container';
 import { getSession } from '@/lib/auth-client';
 import React from 'react';
 import { authAPI } from '@/lib/api';
-import { Card } from '@/components/ui/Card';
 import { Alert } from '@/components/ui/Alert';
 import { PasswordInput } from '@/components/ui/PasswordInput';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export function SignInForm() {
   const router = useRouter();
@@ -18,14 +18,12 @@ export function SignInForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   async function onSubmit() {
     setLoading(true);
     setError(null);
     try {
       const result = await authAPI.signIn({ email, password });
-
       if (result.data?.user) {
         const session = await getSession();
         if (session.data?.user.role === 'admin') {
@@ -42,57 +40,64 @@ export function SignInForm() {
       setLoading(false);
     }
   }
+
   return (
-    <View className="flex flex-1 bg-black">
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-slate-900"
+    >
       <Stack.Screen options={{ title: 'Sign In', headerShown: false }} />
-      <Container>
-        <Text className="mb-20 mt-20 text-2xl font-semibold text-white">Welcome back!</Text>
-
-        {error ? (
-          <Alert variant="destructive" title="Error" description={error} className="mb-10" />
-        ) : null}
-        <Card className="border-2 px-3 pb-20 pt-10">
-          <View className="gap-3">
-            <View>
-              <Label nativeID="email" required>
-                Email Address
-              </Label>
-              <Input
-                id="email"
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Enter your email"
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-            </View>
-            <View>
-              <Label nativeID="password" required>
-                Password
-              </Label>
-
-              <PasswordInput
-                id="password"
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-              />
-            </View>
-            <Button
-              title={loading ? 'Signing in…' : 'Sign In'}
-              onPress={onSubmit}
-              disabled={loading || !email || !password}
-              className="mt-8 bg-red-600 py-2 "
-            />
-            <Link href="/(auth)/sign-up" asChild>
-              <Button
-                title="Create an account"
-                className="rounded bg-red-600 px-10 py-2  text-sm"
-              />
-            </Link>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="items-center mb-10">
+          <View className="w-20 h-20 rounded-full bg-brand/15 items-center justify-center mb-5">
+            <MaterialIcons name="restaurant-menu" size={40} color="#F97316" />
           </View>
-        </Card>
-      </Container>
-    </View>
+          <Text className="text-white text-3xl font-bold">Welcome back</Text>
+          <Text className="text-slate-400 text-base mt-2">Sign in to your account</Text>
+        </View>
+
+        {error ? <Alert variant="destructive" description={error} className="mb-6" /> : null}
+
+        <View className="gap-5">
+          <View>
+            <Label nativeID="email" required>Email</Label>
+            <Input
+              id="email"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+          </View>
+          <View>
+            <Label nativeID="password" required>Password</Label>
+            <PasswordInput
+              id="password"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Enter your password"
+            />
+          </View>
+
+          <Button
+            title="Sign In"
+            loading={loading}
+            onPress={onSubmit}
+            disabled={loading || !email || !password}
+            size="lg"
+            className="mt-4"
+          />
+
+          <Link href="/(auth)/sign-up" asChild>
+            <Button title="Create an account" variant="ghost" size="lg" />
+          </Link>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

@@ -3,8 +3,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { publicAPI, type FullMenuCategory } from '@/lib/api';
 import { getDeviceId } from '@/lib/utils/device-id';
-import { CartProvider, useCart, type CartItem } from '@/lib/context/CartContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { CartProvider, useCart } from '@/lib/context/CartContext';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Alert } from '@/components/ui/Alert';
@@ -32,20 +32,13 @@ function OrderScreenContent() {
         const did = await getDeviceId();
         setDeviceId(did);
 
-        // Fetch menu
         const menuRes = await publicAPI.getMenu(slug as string);
         setRestaurantInfo(menuRes.data.restaurant);
         setMenu(menuRes.data.menu);
 
-        // Create or get session
-        const sessionRes = await publicAPI.createOrGetSession(
-          slug as string,
-          Number(table),
-          did
-        );
+        const sessionRes = await publicAPI.createOrGetSession(slug as string, Number(table), did);
         setSession(sessionRes.data);
 
-        // Fetch existing orders
         if (sessionRes.data?.id) {
           const ordersRes = await publicAPI.getSessionOrders(sessionRes.data.id);
           setOrders(ordersRes.data || []);
@@ -94,66 +87,65 @@ function OrderScreenContent() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-black justify-center items-center">
-        <ActivityIndicator size="large" color="#dc2626" />
-        <Text className="text-gray-400 mt-4">Loading menu...</Text>
+      <View className="flex-1 bg-slate-900 justify-center items-center">
+        <ActivityIndicator size="large" color="#F97316" />
+        <Text className="text-slate-400 mt-4">Loading menu...</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-black">
+    <View className="flex-1 bg-slate-900">
       {/* Header */}
-      <View className="bg-black border-b border-red-900 p-4 pt-12">
+      <View className="bg-slate-800 px-5 pt-14 pb-4">
         <Text className="text-white text-xl font-bold">
           {restaurantInfo?.name || 'Restaurant'}
         </Text>
-        <View className="flex-row items-center gap-3 mt-1">
+        <View className="flex-row items-center gap-3 mt-2">
           <Badge variant="outline">Table {table}</Badge>
-          {session && (
-            <Badge variant="default">Code: {session.joinCode}</Badge>
-          )}
+          {session && <Badge variant="default">Code: {session.joinCode}</Badge>}
         </View>
       </View>
 
-      {error ? <Alert variant="destructive" description={error} className="m-4" /> : null}
+      {error ? <Alert variant="destructive" description={error} className="mx-5 mt-4" /> : null}
 
       {/* Menu */}
       {menu.length > 0 ? (
         <Tabs defaultValue={String(menu[0]?.id || '')}>
-          <TabsList>
-            {menu.map((cat) => (
-              <TabsTrigger key={cat.id} value={String(cat.id)}>
-                <Text>{cat.name}</Text>
+          <View className="mt-4">
+            <TabsList>
+              {menu.map((cat) => (
+                <TabsTrigger key={cat.id} value={String(cat.id)}>
+                  <Text>{cat.name}</Text>
+                </TabsTrigger>
+              ))}
+              <TabsTrigger value="orders">
+                <Text>My Orders</Text>
               </TabsTrigger>
-            ))}
-            <TabsTrigger value="orders">
-              <Text>My Orders</Text>
-            </TabsTrigger>
-          </TabsList>
+            </TabsList>
+          </View>
 
           {menu.map((cat) => (
             <TabsContent key={cat.id} value={String(cat.id)}>
               <FlatList
                 data={cat.items.filter((i) => i.isAvailable)}
                 keyExtractor={(item) => String(item.id)}
+                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
                 renderItem={({ item }) => (
-                  <Card className="mb-3 mx-4">
+                  <Card className="mb-3">
                     <CardContent>
                       <View className="flex-row justify-between items-center">
-                        <View className="flex-1">
+                        <View className="flex-1 mr-4">
                           <View className="flex-row items-center gap-2">
                             <Text className="text-white font-bold">{item.name}</Text>
                             {item.isVeg && <Badge variant="success">V</Badge>}
                           </View>
                           {item.description && (
-                            <Text className="text-gray-400 text-sm mt-1" numberOfLines={2}>
+                            <Text className="text-slate-400 text-sm mt-1" numberOfLines={2}>
                               {item.description}
                             </Text>
                           )}
-                          <Text className="text-red-500 font-semibold mt-1">
-                            ${item.price}
-                          </Text>
+                          <Text className="text-brand font-semibold mt-1.5">${item.price}</Text>
                           {item.variants && item.variants.length > 0 && (
                             <View className="flex-row gap-2 mt-2 flex-wrap">
                               {item.variants.map((v) => (
@@ -167,6 +159,7 @@ function OrderScreenContent() {
                                       variantName: v.name,
                                     })
                                   }
+                                  activeOpacity={0.7}
                                 >
                                   <Badge variant="outline">
                                     {v.name} ${v.price}
@@ -184,7 +177,8 @@ function OrderScreenContent() {
                               price: item.price,
                             })
                           }
-                          className="bg-red-600 rounded-full w-10 h-10 items-center justify-center"
+                          activeOpacity={0.7}
+                          className="bg-brand rounded-xl w-11 h-11 items-center justify-center"
                         >
                           <MaterialIcons name="add" size={24} color="#fff" />
                         </TouchableOpacity>
@@ -193,21 +187,19 @@ function OrderScreenContent() {
                   </Card>
                 )}
                 ListEmptyComponent={
-                  <Text className="text-gray-500 text-center py-8">
-                    No items available
-                  </Text>
+                  <Text className="text-slate-500 text-center py-10">No items available</Text>
                 }
               />
             </TabsContent>
           ))}
 
           <TabsContent value="orders">
-            <View className="px-4">
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
               <TouchableOpacity onPress={refreshOrders} className="mb-3">
-                <Text className="text-red-500 text-right">Refresh</Text>
+                <Text className="text-brand text-right font-semibold">Refresh</Text>
               </TouchableOpacity>
               {orders.length === 0 ? (
-                <Text className="text-gray-500 text-center py-8">No orders yet</Text>
+                <Text className="text-slate-500 text-center py-10">No orders yet</Text>
               ) : (
                 orders.map((order: any) => (
                   <Card key={order.id} className="mb-3">
@@ -227,20 +219,21 @@ function OrderScreenContent() {
                         </Badge>
                       </View>
                       {order.items?.map((item: any, idx: number) => (
-                        <Text key={idx} className="text-gray-300 text-sm">
-                          {item.quantity}x {item.itemName} - ${(parseFloat(item.priceAtOrder) * item.quantity).toFixed(2)}
+                        <Text key={idx} className="text-slate-300 text-sm">
+                          {item.quantity}x {item.itemName} - $
+                          {(parseFloat(item.priceAtOrder) * item.quantity).toFixed(2)}
                         </Text>
                       ))}
                     </CardContent>
                   </Card>
                 ))
               )}
-            </View>
+            </ScrollView>
           </TabsContent>
         </Tabs>
       ) : (
         <View className="flex-1 justify-center items-center">
-          <Text className="text-gray-500">Menu not available</Text>
+          <Text className="text-slate-500">Menu not available</Text>
         </View>
       )}
 
@@ -248,24 +241,29 @@ function OrderScreenContent() {
       {cart.itemCount > 0 && (
         <TouchableOpacity
           onPress={() => setShowCart(true)}
-          className="absolute bottom-6 right-6 bg-red-600 rounded-full px-6 py-4 flex-row items-center gap-2"
-          style={{ elevation: 5 }}
+          activeOpacity={0.8}
+          className="absolute bottom-6 left-5 right-5 bg-brand rounded-2xl px-6 py-4 flex-row items-center justify-between"
+          style={{ elevation: 8 }}
         >
-          <MaterialIcons name="shopping-cart" size={20} color="#fff" />
-          <Text className="text-white font-bold">
-            {cart.itemCount} items - ${cart.total.toFixed(2)}
-          </Text>
+          <View className="flex-row items-center gap-3">
+            <MaterialIcons name="shopping-cart" size={22} color="#fff" />
+            <Text className="text-white font-bold text-base">{cart.itemCount} items</Text>
+          </View>
+          <Text className="text-white font-bold text-lg">${cart.total.toFixed(2)}</Text>
         </TouchableOpacity>
       )}
 
       {/* Cart Modal */}
       <Modal visible={showCart} animationType="slide" transparent>
-        <View className="flex-1 bg-black/90 justify-end">
-          <View className="bg-black border-t border-red-900 rounded-t-2xl p-4 max-h-[80%]">
-            <View className="flex-row justify-between items-center mb-4">
+        <View className="flex-1 bg-black/60 justify-end">
+          <View className="bg-slate-800 border-t border-slate-700 rounded-t-3xl p-5 max-h-[80%]">
+            <View className="flex-row justify-between items-center mb-5">
               <Text className="text-white text-xl font-bold">Your Cart</Text>
-              <TouchableOpacity onPress={() => setShowCart(false)}>
-                <MaterialIcons name="close" size={24} color="#fff" />
+              <TouchableOpacity
+                onPress={() => setShowCart(false)}
+                className="w-10 h-10 rounded-full bg-slate-700 items-center justify-center"
+              >
+                <MaterialIcons name="close" size={22} color="#F8FAFC" />
               </TouchableOpacity>
             </View>
 
@@ -273,16 +271,14 @@ function OrderScreenContent() {
               {cart.items.map((item, idx) => (
                 <View
                   key={idx}
-                  className="flex-row justify-between items-center py-3 border-b border-red-900/50"
+                  className="flex-row justify-between items-center py-4 border-b border-slate-700/50"
                 >
                   <View className="flex-1">
                     <Text className="text-white font-semibold">
                       {item.name}
                       {item.variantName ? ` (${item.variantName})` : ''}
                     </Text>
-                    <Text className="text-gray-400 text-sm">
-                      ${item.price} each
-                    </Text>
+                    <Text className="text-slate-400 text-sm mt-0.5">${item.price} each</Text>
                   </View>
                   <View className="flex-row items-center gap-3">
                     <TouchableOpacity
@@ -290,33 +286,34 @@ function OrderScreenContent() {
                         cart.updateQuantity(item.menuItemId, item.quantity - 1, item.variantName)
                       }
                     >
-                      <MaterialIcons name="remove-circle" size={28} color="#dc2626" />
+                      <MaterialIcons name="remove-circle" size={28} color="#F97316" />
                     </TouchableOpacity>
-                    <Text className="text-white font-bold text-lg">{item.quantity}</Text>
+                    <Text className="text-white font-bold text-lg w-6 text-center">
+                      {item.quantity}
+                    </Text>
                     <TouchableOpacity
                       onPress={() =>
                         cart.updateQuantity(item.menuItemId, item.quantity + 1, item.variantName)
                       }
                     >
-                      <MaterialIcons name="add-circle" size={28} color="#dc2626" />
+                      <MaterialIcons name="add-circle" size={28} color="#F97316" />
                     </TouchableOpacity>
                   </View>
                 </View>
               ))}
             </ScrollView>
 
-            <View className="border-t border-red-900 pt-4 mt-4">
-              <View className="flex-row justify-between mb-4">
+            <View className="border-t border-slate-700 pt-5 mt-4">
+              <View className="flex-row justify-between mb-5">
                 <Text className="text-white text-lg font-bold">Total</Text>
-                <Text className="text-white text-lg font-bold">
-                  ${cart.total.toFixed(2)}
-                </Text>
+                <Text className="text-white text-lg font-bold">${cart.total.toFixed(2)}</Text>
               </View>
               <Button
-                title={placing ? 'Placing Order...' : 'Place Order'}
+                title="Place Order"
+                loading={placing}
                 onPress={handlePlaceOrder}
                 disabled={placing || cart.items.length === 0}
-                className="bg-red-600"
+                size="lg"
               />
             </View>
           </View>

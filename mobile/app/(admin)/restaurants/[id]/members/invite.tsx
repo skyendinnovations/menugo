@@ -1,4 +1,4 @@
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { memberAPI, type Role } from '@/lib/api';
@@ -57,44 +57,49 @@ export default function InviteMember() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Invite Member' }} />
-      <ScrollView className="flex-1 bg-black p-4">
-        {error ? <Alert variant="destructive" description={error} className="mb-4" /> : null}
-        {success ? <Alert variant="success" description={success} className="mb-4" /> : null}
+      <Stack.Screen options={{ title: 'Invite Member', headerStyle: { backgroundColor: '#0F172A' }, headerTintColor: '#F8FAFC', headerShadowVisible: false }} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1 bg-slate-900"
+      >
+        <ScrollView className="flex-1 px-5 pt-4" keyboardShouldPersistTaps="handled">
+          {error ? <Alert variant="destructive" description={error} className="mb-5" /> : null}
+          {success ? <Alert variant="success" description={success} className="mb-5" /> : null}
 
-        <View className="gap-4">
-          <View>
-            <Label required>Email</Label>
-            <Input
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Enter email address"
-              keyboardType="email-address"
-              autoCapitalize="none"
+          <View className="gap-5">
+            <View>
+              <Label required>Email</Label>
+              <Input
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter email address"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+            <View>
+              <Label required>Role</Label>
+              <Select
+                value={selectedRole}
+                onValueChange={setSelectedRole}
+                options={roles.map((r) => ({
+                  label: r.name.charAt(0).toUpperCase() + r.name.slice(1),
+                  value: String(r.id),
+                }))}
+                placeholder="Select a role"
+              />
+            </View>
+            <Button
+              title="Send Invitation"
+              loading={loading}
+              onPress={handleInvite}
+              disabled={loading}
+              size="lg"
+              className="mt-2"
             />
           </View>
-
-          <View>
-            <Label required>Role</Label>
-            <Select
-              value={selectedRole}
-              onValueChange={setSelectedRole}
-              options={roles.map((r) => ({
-                label: r.name.charAt(0).toUpperCase() + r.name.slice(1),
-                value: String(r.id),
-              }))}
-              placeholder="Select a role"
-            />
-          </View>
-
-          <Button
-            title={loading ? 'Sending...' : 'Send Invitation'}
-            onPress={handleInvite}
-            disabled={loading}
-            className="bg-red-600 mt-4"
-          />
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </>
   );
 }

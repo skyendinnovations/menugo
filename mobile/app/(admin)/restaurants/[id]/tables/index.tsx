@@ -1,4 +1,4 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -33,16 +33,24 @@ export default function TablesScreen() {
 
   const renderTable = ({ item }: { item: Table }) => (
     <TouchableOpacity
-      onPress={() =>
-        router.push(`/(admin)/restaurants/${id}/tables/${item.id}` as any)
-      }
+      onPress={() => router.push(`/(admin)/restaurants/${id}/tables/${item.id}` as any)}
+      activeOpacity={0.7}
       className="w-[31%] m-[1%]"
     >
       <Card>
-        <CardContent className="items-center py-4">
-          <MaterialIcons name="table-restaurant" size={28} color={item.isActive ? '#22c55e' : '#6b7280'} />
-          <Text className="text-white font-bold mt-2">#{item.tableNumber}</Text>
-          <Text className="text-gray-400 text-xs">Cap: {item.capacity}</Text>
+        <CardContent className="items-center py-5">
+          <View
+            className="w-11 h-11 rounded-xl items-center justify-center mb-2"
+            style={{ backgroundColor: item.isActive ? 'rgba(34,197,94,0.12)' : 'rgba(100,116,139,0.12)' }}
+          >
+            <MaterialIcons
+              name="table-restaurant"
+              size={24}
+              color={item.isActive ? '#22C55E' : '#64748B'}
+            />
+          </View>
+          <Text className="text-white font-bold">#{item.tableNumber}</Text>
+          <Text className="text-slate-500 text-xs mt-0.5">Cap: {item.capacity}</Text>
         </CardContent>
       </Card>
     </TouchableOpacity>
@@ -51,25 +59,28 @@ export default function TablesScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-black p-4">
-        <View className="flex-row justify-between items-center mb-4">
-          <View className="flex-row items-center gap-3">
-            <TouchableOpacity onPress={() => router.back()}>
-              <MaterialIcons name="arrow-back" size={24} color="#fff" />
+      <View className="flex-1 bg-slate-900 px-4 pt-4">
+        <View className="flex-row justify-between items-center mb-5">
+          <View className="flex-row items-center gap-4">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center"
+            >
+              <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
             </TouchableOpacity>
             <Text className="text-white text-xl font-bold">Tables</Text>
           </View>
           <Button
             title="+ Add"
-            onPress={() =>
-              router.push(`/(admin)/restaurants/${id}/tables/create` as any)
-            }
-            className="bg-red-600 rounded-lg px-4 py-2"
+            size="sm"
+            onPress={() => router.push(`/(admin)/restaurants/${id}/tables/create` as any)}
           />
         </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#dc2626" />
+          <View className="flex-1 justify-center items-center">
+            <ActivityIndicator size="large" color="#F97316" />
+          </View>
         ) : (
           <FlatList
             data={tables.sort((a, b) => a.tableNumber - b.tableNumber)}
@@ -77,6 +88,7 @@ export default function TablesScreen() {
             keyExtractor={(item) => String(item.id)}
             numColumns={3}
             showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 20 }}
           />
         )}
       </View>

@@ -1,4 +1,4 @@
-import { View, Text, ScrollView } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState } from 'react';
 import { menuAPI } from '@/lib/api';
@@ -37,30 +37,36 @@ export default function CategoryForm() {
   return (
     <>
       <Stack.Screen options={{ title: 'Add Category' }} />
-      <ScrollView className="flex-1 bg-black p-4">
-        {error ? <Alert variant="destructive" description={error} className="mb-4" /> : null}
-        <View className="gap-4">
-          <View>
-            <Label required>Category Name</Label>
-            <Input value={name} onChangeText={setName} placeholder="e.g. Appetizers" />
-          </View>
-          <View>
-            <Label>Display Order</Label>
-            <Input
-              value={displayOrder}
-              onChangeText={setDisplayOrder}
-              placeholder="0"
-              keyboardType="numeric"
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1 bg-slate-900"
+      >
+        <ScrollView className="flex-1 px-5 pt-4">
+          {error ? <Alert variant="destructive" description={error} className="mb-4" /> : null}
+          <View className="gap-5">
+            <View>
+              <Label required>Category Name</Label>
+              <Input value={name} onChangeText={setName} placeholder="e.g. Appetizers" />
+            </View>
+            <View>
+              <Label>Display Order</Label>
+              <Input
+                value={displayOrder}
+                onChangeText={setDisplayOrder}
+                placeholder="0"
+                keyboardType="numeric"
+              />
+            </View>
+            <Button
+              title="Create Category"
+              loading={loading}
+              onPress={handleSubmit}
+              disabled={loading}
+              size="lg"
             />
           </View>
-          <Button
-            title={loading ? 'Creating...' : 'Create Category'}
-            onPress={handleSubmit}
-            disabled={loading}
-            className="bg-red-600"
-          />
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </>
   );
 }

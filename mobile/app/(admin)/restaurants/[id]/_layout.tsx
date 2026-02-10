@@ -4,8 +4,7 @@ export default function RestaurantDetailLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: '#000' },
-        headerTintColor: '#fff',
+        headerShown: false,
       }}
     />
   );

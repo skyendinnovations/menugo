@@ -1,4 +1,4 @@
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -6,6 +6,7 @@ import { memberAPI, type Member } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function MembersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,10 +41,15 @@ export default function MembersScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Members' }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-black p-4">
         <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-white text-xl font-bold">Members</Text>
+          <View className="flex-row items-center gap-3">
+            <TouchableOpacity onPress={() => router.back()}>
+              <MaterialIcons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text className="text-white text-xl font-bold">Members</Text>
+          </View>
           <Button
             title="+ Invite"
             onPress={() => router.push(`/(admin)/restaurants/${id}/members/invite` as any)}
@@ -66,11 +72,13 @@ export default function MembersScreen() {
                       <Text className="text-gray-400 text-sm">{item.userEmail}</Text>
                       <View className="flex-row gap-1 mt-2 flex-wrap">
                         {item.isOwner && <Badge variant="destructive">Owner</Badge>}
-                        {item.roles?.map((r) => (
-                          <Badge key={r.roleId} variant="outline">
-                            {r.roleName}
-                          </Badge>
-                        ))}
+                        {item.roles
+                          ?.filter((r) => !(item.isOwner && r.roleName.toLowerCase() === 'owner'))
+                          .map((r) => (
+                            <Badge key={r.roleId} variant="outline">
+                              {r.roleName}
+                            </Badge>
+                          ))}
                       </View>
                     </View>
                     {!item.isOwner && (

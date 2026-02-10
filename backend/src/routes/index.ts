@@ -36,6 +36,7 @@ router.use('/restaurants/:restaurantId/orders', authenticate, orderRoutes);
 
 // Accept invitation (authenticated but not restaurant-scoped)
 import { memberController } from '../controllers/member.controller';
+router.get('/invitations/my', authenticate, memberController.getMyInvitations.bind(memberController));
 router.post('/invitations/accept', authenticate, memberController.acceptInvitation.bind(memberController));
 
 // Public routes (NO auth middleware)

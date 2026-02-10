@@ -49,29 +49,35 @@ export default function RestaurantList() {
   const renderRestaurant = ({ item }: { item: Restaurant }) => (
     <TouchableOpacity
       onPress={() => router.push(`/(admin)/restaurants/${item.id}` as any)}
+      activeOpacity={0.7}
       className="mb-3"
     >
       <Card>
         <CardContent>
           <View className="flex-row justify-between items-center">
-            <View className="flex-1">
-              <Text className="text-white text-lg font-bold">{item.name}</Text>
-              {item.description && (
-                <Text className="text-gray-400 text-sm mt-1" numberOfLines={1}>
-                  {item.description}
-                </Text>
-              )}
-              {item.address && (
-                <Text className="text-gray-500 text-xs mt-1" numberOfLines={1}>
-                  {item.address}
-                </Text>
-              )}
+            <View className="flex-row items-center gap-4 flex-1">
+              <View className="w-12 h-12 rounded-xl bg-brand/15 items-center justify-center">
+                <MaterialIcons name="restaurant" size={24} color="#F97316" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-white text-base font-bold">{item.name}</Text>
+                {item.description && (
+                  <Text className="text-slate-400 text-sm mt-0.5" numberOfLines={1}>
+                    {item.description}
+                  </Text>
+                )}
+                {item.address && (
+                  <Text className="text-slate-500 text-xs mt-0.5" numberOfLines={1}>
+                    {item.address}
+                  </Text>
+                )}
+              </View>
             </View>
-            <View className="flex-row items-center gap-2">
+            <View className="flex-row items-center gap-3">
               <Badge variant={item.isActive ? 'success' : 'destructive'}>
                 {item.isActive ? 'Active' : 'Inactive'}
               </Badge>
-              <MaterialIcons name="chevron-right" size={24} color="#6b7280" />
+              <MaterialIcons name="chevron-right" size={22} color="#64748B" />
             </View>
           </View>
         </CardContent>
@@ -80,19 +86,19 @@ export default function RestaurantList() {
   );
 
   return (
-    <View className="flex-1 bg-black p-4">
-      <View className="flex-row justify-between items-center mb-4">
+    <View className="flex-1 bg-slate-900 px-5 pt-2">
+      <View className="flex-row justify-between items-center mb-5">
         <Text className="text-white text-2xl font-bold">My Restaurants</Text>
         <Button
           title="+ New"
+          size="sm"
           onPress={() => router.push('/(admin)/restaurants/create' as any)}
-          className="bg-red-600 rounded-lg px-4 py-2"
         />
       </View>
 
       {loading ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#dc2626" />
+          <ActivityIndicator size="large" color="#F97316" />
         </View>
       ) : (
         <FlatList
@@ -100,17 +106,9 @@ export default function RestaurantList() {
           renderItem={renderRestaurant}
           keyExtractor={(item) => String(item.id)}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 }}
         />
       )}
-
-      <View className="mt-4">
-        <Button
-          title={signOutLoading ? 'Signing Out...' : 'Sign Out'}
-          onPress={handleSignOut}
-          disabled={signOutLoading}
-          className="bg-red-900"
-        />
-      </View>
     </View>
   );
 }

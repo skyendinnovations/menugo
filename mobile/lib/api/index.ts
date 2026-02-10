@@ -9,5 +9,5 @@ export type { MenuCategory, MenuItem, MenuItemVariant, FullMenuCategory } from '
 export { orderAPI } from './order';
 export type { Order, OrderItem, Session } from './order';
 export { memberAPI } from './member';
-export type { Member, Role, Invitation } from './member';
+export type { Member, Role, Invitation, MyInvitation } from './member';
 export { publicAPI } from './public';

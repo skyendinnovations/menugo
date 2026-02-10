@@ -1,4 +1,4 @@
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { publicAPI } from '@/lib/api';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function JoinSession() {
   const router = useRouter();
@@ -25,16 +26,10 @@ export default function JoinSession() {
     setError('');
     try {
       const deviceId = await getDeviceId();
-      const result = await publicAPI.joinSession(
-        joinCode.trim(),
-        deviceId,
-        name.trim() || undefined
-      );
+      const result = await publicAPI.joinSession(joinCode.trim(), deviceId, name.trim() || undefined);
 
       if (result.data?.session) {
-        // Navigate to the session - we need the restaurant slug and table number
-        // For now, show success. In a real app, the session data would include routing info.
-        setError(''); // Clear errors
+        setError('');
         router.back();
       }
     } catch (err: any) {
@@ -45,43 +40,55 @@ export default function JoinSession() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-black p-4 pt-12">
-      <Text className="text-white text-2xl font-bold mb-2">Join a Table</Text>
-      <Text className="text-gray-400 mb-6">
-        Enter the 4-digit code shown on your table's screen
-      </Text>
-
-      {error ? <Alert variant="destructive" description={error} className="mb-4" /> : null}
-
-      <View className="gap-4">
-        <View>
-          <Label required>Join Code</Label>
-          <Input
-            value={joinCode}
-            onChangeText={setJoinCode}
-            placeholder="1234"
-            keyboardType="numeric"
-            maxLength={4}
-            className="text-center text-2xl tracking-widest"
-          />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-slate-900"
+    >
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="items-center mb-8">
+          <View className="w-24 h-24 rounded-full bg-brand/15 items-center justify-center mb-6">
+            <MaterialIcons name="qr-code-scanner" size={48} color="#F97316" />
+          </View>
+          <Text className="text-white text-2xl font-bold">Join a Table</Text>
+          <Text className="text-slate-400 text-base mt-2 text-center">
+            Enter the 4-digit code shown on your table
+          </Text>
         </View>
 
-        <View>
-          <Label>Your Name (optional)</Label>
-          <Input
-            value={name}
-            onChangeText={setName}
-            placeholder="Enter your name"
+        {error ? <Alert variant="destructive" description={error} className="mb-5" /> : null}
+
+        <View className="gap-5">
+          <View>
+            <Label required>Join Code</Label>
+            <Input
+              value={joinCode}
+              onChangeText={setJoinCode}
+              placeholder="1234"
+              keyboardType="numeric"
+              maxLength={4}
+              className="text-center text-2xl tracking-widest"
+            />
+          </View>
+
+          <View>
+            <Label>Your Name (optional)</Label>
+            <Input value={name} onChangeText={setName} placeholder="Enter your name" />
+          </View>
+
+          <Button
+            title="Join Table"
+            loading={loading}
+            onPress={handleJoin}
+            disabled={loading}
+            size="lg"
+            className="mt-4"
           />
         </View>
-
-        <Button
-          title={loading ? 'Joining...' : 'Join Table'}
-          onPress={handleJoin}
-          disabled={loading}
-          className="bg-red-600 mt-4"
-        />
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

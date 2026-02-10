@@ -46,7 +46,6 @@ export default function WaiterView() {
     }
   };
 
-  // Count ready orders per table
   const readyCountByTable: Record<number, number> = {};
   readyOrders.forEach((order) => {
     const tn = order.tableNumber || 0;
@@ -59,100 +58,74 @@ export default function WaiterView() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-black justify-center items-center">
-        <ActivityIndicator size="large" color="#dc2626" />
+      <View className="flex-1 bg-slate-900 justify-center items-center">
+        <ActivityIndicator size="large" color="#F97316" />
       </View>
     );
   }
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Waiter View' }} />
-      <View className="flex-1 bg-black p-4">
+      <Stack.Screen options={{ title: 'Waiter', headerStyle: { backgroundColor: '#0F172A' }, headerTintColor: '#F8FAFC', headerShadowVisible: false }} />
+      <View className="flex-1 bg-slate-900 px-4 pt-2">
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-white text-xl font-bold">Ready for Delivery</Text>
-          <TouchableOpacity onPress={fetchData}>
-            <MaterialIcons name="refresh" size={24} color="#dc2626" />
+          <TouchableOpacity
+            onPress={fetchData}
+            className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center"
+          >
+            <MaterialIcons name="refresh" size={22} color="#F97316" />
           </TouchableOpacity>
         </View>
 
-        {/* Table grid */}
         <FlatList
           data={tables.sort((a, b) => a.tableNumber - b.tableNumber)}
           numColumns={4}
           keyExtractor={(item) => String(item.id)}
           ListHeaderComponent={
-            <View className="mb-3">
-              <Text className="text-gray-400 text-sm mb-2">Tap a table to filter</Text>
-            </View>
+            <Text className="text-slate-400 text-sm mb-3">Tap a table to filter</Text>
           }
           renderItem={({ item: table }) => {
             const count = readyCountByTable[table.tableNumber] || 0;
             const isSelected = selectedTable === table.tableNumber;
             return (
               <TouchableOpacity
-                onPress={() =>
-                  setSelectedTable(
-                    isSelected ? null : table.tableNumber
-                  )
-                }
+                onPress={() => setSelectedTable(isSelected ? null : table.tableNumber)}
+                activeOpacity={0.7}
                 className="w-[23%] m-[1%]"
               >
-                <Card
-                  className={isSelected ? 'border-red-600 border-2' : ''}
-                >
+                <Card className={isSelected ? 'border border-brand' : ''}>
                   <CardContent className="items-center py-3">
-                    <Text className="text-white font-bold">
-                      #{table.tableNumber}
-                    </Text>
-                    {count > 0 && (
-                      <Badge variant="success" className="mt-1">
-                        {count}
-                      </Badge>
-                    )}
+                    <Text className="text-white font-bold">#{table.tableNumber}</Text>
+                    {count > 0 && <Badge variant="success" className="mt-1">{count}</Badge>}
                   </CardContent>
                 </Card>
               </TouchableOpacity>
             );
           }}
           ListFooterComponent={
-            <View className="mt-4">
+            <View className="mt-5">
               <Text className="text-white font-bold text-lg mb-3">
-                {selectedTable
-                  ? `Table #${selectedTable} Orders`
-                  : 'All Ready Orders'}{' '}
-                ({filteredOrders.length})
+                {selectedTable ? `Table #${selectedTable} Orders` : 'All Ready Orders'} ({filteredOrders.length})
               </Text>
               {filteredOrders.map((order) => (
                 <Card key={order.id} className="mb-3">
                   <CardContent>
                     <View className="flex-row justify-between items-center mb-2">
                       <View>
-                        <Text className="text-white font-bold text-base">
-                          {order.orderNumber}
-                        </Text>
-                        <Badge variant="outline" className="mt-1">
-                          Table {order.tableNumber}
-                        </Badge>
+                        <Text className="text-white font-bold text-base">{order.orderNumber}</Text>
+                        <Badge variant="outline" className="mt-1">Table {order.tableNumber}</Badge>
                       </View>
-                      <Button
-                        title="Delivered"
-                        onPress={() => handleMarkDelivered(order.id)}
-                        className="bg-green-600 px-4 py-2"
-                      />
+                      <Button title="Delivered" size="sm" variant="success" onPress={() => handleMarkDelivered(order.id)} />
                     </View>
                     {order.items?.map((item, idx) => (
-                      <Text key={idx} className="text-gray-300 text-sm">
-                        {item.quantity}x {item.itemName}
-                      </Text>
+                      <Text key={idx} className="text-slate-300 text-sm">{item.quantity}x {item.itemName}</Text>
                     ))}
                   </CardContent>
                 </Card>
               ))}
               {filteredOrders.length === 0 && (
-                <Text className="text-gray-500 text-center py-8">
-                  No orders ready for delivery
-                </Text>
+                <Text className="text-slate-500 text-center py-10">No orders ready for delivery</Text>
               )}
             </View>
           }

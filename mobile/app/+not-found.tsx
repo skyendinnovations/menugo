@@ -1,26 +1,21 @@
 import { Link, Stack } from 'expo-router';
-
 import { Text, View } from 'react-native';
-
-import { Container } from '@/components/ui/Container';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function NotFoundScreen() {
   return (
-    <View className={styles.container}>
-      <Stack.Screen options={{ title: 'Oops!' }} />
-      <Container>
-        <Text className={styles.title}>{"This screen doesn't exist."}</Text>
-        <Link href="/" className={styles.link}>
-          <Text className={styles.linkText}>Go to home screen!</Text>
-        </Link>
-      </Container>
+    <View className="flex-1 bg-slate-900 justify-center items-center px-6">
+      <Stack.Screen options={{ title: 'Oops!', headerShown: false }} />
+      <View className="w-20 h-20 rounded-full bg-slate-800 items-center justify-center mb-6">
+        <MaterialIcons name="error-outline" size={40} color="#64748B" />
+      </View>
+      <Text className="text-white text-xl font-bold mb-2">Page Not Found</Text>
+      <Text className="text-slate-400 text-center mb-6">
+        {"This screen doesn't exist."}
+      </Text>
+      <Link href="/">
+        <Text className="text-brand font-semibold text-base">Go to home screen</Text>
+      </Link>
     </View>
   );
 }
-
-const styles = {
-  container: `flex flex-1 bg-white`,
-  title: `text-xl font-bold`,
-  link: `mt-4 pt-4`,
-  linkText: `text-base text-[#2e78b7]`,
-};

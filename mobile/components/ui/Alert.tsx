@@ -3,75 +3,70 @@ import { View, Text, ViewProps } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
 interface AlertProps extends ViewProps {
-    variant?: 'default' | 'destructive' | 'success';
-    title?: string;
-    description?: string;
-    icon?: boolean;
+  variant?: 'default' | 'destructive' | 'success';
+  title?: string;
+  description?: string;
+  icon?: boolean;
 }
 
 export function Alert({
-    variant = 'default',
-    title,
-    description,
-    icon = true,
-    className,
-    ...props
+  variant = 'default',
+  title,
+  description,
+  icon = true,
+  className,
+  ...props
 }: AlertProps) {
-    const getVariantStyles = () => {
-        switch (variant) {
-            case 'destructive':
-                return 'bg-red-900/20 border-red-600';
-            case 'success':
-                return 'bg-green-900/20 border-green-600';
-            default:
-                return 'bg-gray-900/20 border-gray-600';
-        }
-    };
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'destructive':
+        return 'bg-red-500/10 border-red-500/30';
+      case 'success':
+        return 'bg-emerald-500/10 border-emerald-500/30';
+      default:
+        return 'bg-slate-700/50 border-slate-600';
+    }
+  };
 
-    const getIconName = () => {
-        switch (variant) {
-            case 'destructive':
-                return 'error-outline';
-            case 'success':
-                return 'check-circle-outline';
-            default:
-                return 'info-outline';
-        }
-    };
+  const getIconName = () => {
+    switch (variant) {
+      case 'destructive':
+        return 'error-outline';
+      case 'success':
+        return 'check-circle-outline';
+      default:
+        return 'info-outline';
+    }
+  };
 
-    const getIconColor = () => {
-        switch (variant) {
-            case 'destructive':
-                return '#dc2626';
-            case 'success':
-                return '#16a34a';
-            default:
-                return '#9ca3af';
-        }
-    };
+  const getIconColor = () => {
+    switch (variant) {
+      case 'destructive':
+        return '#EF4444';
+      case 'success':
+        return '#10B981';
+      default:
+        return '#94A3B8';
+    }
+  };
 
-    return (
-        <View className={`border rounded-lg p-4 flex-row ${getVariantStyles()} ${className || ''}`} {...props}>
-            {icon && (
-                <MaterialIcons
-                    name={getIconName() as any}
-                    size={20}
-                    color={getIconColor()}
-                    style={{ marginRight: 12, marginTop: 2 }}
-                />
-            )}
-            <View className="flex-1">
-                {title && (
-                    <Text className="text-white font-semibold text-base mb-1">
-                        {title}
-                    </Text>
-                )}
-                {description && (
-                    <Text className="text-gray-300 text-sm">
-                        {description}
-                    </Text>
-                )}
-            </View>
-        </View>
-    );
+  return (
+    <View
+      className={`border rounded-xl p-4 flex-row ${getVariantStyles()} ${className || ''}`}
+      {...props}
+    >
+      {icon && (
+        <MaterialIcons
+          name={getIconName() as any}
+          size={20}
+          color={getIconColor()}
+          style={{ marginRight: 12, marginTop: 2 }}
+        />
+      )}
+      <View className="flex-1">
+        {title && <Text className="text-white font-semibold text-base mb-1">{title}</Text>}
+        {description && <Text className="text-slate-300 text-sm">{description}</Text>}
+      </View>
+    </View>
+  );
 }

@@ -1,4 +1,4 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -71,7 +71,7 @@ export default function OrdersScreen() {
     return (
       <Card className="mb-3">
         <CardContent>
-          <View className="flex-row justify-between items-center mb-2">
+          <View className="flex-row justify-between items-center mb-3">
             <Text className="text-white font-bold text-base">{order.orderNumber}</Text>
             <Badge variant={STATUS_COLORS[order.status] || 'default'}>
               {order.status.toUpperCase()}
@@ -80,23 +80,23 @@ export default function OrdersScreen() {
 
           {order.items?.map((item, idx) => (
             <View key={idx} className="flex-row justify-between py-1">
-              <Text className="text-gray-300">
+              <Text className="text-slate-300 text-sm">
                 {item.quantity}x {item.itemName}
                 {item.variantName ? ` (${item.variantName})` : ''}
               </Text>
-              <Text className="text-gray-400">
+              <Text className="text-slate-400 text-sm">
                 ${(parseFloat(item.priceAtOrder) * item.quantity).toFixed(2)}
               </Text>
             </View>
           ))}
 
-          <View className="flex-row justify-between items-center mt-2 pt-2 border-t border-red-900">
+          <View className="flex-row justify-between items-center mt-3 pt-3 border-t border-slate-700">
             <Text className="text-white font-semibold">Total: ${total.toFixed(2)}</Text>
             {nextStatus && (
               <Button
-                title={`→ ${nextStatus}`}
+                title={nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}
+                size="sm"
                 onPress={() => handleStatusUpdate(order.id, nextStatus)}
-                className="bg-red-600 px-3 py-1 rounded-lg"
               />
             )}
           </View>
@@ -108,29 +108,36 @@ export default function OrdersScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-black">
-        <View className="flex-row justify-between items-center p-4">
-          <View className="flex-row items-center gap-3">
-            <TouchableOpacity onPress={() => router.back()}>
-              <MaterialIcons name="arrow-back" size={24} color="#fff" />
+      <View className="flex-1 bg-slate-900">
+        <View className="flex-row justify-between items-center px-5 py-4">
+          <View className="flex-row items-center gap-4">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center"
+            >
+              <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
             </TouchableOpacity>
             <Text className="text-white text-xl font-bold">Orders</Text>
           </View>
-          <TouchableOpacity onPress={fetchOrders}>
-            <Text className="text-red-500">Refresh</Text>
+          <TouchableOpacity
+            onPress={fetchOrders}
+            className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center"
+          >
+            <MaterialIcons name="refresh" size={22} color="#F97316" />
           </TouchableOpacity>
         </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#dc2626" />
+          <View className="flex-1 justify-center items-center">
+            <ActivityIndicator size="large" color="#F97316" />
+          </View>
         ) : (
           <Tabs defaultValue="received">
             <TabsList>
               {statuses.map((s) => (
                 <TabsTrigger key={s} value={s}>
                   <Text>
-                    {s.charAt(0).toUpperCase() + s.slice(1)}
-                    {` (${orders.filter((o) => o.status === s).length})`}
+                    {s.charAt(0).toUpperCase() + s.slice(1)} ({orders.filter((o) => o.status === s).length})
                   </Text>
                 </TabsTrigger>
               ))}
@@ -140,11 +147,10 @@ export default function OrdersScreen() {
                 <FlatList
                   data={orders.filter((o) => o.status === s)}
                   keyExtractor={(item) => String(item.id)}
+                  contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
                   renderItem={({ item }) => renderOrder(item)}
                   ListEmptyComponent={
-                    <Text className="text-gray-500 text-center py-8">
-                      No {s} orders
-                    </Text>
+                    <Text className="text-slate-500 text-center py-10">No {s} orders</Text>
                   }
                 />
               </TabsContent>

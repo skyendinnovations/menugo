@@ -67,6 +67,16 @@ class MemberController {
     }
   }
 
+  async getMyInvitations(req: Request, res: Response, next: NextFunction) {
+    try {
+      const email = req.user!.email;
+      const invitations = await memberService.getMyInvitations(email);
+      return res.json({ success: true, data: invitations });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getInvitations(req: Request, res: Response, next: NextFunction) {
     try {
       const restaurantId = Number(req.params.restaurantId);

@@ -29,6 +29,18 @@ export interface Invitation {
   roleIds: number[];
 }
 
+export interface MyInvitation {
+  id: number;
+  restaurantId: number;
+  restaurantName: string;
+  email: string;
+  token: string;
+  status: string;
+  roleIds: number[];
+  expiresAt: string;
+  createdAt: string;
+}
+
 class MemberAPI extends BaseAPI {
   // Members
   async getMembers(restaurantId: number) {
@@ -53,6 +65,12 @@ class MemberAPI extends BaseAPI {
   async getInvitations(restaurantId: number) {
     return this.get<{ success: boolean; data: Invitation[] }>(
       `/api/restaurants/${restaurantId}/members/invitations`
+    );
+  }
+
+  async getMyInvitations() {
+    return this.get<{ success: boolean; data: MyInvitation[] }>(
+      '/api/invitations/my'
     );
   }
 

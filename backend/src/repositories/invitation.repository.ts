@@ -1,6 +1,7 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, gt } from "drizzle-orm";
 import { db } from "../db";
 import { restaurantInvitations } from "../db/schemas/invitation.schema";
+import { restaurants } from "../db/schemas/restaurant.schema";
 
 class InvitationRepository {
   async findById(id: number) {
@@ -38,6 +39,30 @@ class InvitationRepository {
         )
       );
     return invitation || null;
+  }
+
+  async findAllPendingByEmail(email: string) {
+    return db
+      .select({
+        id: restaurantInvitations.id,
+        restaurantId: restaurantInvitations.restaurantId,
+        restaurantName: restaurants.name,
+        email: restaurantInvitations.email,
+        token: restaurantInvitations.token,
+        status: restaurantInvitations.status,
+        roleIds: restaurantInvitations.roleIds,
+        expiresAt: restaurantInvitations.expiresAt,
+        createdAt: restaurantInvitations.createdAt,
+      })
+      .from(restaurantInvitations)
+      .innerJoin(restaurants, eq(restaurantInvitations.restaurantId, restaurants.id))
+      .where(
+        and(
+          eq(restaurantInvitations.email, email),
+          eq(restaurantInvitations.status, "pending"),
+          gt(restaurantInvitations.expiresAt, new Date())
+        )
+      );
   }
 
   async create(data: {

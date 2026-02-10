@@ -19,27 +19,30 @@ export default function UserHomePage() {
   };
 
   return (
-    <View className="flex-1 bg-black p-4">
-      <View className="flex-1 justify-center items-center px-6">
-        <MaterialIcons name="person" size={64} color="#dc2626" />
-        <Text className="text-white text-2xl font-bold mt-4">Welcome!</Text>
-        <Text className="text-gray-400 text-sm mt-2 text-center">
+    <View className="flex-1 bg-slate-900 px-6">
+      <View className="flex-1 justify-center items-center">
+        <View className="w-24 h-24 rounded-full bg-brand/15 items-center justify-center mb-6">
+          <MaterialIcons name="person" size={48} color="#F97316" />
+        </View>
+        <Text className="text-white text-2xl font-bold">Welcome!</Text>
+        <Text className="text-slate-400 text-base mt-3 text-center leading-6">
           Accept an invitation to join a restaurant and start working.
         </Text>
-
         <Button
           title="Accept Invitation"
           onPress={() => router.push('/(user)/accept-invitation' as any)}
-          className="bg-red-600 mt-8 w-full"
+          size="lg"
+          className="mt-8 w-full"
         />
       </View>
 
-      <View className="mt-4">
+      <View className="mb-8">
         <Button
-          title={signOutLoading ? 'Signing Out...' : 'Sign Out'}
+          title="Sign Out"
+          variant="danger"
+          loading={signOutLoading}
           onPress={handleSignOut}
-          disabled={signOutLoading}
-          className="bg-red-900"
+          size="lg"
         />
       </View>
     </View>

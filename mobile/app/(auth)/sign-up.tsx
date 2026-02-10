@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Stack, Link, useRouter } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
-import { Container } from '@/components/ui/Container';
 import { authAPI } from '@/lib/api';
-
 import { PasswordInput } from '@/components/ui/PasswordInput';
+import { Alert } from '@/components/ui/Alert';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -18,19 +18,12 @@ export default function SignUpScreen() {
   const [role, setRole] = useState<'user' | 'admin'>('user');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   async function onSubmit() {
     setLoading(true);
     setError(null);
     try {
-      const result = await authAPI.signUp({
-        name,
-        email,
-        password,
-        role,
-      });
-      // Force refetch the session to update the auth router
+      await authAPI.signUp({ name, email, password, role });
       await refetch();
       router.push('/(auth)/sign-in');
     } catch (e: any) {
@@ -41,15 +34,30 @@ export default function SignUpScreen() {
   }
 
   return (
-    <ScrollView className="flex flex-1 bg-black py-20">
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-slate-900"
+    >
       <Stack.Screen options={{ title: 'Sign Up', headerShown: false }} />
-      <Container>
-        <Text className="mb-10 text-2xl font-semibold text-white">Create account</Text>
-        {error ? <Text className="mb-2 text-red-600">{error}</Text> : null}
-        <View className="gap-3">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="items-center mb-8">
+          <View className="w-20 h-20 rounded-full bg-brand/15 items-center justify-center mb-5">
+            <MaterialIcons name="person-add" size={40} color="#F97316" />
+          </View>
+          <Text className="text-white text-3xl font-bold">Create account</Text>
+          <Text className="text-slate-400 text-base mt-2">Get started with MenuGo</Text>
+        </View>
+
+        {error ? <Alert variant="destructive" description={error} className="mb-6" /> : null}
+
+        <View className="gap-5">
           <View>
-            <Label nativeID="name">Name</Label>
-            <Input id="name" value={name} onChangeText={setName} placeholder="Enter your name" />
+            <Label nativeID="name">Full Name</Label>
+            <Input id="name" value={name} onChangeText={setName} placeholder="John Doe" />
           </View>
           <View>
             <Label nativeID="email">Email</Label>
@@ -57,7 +65,7 @@ export default function SignUpScreen() {
               id="email"
               value={email}
               onChangeText={setEmail}
-              placeholder="Enter your email"
+              placeholder="you@example.com"
               autoCapitalize="none"
               keyboardType="email-address"
             />
@@ -68,45 +76,42 @@ export default function SignUpScreen() {
               id="password"
               value={password}
               onChangeText={setPassword}
-              placeholder="••••••••"
+              placeholder="Min. 8 characters"
             />
           </View>
-          <View className="mt-5">
+
+          <View>
             <Label nativeID="role">Account Type</Label>
-            <View className="mt-2 flex-row gap-2">
+            <View className="flex-row gap-3 mt-1">
               <Button
                 title="User"
                 onPress={() => setRole('user')}
-                className={
-                  role === 'user'
-                    ? 'flex-1 bg-red-600'
-                    : 'flex-1 border border-gray-600 bg-transparent'
-                }
+                variant={role === 'user' ? 'primary' : 'ghost'}
+                className="flex-1"
               />
               <Button
                 title="Admin"
                 onPress={() => setRole('admin')}
-                className={
-                  role === 'admin'
-                    ? 'flex-1 bg-red-600'
-                    : 'flex-1 border border-gray-600 bg-transparent'
-                }
+                variant={role === 'admin' ? 'primary' : 'ghost'}
+                className="flex-1"
               />
             </View>
           </View>
-          <View className="mt-10 gap-3">
-            <Button
-              title={loading ? 'Creating…' : 'Sign Up'}
-              onPress={onSubmit}
-              disabled={loading || !email || !password || !name}
-              className="bg-red-600"
-            />
-            <Link href="/(auth)/sign-in" asChild>
-              <Button title="Already have an account? Sign In" className="bg-red-600" />
-            </Link>
-          </View>
+
+          <Button
+            title="Sign Up"
+            loading={loading}
+            onPress={onSubmit}
+            disabled={loading || !email || !password || !name}
+            size="lg"
+            className="mt-4"
+          />
+
+          <Link href="/(auth)/sign-in" asChild>
+            <Button title="Already have an account? Sign In" variant="ghost" />
+          </Link>
         </View>
-      </Container>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

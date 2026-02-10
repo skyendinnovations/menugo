@@ -1,4 +1,5 @@
 import { restaurantRepository } from "../repositories/restaurant.repository";
+import { roleRepository } from "../repositories/role.repository";
 import { db } from "../db";
 import { restaurants } from "../db/schemas";
 import { restaurantMembers } from "../db/schemas/restaurant-member.schema";
@@ -24,6 +25,8 @@ class RestaurantService {
     }
 
     try {
+      // Seed all default roles for the restaurant
+      await roleRepository.seedDefaultRoles(createdRestaurant.id);
       // Delegate owner insertion to repository helper
       await restaurantRepository.addRestaurantOwner(createdRestaurant.id, userId);
     } catch (err) {

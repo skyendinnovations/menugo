@@ -1,2 +1,13 @@
 export { authAPI } from './auth';
 export type { SignInData, SignUpData, UpdateRoleData, User } from './auth';
+export { restaurantAPI } from './restaurant';
+export type { Restaurant, CreateRestaurantData } from './restaurant';
+export { tableAPI } from './table';
+export type { Table, QRData } from './table';
+export { menuAPI } from './menu';
+export type { MenuCategory, MenuItem, MenuItemVariant, FullMenuCategory } from './menu';
+export { orderAPI } from './order';
+export type { Order, OrderItem, Session } from './order';
+export { memberAPI } from './member';
+export type { Member, Role, Invitation } from './member';
+export { publicAPI } from './public';

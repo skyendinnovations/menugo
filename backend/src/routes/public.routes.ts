@@ -10,6 +10,12 @@ router.get(
   publicController.getMenu.bind(publicController)
 );
 
+// Get table info (capacity, occupied seats, availability)
+router.get(
+  "/:slug/:tableNumber/info",
+  publicController.getTableInfo.bind(publicController)
+);
+
 // Create or get session for a table
 router.post(
   "/:slug/:tableNumber/session",

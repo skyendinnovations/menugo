@@ -1,12 +1,14 @@
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { orderAPI, type Order } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import { formatPrice } from '@/lib/utils/currency';
+import { restaurantAPI } from '@/lib/api';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const STATUS_COLORS: Record<string, 'default' | 'destructive' | 'success' | 'outline'> = {
@@ -23,8 +25,19 @@ export default function OrdersScreen() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currency, setCurrency] = useState('INR');
 
   const restaurantId = Number(id);
+
+  // Fetch restaurant currency
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await restaurantAPI.getById(restaurantId);
+        setCurrency(res.data.currency || 'INR');
+      } catch {}
+    })();
+  }, [restaurantId]);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -85,13 +98,13 @@ export default function OrdersScreen() {
                 {item.variantName ? ` (${item.variantName})` : ''}
               </Text>
               <Text className="text-slate-400 text-sm">
-                ${(parseFloat(item.priceAtOrder) * item.quantity).toFixed(2)}
+                {formatPrice(parseFloat(item.priceAtOrder) * item.quantity, currency)}
               </Text>
             </View>
           ))}
 
           <View className="flex-row justify-between items-center mt-3 pt-3 border-t border-slate-700">
-            <Text className="text-white font-semibold">Total: ${total.toFixed(2)}</Text>
+            <Text className="text-white font-semibold">Total: {formatPrice(total, currency)}</Text>
             {nextStatus && (
               <Button
                 title={nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}

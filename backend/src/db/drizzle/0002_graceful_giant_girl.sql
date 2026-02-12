@@ -1,0 +1,1 @@
+ALTER TABLE "table_sessions" ADD COLUMN "customer_name" text;

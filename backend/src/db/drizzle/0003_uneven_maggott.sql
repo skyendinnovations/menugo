@@ -1,0 +1,1 @@
+ALTER TABLE "restaurants" ADD COLUMN "currency" text DEFAULT 'INR' NOT NULL;

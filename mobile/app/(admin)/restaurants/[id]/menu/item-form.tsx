@@ -75,10 +75,28 @@ export default function ItemForm() {
   };
 
   const handleSubmit = async () => {
-    if (!form.name.trim() || !form.price || !form.categoryId) {
-      setError('Name, price, and category are required');
+    if (!form.name.trim() || !form.categoryId) {
+      setError('Name and category are required');
       return;
     }
+
+    const validVariants = variants.filter((v) => v.name.trim() && v.price);
+
+    if (form.hasVariants) {
+      if (validVariants.length === 0) {
+        setError('Add at least one variant with name and price');
+        return;
+      }
+    } else if (!form.price) {
+      setError('Price is required');
+      return;
+    }
+
+    // Auto-set base price to lowest variant price when hasVariants is on
+    const effectivePrice = form.hasVariants
+      ? String(Math.min(...validVariants.map((v) => parseFloat(v.price) || 0)))
+      : form.price;
+
     setLoading(true);
     setError('');
     try {
@@ -87,19 +105,20 @@ export default function ItemForm() {
           categoryId: Number(form.categoryId),
           name: form.name.trim(),
           description: form.description.trim() || undefined,
-          price: form.price,
+          price: effectivePrice,
           isVeg: form.isVeg,
           hasVariants: form.hasVariants,
+          variants: form.hasVariants ? validVariants : undefined,
         } as any);
       } else {
         await menuAPI.createItem(restaurantId, {
           categoryId: Number(form.categoryId),
           name: form.name.trim(),
           description: form.description.trim() || undefined,
-          price: form.price,
+          price: effectivePrice,
           isVeg: form.isVeg,
           hasVariants: form.hasVariants,
-          variants: variants.filter((v) => v.name && v.price),
+          variants: form.hasVariants ? validVariants : undefined,
         });
       }
       router.back();
@@ -151,15 +170,17 @@ export default function ItemForm() {
               />
             </View>
 
-            <View>
-              <Label required>Price</Label>
-              <Input
-                value={form.price}
-                onChangeText={(price) => setForm((p) => ({ ...p, price }))}
-                placeholder="9.99"
-                keyboardType="decimal-pad"
-              />
-            </View>
+            {!form.hasVariants && (
+              <View>
+                <Label required>Price</Label>
+                <Input
+                  value={form.price}
+                  onChangeText={(price) => setForm((p) => ({ ...p, price }))}
+                  placeholder="9.99"
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            )}
 
             <View className="flex-row items-center justify-between py-2">
               <Label>Vegetarian</Label>

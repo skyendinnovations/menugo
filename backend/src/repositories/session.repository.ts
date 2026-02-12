@@ -42,6 +42,18 @@ class SessionRepository {
     return session || null;
   }
 
+  async findAllActiveByTable(tableId: number) {
+    return db
+      .select()
+      .from(tableSessions)
+      .where(
+        and(
+          eq(tableSessions.tableId, tableId),
+          eq(tableSessions.status, "active")
+        )
+      );
+  }
+
   async findActiveByRestaurant(restaurantId: number) {
     return db
       .select({
@@ -66,6 +78,7 @@ class SessionRepository {
     tableId: number;
     hostDeviceId: string;
     personsCount: number;
+    customerName?: string;
   }) {
     // Generate unique join code (retry if collision)
     let joinCode = generateJoinCode();

@@ -8,6 +8,56 @@ import { sessionService } from "../services/session.service";
 import { orderService } from "../services/order.service";
 
 class PublicController {
+  async getTableInfo(req: Request, res: Response, next: NextFunction) {
+    try {
+      const slug = req.params.slug as string;
+      const tableNumber = req.params.tableNumber as string;
+
+      const [restaurant] = await db
+        .select()
+        .from(restaurants)
+        .where(eq(restaurants.slug, slug));
+
+      if (!restaurant) {
+        return res.status(404).json({ success: false, message: "Restaurant not found" });
+      }
+
+      const [table] = await db
+        .select()
+        .from(restaurantTables)
+        .where(
+          and(
+            eq(restaurantTables.restaurantId, restaurant.id),
+            eq(restaurantTables.tableNumber, Number(tableNumber))
+          )
+        );
+
+      if (!table) {
+        return res.status(404).json({ success: false, message: "Table not found" });
+      }
+
+      const deviceId = req.query.deviceId as string | undefined;
+      const tableInfo = await sessionService.getTableInfo(table.id, table, deviceId);
+
+      return res.json({
+        success: true,
+        data: {
+          restaurant: {
+            id: restaurant.id,
+            name: restaurant.name,
+            slug: restaurant.slug,
+            description: restaurant.description,
+            logo: restaurant.logo,
+            currency: restaurant.currency,
+          },
+          table: tableInfo,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getMenu(req: Request, res: Response, next: NextFunction) {
     try {
       const slug = req.params.slug as string;
@@ -30,6 +80,7 @@ class PublicController {
             slug: restaurant.slug,
             description: restaurant.description,
             logo: restaurant.logo,
+            currency: restaurant.currency,
           },
           menu,
         },
@@ -43,7 +94,7 @@ class PublicController {
     try {
       const slug = req.params.slug as string;
       const tableNumber = req.params.tableNumber as string;
-      const { deviceId, personsCount } = req.body;
+      const { deviceId, personsCount, customerName } = req.body;
 
       if (!deviceId) {
         return res.status(400).json({ success: false, message: "deviceId required" });
@@ -76,6 +127,7 @@ class PublicController {
         tableId: table.id,
         hostDeviceId: deviceId,
         personsCount,
+        customerName,
       });
 
       return res.status(session.existed ? 200 : 201).json({

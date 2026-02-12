@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
+import { SUPPORTED_CURRENCIES } from '@/lib/utils/currency';
 
 export default function CreateRestaurant() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function CreateRestaurant() {
     address: '',
     phone: '',
     email: '',
+    currency: 'INR',
     tableCountRange: '',
   });
 
@@ -36,6 +38,7 @@ export default function CreateRestaurant() {
         address: form.address.trim() || undefined,
         phone: form.phone.trim() || undefined,
         email: form.email.trim() || undefined,
+        currency: form.currency,
         tableCountRange: form.tableCountRange || undefined,
       });
       router.back();
@@ -95,6 +98,15 @@ export default function CreateRestaurant() {
               onChangeText={(email) => setForm((p) => ({ ...p, email }))}
               placeholder="Contact email"
               keyboardType="email-address"
+            />
+          </View>
+          <View>
+            <Label>Currency</Label>
+            <Select
+              value={form.currency}
+              onValueChange={(currency) => setForm((p) => ({ ...p, currency }))}
+              options={SUPPORTED_CURRENCIES}
+              placeholder="Select currency"
             />
           </View>
           <View>

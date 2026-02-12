@@ -18,7 +18,7 @@ class PublicAPI {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${response.status}`);
+      throw new Error(errorData.error || errorData.message || `HTTP ${response.status}`);
     }
 
     return response.json();
@@ -28,16 +28,41 @@ class PublicAPI {
     return this.request<{
       success: boolean;
       data: {
-        restaurant: { id: number; name: string; slug: string; description?: string; logo?: string };
+        restaurant: { id: number; name: string; slug: string; description?: string; logo?: string; currency?: string };
         menu: FullMenuCategory[];
       };
     }>(`/api/public/${slug}/menu`);
   }
 
-  async createOrGetSession(slug: string, tableNumber: number, deviceId: string, personsCount?: number) {
+  async getTableInfo(slug: string, tableNumber: number, deviceId?: string) {
+    const query = deviceId ? `?deviceId=${encodeURIComponent(deviceId)}` : '';
+    return this.request<{
+      success: boolean;
+      data: {
+        restaurant: { id: number; name: string; slug: string; description?: string; logo?: string; currency?: string };
+        table: {
+          tableId: number;
+          tableNumber: number;
+          capacity: number;
+          occupiedSeats: number;
+          availableSeats: number;
+          isFull: boolean;
+          activeSessions: {
+            id: number;
+            customerName: string | null;
+            personsCount: number;
+            joinCode: string;
+          }[];
+          existingSessionId?: number;
+        };
+      };
+    }>(`/api/public/${slug}/${tableNumber}/info${query}`);
+  }
+
+  async createOrGetSession(slug: string, tableNumber: number, deviceId: string, personsCount?: number, customerName?: string) {
     return this.request<{ success: boolean; data: any }>(
       `/api/public/${slug}/${tableNumber}/session`,
-      { method: 'POST', body: JSON.stringify({ deviceId, personsCount }) }
+      { method: 'POST', body: JSON.stringify({ deviceId, personsCount, customerName }) }
     );
   }
 

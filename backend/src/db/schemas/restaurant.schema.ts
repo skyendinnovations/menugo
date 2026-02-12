@@ -28,6 +28,9 @@ export const restaurants = pgTable("restaurants", {
     website: text("website"),
     logo: text("logo"),
 
+    // Currency code (ISO 4217): INR, USD, AUD, EUR, GBP, etc.
+    currency: text("currency").default("INR").notNull(),
+
     // Capacity information
     tableCountRange: tableCountRangeEnum("table_count_range"),
     workersCount: integer("workers_count"),

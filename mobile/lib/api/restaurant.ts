@@ -10,6 +10,7 @@ export interface Restaurant {
   email?: string;
   website?: string;
   logo?: string;
+  currency: string;
   tableCountRange?: string;
   workersCount?: number;
   seatingCapacity?: number;
@@ -26,6 +27,7 @@ export interface CreateRestaurantData {
   address?: string;
   phone?: string;
   email?: string;
+  currency?: string;
   tableCountRange?: string;
   workersCount?: number;
   seatingCapacity?: number;

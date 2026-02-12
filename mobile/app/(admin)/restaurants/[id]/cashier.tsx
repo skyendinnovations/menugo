@@ -5,6 +5,8 @@ import { orderAPI, type Order } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { formatPrice } from '@/lib/utils/currency';
+import { restaurantAPI } from '@/lib/api';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function CashierView() {
@@ -15,8 +17,19 @@ export default function CashierView() {
   const [sessionOrders, setSessionOrders] = useState<Order[]>([]);
   const [showBill, setShowBill] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [currency, setCurrency] = useState('INR');
 
   const restaurantId = Number(id);
+
+  // Fetch restaurant currency
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await restaurantAPI.getById(restaurantId);
+        setCurrency(res.data.currency || 'INR');
+      } catch {}
+    })();
+  }, [restaurantId]);
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -111,8 +124,11 @@ export default function CashierView() {
                 <Card className="mb-3">
                   <CardContent>
                     <View className="flex-row justify-between items-center">
-                      <View>
+                      <View className="flex-1 mr-3">
                         <Text className="text-white font-bold text-base">Table #{item.tableNumber}</Text>
+                        {session.customerName ? (
+                          <Text className="text-orange-400 text-sm font-semibold mt-0.5">{session.customerName}</Text>
+                        ) : null}
                         <Text className="text-slate-400 text-sm mt-0.5">
                           Code: {session.joinCode} | Persons: {session.personsCount}
                         </Text>
@@ -121,7 +137,7 @@ export default function CashierView() {
                         </Text>
                       </View>
                       <View className="items-end gap-2">
-                        <Badge variant="default">${session.calculatedTotal || '0.00'}</Badge>
+                        <Badge variant="default">{formatPrice(parseFloat(session.calculatedTotal || '0'), currency)}</Badge>
                         <MaterialIcons name="chevron-right" size={22} color="#64748B" />
                       </View>
                     </View>
@@ -177,7 +193,7 @@ export default function CashierView() {
                           {item.variantName ? ` (${item.variantName})` : ''}
                         </Text>
                         <Text className="text-slate-400 text-sm">
-                          ${(parseFloat(item.priceAtOrder) * item.quantity).toFixed(2)}
+                          {formatPrice(parseFloat(item.priceAtOrder) * item.quantity, currency)}
                         </Text>
                       </View>
                     ))}
@@ -188,7 +204,7 @@ export default function CashierView() {
               <View className="border-t border-slate-700 pt-5 mt-4">
                 <View className="flex-row justify-between mb-5">
                   <Text className="text-white text-xl font-bold">Total</Text>
-                  <Text className="text-white text-xl font-bold">${calculateTotal().toFixed(2)}</Text>
+                  <Text className="text-white text-xl font-bold">{formatPrice(calculateTotal(), currency)}</Text>
                 </View>
                 <Button
                   title="Close Session & Settle Bill"

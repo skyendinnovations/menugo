@@ -35,6 +35,9 @@ export const tableSessions = pgTable(
         // Number of persons in THIS session (for capacity calculation)
         personsCount: integer("persons_count").default(1).notNull(),
 
+        // Customer name for identifying the group
+        customerName: text("customer_name"),
+
         status: sessionStatusEnum("status").default("active"),
         calculatedTotal: decimal("calculated_total", {
             precision: 10,

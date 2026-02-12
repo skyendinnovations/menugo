@@ -15,6 +15,20 @@
       "when": 1767932998043,
       "tag": "0001_greedy_obadiah_stane",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770877036608,
+      "tag": "0002_graceful_giant_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1770879431311,
+      "tag": "0003_uneven_maggott",
+      "breakpoints": true
     }
   ]
 }

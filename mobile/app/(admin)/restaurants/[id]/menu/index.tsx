@@ -1,6 +1,6 @@
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { menuAPI, type MenuCategory, type MenuItem } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { Switch } from '@/components/ui/Switch';
+import { formatPrice } from '@/lib/utils/currency';
+import { restaurantAPI } from '@/lib/api';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function MenuScreen() {
@@ -17,8 +19,19 @@ export default function MenuScreen() {
   const [items, setItems] = useState<Record<number, MenuItem[]>>({});
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [currency, setCurrency] = useState('INR');
 
   const restaurantId = Number(id);
+
+  // Fetch restaurant currency
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await restaurantAPI.getById(restaurantId);
+        setCurrency(res.data.currency || 'INR');
+      } catch {}
+    })();
+  }, [restaurantId]);
 
   const fetchMenu = useCallback(async () => {
     try {
@@ -136,7 +149,12 @@ export default function MenuScreen() {
                                 {item.description}
                               </Text>
                             )}
-                            <Text className="text-brand font-semibold mt-1.5">${item.price}</Text>
+                            <Text className="text-brand font-semibold mt-1.5">
+                              {item.hasVariants ? `From ${formatPrice(item.price, currency)}` : formatPrice(item.price, currency)}
+                            </Text>
+                            {item.hasVariants && (
+                              <Text className="text-slate-500 text-xs">Has variants</Text>
+                            )}
                           </View>
                           <View className="items-end gap-3">
                             <Switch

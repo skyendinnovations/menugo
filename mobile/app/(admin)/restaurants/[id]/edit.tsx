@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/Label';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Textarea } from '@/components/ui/Textarea';
+import { Select } from '@/components/ui/Select';
+import { SUPPORTED_CURRENCIES } from '@/lib/utils/currency';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function EditRestaurant() {
@@ -20,6 +22,7 @@ export default function EditRestaurant() {
     address: '',
     phone: '',
     email: '',
+    currency: 'INR',
   });
 
   useEffect(() => {
@@ -33,6 +36,7 @@ export default function EditRestaurant() {
           address: r.address || '',
           phone: r.phone || '',
           email: r.email || '',
+          currency: r.currency || 'INR',
         });
       } catch (err) {
         setError('Failed to load restaurant');
@@ -54,6 +58,7 @@ export default function EditRestaurant() {
         address: form.address.trim() || undefined,
         phone: form.phone.trim() || undefined,
         email: form.email.trim() || undefined,
+        currency: form.currency,
       });
       router.back();
     } catch (err: any) {
@@ -120,6 +125,15 @@ export default function EditRestaurant() {
                 value={form.email}
                 onChangeText={(email) => setForm((p) => ({ ...p, email }))}
                 placeholder="Email"
+              />
+            </View>
+            <View>
+              <Label>Currency</Label>
+              <Select
+                value={form.currency}
+                onValueChange={(currency) => setForm((p) => ({ ...p, currency }))}
+                options={SUPPORTED_CURRENCIES}
+                placeholder="Select currency"
               />
             </View>
             <Button

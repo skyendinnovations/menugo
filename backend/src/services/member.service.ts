@@ -65,19 +65,7 @@ class MemberService {
   }
 
   async acceptInvitation(token: string, userId: string) {
-    const invitation = await invitationRepository.findByToken(token);
-    if (!invitation) {
-      throw new AppError(404, "Invitation not found");
-    }
-
-    if (invitation.status !== "pending") {
-      throw new AppError(400, `Invitation has already been ${invitation.status}`);
-    }
-
-    if (new Date() > invitation.expiresAt) {
-      await invitationRepository.updateStatus(invitation.id, "expired");
-      throw new AppError(400, "Invitation has expired");
-    }
+    const invitation = await this.validateInvitation(token, userId);
 
     // Check if user is already a member
     const existingMember = await memberRepository.findByUserAndRestaurant(
@@ -108,6 +96,14 @@ class MemberService {
   }
 
   async rejectInvitation(token: string, userId: string) {
+    const invitation = await this.validateInvitation(token, userId);
+
+    await invitationRepository.updateStatus(invitation.id, "rejected");
+
+    return { restaurantId: invitation.restaurantId };
+  }
+
+  private async validateInvitation(token: string, userId: string) {
     const invitation = await invitationRepository.findByToken(token);
     if (!invitation) {
       throw new AppError(404, "Invitation not found");
@@ -128,9 +124,7 @@ class MemberService {
       throw new AppError(403, "This invitation does not belong to you");
     }
 
-    await invitationRepository.updateStatus(invitation.id, "rejected");
-
-    return { restaurantId: invitation.restaurantId };
+    return invitation;
   }
 
   async removeMember(memberId: number, restaurantId: number) {

@@ -51,6 +51,22 @@ class MemberController {
     }
   }
 
+  async rejectInvitation(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const { token } = req.body;
+
+      if (!token || typeof token !== "string") {
+        return res.status(400).json({ success: false, message: "Invalid token" });
+      }
+
+      const result = await memberService.rejectInvitation(token, userId);
+      return res.json({ success: true, data: result, message: "Invitation rejected" });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async removeMember(req: Request, res: Response, next: NextFunction) {
     try {
       const restaurantId = Number(req.params.restaurantId);

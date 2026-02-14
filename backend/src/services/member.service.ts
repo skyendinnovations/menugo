@@ -107,6 +107,32 @@ class MemberService {
     return { restaurantId: invitation.restaurantId };
   }
 
+  async rejectInvitation(token: string, userId: string) {
+    const invitation = await invitationRepository.findByToken(token);
+    if (!invitation) {
+      throw new AppError(404, "Invitation not found");
+    }
+
+    if (invitation.status !== "pending") {
+      throw new AppError(400, `Invitation has already been ${invitation.status}`);
+    }
+
+    if (new Date() > invitation.expiresAt) {
+      await invitationRepository.updateStatus(invitation.id, "expired");
+      throw new AppError(400, "Invitation has expired");
+    }
+
+    // Verify the invitation belongs to this user
+    const user = await this.findUserById(userId);
+    if (!user || user.email.toLowerCase() !== invitation.email.toLowerCase()) {
+      throw new AppError(403, "This invitation does not belong to you");
+    }
+
+    await invitationRepository.updateStatus(invitation.id, "rejected");
+
+    return { restaurantId: invitation.restaurantId };
+  }
+
   async removeMember(memberId: number, restaurantId: number) {
     // Look up the member to get the userId
     const members = await memberRepository.findByRestaurant(restaurantId);
@@ -140,6 +166,14 @@ class MemberService {
       .select()
       .from(userTable)
       .where(eq(userTable.email, email.toLowerCase().trim()));
+    return u || null;
+  }
+
+  private async findUserById(userId: string) {
+    const [u] = await db
+      .select()
+      .from(userTable)
+      .where(eq(userTable.id, userId));
     return u || null;
   }
 }

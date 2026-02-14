@@ -38,6 +38,7 @@ router.use('/restaurants/:restaurantId/orders', authenticate, orderRoutes);
 import { memberController } from '../controllers/member.controller';
 router.get('/invitations/my', authenticate, memberController.getMyInvitations.bind(memberController));
 router.post('/invitations/accept', authenticate, memberController.acceptInvitation.bind(memberController));
+router.post('/invitations/reject', authenticate, memberController.rejectInvitation.bind(memberController));
 
 // Public routes (NO auth middleware)
 router.use('/public', publicRoutes);

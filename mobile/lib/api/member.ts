@@ -81,6 +81,13 @@ class MemberAPI extends BaseAPI {
     );
   }
 
+  async rejectInvitation(token: string) {
+    return this.post<{ success: boolean; data: any }>(
+      '/api/invitations/reject',
+      { token }
+    );
+  }
+
   // Roles
   async getRoles(restaurantId: number) {
     return this.get<{ success: boolean; data: Role[] }>(

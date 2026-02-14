@@ -12,7 +12,6 @@ export default function UserLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Home' }} />
-      <Stack.Screen name="accept-invitation" options={{ title: 'Accept Invitation' }} />
     </Stack>
   );
 }

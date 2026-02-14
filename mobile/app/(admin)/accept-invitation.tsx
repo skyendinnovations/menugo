@@ -15,6 +15,7 @@ export default function AcceptInvitationScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
 
   const fetchInvitations = useCallback(async () => {
     try {
@@ -35,19 +36,30 @@ export default function AcceptInvitationScreen() {
     }, [fetchInvitations])
   );
 
+  const isBusy = acceptingId !== null || rejectingId !== null;
+
   const handleAccept = async (invitation: MyInvitation) => {
     setAcceptingId(invitation.id);
     try {
       await memberAPI.acceptInvitation(invitation.token);
-      RNAlert.alert(
-        'Invitation Accepted',
-        `You have joined ${invitation.restaurantName}.`,
-        [{ text: 'OK', onPress: () => router.replace('/(admin)') }]
-      );
+      setInvitations((prev) => prev.filter((i) => i.id !== invitation.id));
+      RNAlert.alert('Invitation Accepted', `You have joined ${invitation.restaurantName}.`);
     } catch (err: any) {
       RNAlert.alert('Error', err.message || 'Failed to accept invitation');
     } finally {
       setAcceptingId(null);
+    }
+  };
+
+  const handleReject = async (invitation: MyInvitation) => {
+    setRejectingId(invitation.id);
+    try {
+      await memberAPI.rejectInvitation(invitation.token);
+      setInvitations((prev) => prev.filter((i) => i.id !== invitation.id));
+    } catch (err: any) {
+      RNAlert.alert('Error', err.message || 'Failed to reject invitation');
+    } finally {
+      setRejectingId(null);
     }
   };
 
@@ -62,6 +74,7 @@ export default function AcceptInvitationScreen() {
   const renderInvitation = ({ item }: { item: MyInvitation }) => {
     const expiry = getExpiryBadge(item.expiresAt);
     const isAccepting = acceptingId === item.id;
+    const isRejecting = rejectingId === item.id;
 
     return (
       <Card className="mb-3">
@@ -76,13 +89,23 @@ export default function AcceptInvitationScreen() {
                 <Badge variant={expiry.variant}>{expiry.label}</Badge>
               </View>
             </View>
-            <Button
-              title="Accept"
-              size="sm"
-              onPress={() => handleAccept(item)}
-              loading={isAccepting}
-              disabled={acceptingId !== null}
-            />
+            <View className="flex-row gap-2">
+              <Button
+                title="Reject"
+                size="sm"
+                variant="secondary"
+                onPress={() => handleReject(item)}
+                loading={isRejecting}
+                disabled={isBusy}
+              />
+              <Button
+                title="Accept"
+                size="sm"
+                onPress={() => handleAccept(item)}
+                loading={isAccepting}
+                disabled={isBusy}
+              />
+            </View>
           </View>
         </CardContent>
       </Card>

@@ -22,8 +22,8 @@ class SessionService {
     return { ...session, participants };
   }
 
-  async getTableInfo(tableId: number, table: { id: number; capacity: number; tableNumber: number }, deviceId?: string): Promise<TableInfoDTO> {
-    const activeSessions = await sessionRepository.findAllActiveByTable(tableId);
+  async getTableInfo(table: { id: number; capacity: number; tableNumber: number }, deviceId?: string): Promise<TableInfoDTO> {
+    const activeSessions = await sessionRepository.findAllActiveByTable(table.id);
     const occupiedSeats = activeSessions.reduce(
       (sum, s) => sum + (s.personsCount || 1),
       0
@@ -38,13 +38,13 @@ class SessionService {
       if (hostSession) {
         existingSessionId = hostSession.id;
       } else {
-        // Check as participant
-        for (const s of activeSessions) {
-          const participant = await participantRepository.findByDeviceAndSession(deviceId, s.id);
-          if (participant && participant.status === 'active') {
-            existingSessionId = s.id;
-            break;
-          }
+        // Batch check as participant (single query instead of N+1)
+        const participantRows = await participantRepository.findActiveByDeviceInSessions(
+          deviceId,
+          activeSessions.map((s) => s.id)
+        );
+        if (participantRows.length > 0) {
+          existingSessionId = participantRows[0]!.sessionId;
         }
       }
     }
@@ -56,12 +56,7 @@ class SessionService {
       occupiedSeats,
       availableSeats,
       isFull: availableSeats === 0,
-      activeSessions: activeSessions.map((s) => ({
-        id: s.id,
-        customerName: s.customerName,
-        personsCount: s.personsCount,
-        joinCode: s.joinCode,
-      })),
+      activeSessionCount: activeSessions.length,
       existingSessionId,
     };
   }
@@ -88,12 +83,19 @@ class SessionService {
     }
 
     // Check if device is a participant in any active session on this table
-    for (const s of activeSessions) {
-      const participant = await participantRepository.findByDeviceAndSession(dto.hostDeviceId, s.id);
-      if (participant && participant.status === 'active') {
-        const participants = await participantRepository.findBySession(s.id);
-        return { ...s, participants, existed: true };
-      }
+    const participantRows = await participantRepository.findActiveByDeviceInSessions(
+      dto.hostDeviceId,
+      activeSessions.map((s) => s.id)
+    );
+    if (participantRows.length > 0) {
+      const matchedSession = activeSessions.find((s) => s.id === participantRows[0]!.sessionId)!;
+      const participants = await participantRepository.findBySession(matchedSession.id);
+      return { ...matchedSession, participants, existed: true };
+    }
+
+    // Validate input early (before capacity check)
+    if (!dto.customerName || !dto.customerName.trim()) {
+      throw new AppError(400, "Customer name is required");
     }
 
     // Check seat capacity
@@ -113,10 +115,6 @@ class SessionService {
         400,
         `SEATS_NOT_AVAILABLE: Only ${availableSeats} seat(s) available, but ${requestedSeats} requested.`
       );
-    }
-
-    if (!dto.customerName || !dto.customerName.trim()) {
-      throw new AppError(400, "Customer name is required");
     }
 
     const newSession = await sessionRepository.create({

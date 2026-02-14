@@ -29,19 +29,6 @@ class SessionRepository {
     return session || null;
   }
 
-  async findActiveByTable(tableId: number) {
-    const [session] = await db
-      .select()
-      .from(tableSessions)
-      .where(
-        and(
-          eq(tableSessions.tableId, tableId),
-          eq(tableSessions.status, "active")
-        )
-      );
-    return session || null;
-  }
-
   async findAllActiveByTable(tableId: number) {
     return db
       .select()
@@ -88,11 +75,29 @@ class SessionRepository {
       joinCode = generateJoinCode();
     }
 
-    const [session] = await db
-      .insert(tableSessions)
-      .values({ ...data, joinCode })
-      .returning();
-    return session;
+    // Atomic INSERT with capacity sub-query guard — prevents race condition
+    // The INSERT only produces a row when occupied + requested ≤ table capacity.
+    const result = await db.execute(sql`
+      INSERT INTO table_sessions (restaurant_id, table_id, join_code, host_device_id, persons_count, customer_name)
+      SELECT ${data.restaurantId}, ${data.tableId}, ${joinCode}, ${data.hostDeviceId}, ${data.personsCount}, ${data.customerName ?? null}
+      WHERE (
+        COALESCE(
+          (SELECT SUM(persons_count) FROM table_sessions WHERE table_id = ${data.tableId} AND status = 'active'),
+          0
+        ) + ${data.personsCount}
+      ) <= (
+        SELECT capacity FROM restaurant_tables WHERE id = ${data.tableId}
+      )
+      RETURNING id
+    `);
+
+    if (!result.rows || result.rows.length === 0) {
+      return null; // Capacity exceeded (race-condition safety net)
+    }
+
+    // Re-fetch with proper Drizzle typing
+    const insertedId = (result.rows[0] as { id: number }).id;
+    return this.findById(insertedId);
   }
 
   async close(id: number, endedBy: string, calculatedTotal: string) {

@@ -6,52 +6,52 @@ import { eq, and } from "drizzle-orm";
 import { menuService } from "../services/menu.service";
 import { sessionService } from "../services/session.service";
 import { orderService } from "../services/order.service";
+import { AppError } from "../types";
+
+// ── Shared helpers to avoid duplicated slug → restaurant → table lookup ──
+
+async function resolveRestaurant(slug: string) {
+  const [restaurant] = await db
+    .select()
+    .from(restaurants)
+    .where(eq(restaurants.slug, slug));
+  if (!restaurant) throw new AppError(404, "Restaurant not found");
+  return restaurant;
+}
+
+async function resolveTable(slug: string, tableNumber: number) {
+  const restaurant = await resolveRestaurant(slug);
+  const [table] = await db
+    .select()
+    .from(restaurantTables)
+    .where(
+      and(
+        eq(restaurantTables.restaurantId, restaurant.id),
+        eq(restaurantTables.tableNumber, tableNumber)
+      )
+    );
+  if (!table) throw new AppError(404, "Table not found");
+  return { restaurant, table };
+}
+
+function restaurantDTO(r: { id: number; name: string; slug: string; description: string | null; logo: string | null; currency: string | null }) {
+  return { id: r.id, name: r.name, slug: r.slug, description: r.description, logo: r.logo, currency: r.currency };
+}
 
 class PublicController {
   async getTableInfo(req: Request, res: Response, next: NextFunction) {
     try {
-      const slug = req.params.slug as string;
-      const tableNumber = req.params.tableNumber as string;
-
-      const [restaurant] = await db
-        .select()
-        .from(restaurants)
-        .where(eq(restaurants.slug, slug));
-
-      if (!restaurant) {
-        return res.status(404).json({ success: false, message: "Restaurant not found" });
-      }
-
-      const [table] = await db
-        .select()
-        .from(restaurantTables)
-        .where(
-          and(
-            eq(restaurantTables.restaurantId, restaurant.id),
-            eq(restaurantTables.tableNumber, Number(tableNumber))
-          )
-        );
-
-      if (!table) {
-        return res.status(404).json({ success: false, message: "Table not found" });
-      }
+      const { restaurant, table } = await resolveTable(
+        req.params.slug as string,
+        Number(req.params.tableNumber)
+      );
 
       const deviceId = req.query.deviceId as string | undefined;
-      const tableInfo = await sessionService.getTableInfo(table.id, table, deviceId);
+      const tableInfo = await sessionService.getTableInfo(table, deviceId);
 
       return res.json({
         success: true,
-        data: {
-          restaurant: {
-            id: restaurant.id,
-            name: restaurant.name,
-            slug: restaurant.slug,
-            description: restaurant.description,
-            logo: restaurant.logo,
-            currency: restaurant.currency,
-          },
-          table: tableInfo,
-        },
+        data: { restaurant: restaurantDTO(restaurant), table: tableInfo },
       });
     } catch (error) {
       next(error);
@@ -60,30 +60,12 @@ class PublicController {
 
   async getMenu(req: Request, res: Response, next: NextFunction) {
     try {
-      const slug = req.params.slug as string;
-      const [restaurant] = await db
-        .select()
-        .from(restaurants)
-        .where(eq(restaurants.slug, slug));
-
-      if (!restaurant) {
-        return res.status(404).json({ success: false, message: "Restaurant not found" });
-      }
-
+      const restaurant = await resolveRestaurant(req.params.slug as string);
       const menu = await menuService.getFullMenu(restaurant.id);
+
       return res.json({
         success: true,
-        data: {
-          restaurant: {
-            id: restaurant.id,
-            name: restaurant.name,
-            slug: restaurant.slug,
-            description: restaurant.description,
-            logo: restaurant.logo,
-            currency: restaurant.currency,
-          },
-          menu,
-        },
+        data: { restaurant: restaurantDTO(restaurant), menu },
       });
     } catch (error) {
       next(error);
@@ -92,36 +74,15 @@ class PublicController {
 
   async createOrGetSession(req: Request, res: Response, next: NextFunction) {
     try {
-      const slug = req.params.slug as string;
-      const tableNumber = req.params.tableNumber as string;
       const { deviceId, personsCount, customerName } = req.body;
-
       if (!deviceId) {
         return res.status(400).json({ success: false, message: "deviceId required" });
       }
 
-      const [restaurant] = await db
-        .select()
-        .from(restaurants)
-        .where(eq(restaurants.slug, slug));
-
-      if (!restaurant) {
-        return res.status(404).json({ success: false, message: "Restaurant not found" });
-      }
-
-      const [table] = await db
-        .select()
-        .from(restaurantTables)
-        .where(
-          and(
-            eq(restaurantTables.restaurantId, restaurant.id),
-            eq(restaurantTables.tableNumber, Number(tableNumber))
-          )
-        );
-
-      if (!table) {
-        return res.status(404).json({ success: false, message: "Table not found" });
-      }
+      const { restaurant, table } = await resolveTable(
+        req.params.slug as string,
+        Number(req.params.tableNumber)
+      );
 
       const session = await sessionService.createSession(restaurant.id, {
         tableId: table.id,

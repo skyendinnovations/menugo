@@ -32,16 +32,21 @@ const CURRENCY_MAP: Record<string, { symbol: string; name: string }> = {
   MXN: { symbol: 'MX$', name: 'Mexican Peso' },
 };
 
+/** Currencies that use zero decimal places (ISO 4217) */
+const ZERO_DECIMAL_CURRENCIES = new Set(['JPY', 'KRW', 'VND', 'IDR']);
+
 /** Get the symbol for a currency code. Falls back to the code itself. */
 export function getCurrencySymbol(code?: string | null): string {
   if (!code) return '₹';
   return CURRENCY_MAP[code.toUpperCase()]?.symbol || code;
 }
 
-/** Format a price with currency symbol: getCurrencySymbol + amount */
+/** Format a price with currency symbol, respecting decimal rules. */
 export function formatPrice(amount: string | number, currencyCode?: string | null): string {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return `${getCurrencySymbol(currencyCode)}${num.toFixed(2)}`;
+  const code = (currencyCode || 'INR').toUpperCase();
+  const decimals = ZERO_DECIMAL_CURRENCIES.has(code) ? 0 : 2;
+  return `${getCurrencySymbol(currencyCode)}${num.toFixed(decimals)}`;
 }
 
 /** List of all supported currencies for Select dropdowns */

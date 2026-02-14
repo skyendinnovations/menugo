@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { sessionParticipants } from "../db/schemas/session.schema";
 
@@ -21,6 +21,21 @@ class ParticipantRepository {
         )
       );
     return p || null;
+  }
+
+  /** Batch lookup: find active participant row for a device across multiple sessions (avoids N+1) */
+  async findActiveByDeviceInSessions(deviceId: string, sessionIds: number[]) {
+    if (sessionIds.length === 0) return [];
+    return db
+      .select()
+      .from(sessionParticipants)
+      .where(
+        and(
+          eq(sessionParticipants.deviceId, deviceId),
+          inArray(sessionParticipants.sessionId, sessionIds),
+          eq(sessionParticipants.status, "active")
+        )
+      );
   }
 
   async add(sessionId: number, deviceId: string, participantName?: string) {

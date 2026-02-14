@@ -2,7 +2,7 @@ export interface CreateSessionDTO {
   tableId: number;
   hostDeviceId: string;
   personsCount?: number;
-  customerName?: string;
+  customerName: string;
 }
 
 export interface TableInfoDTO {
@@ -12,12 +12,7 @@ export interface TableInfoDTO {
   occupiedSeats: number;
   availableSeats: number;
   isFull: boolean;
-  activeSessions: {
-    id: number;
-    customerName: string | null;
-    personsCount: number;
-    joinCode: string;
-  }[];
+  activeSessionCount: number;
   existingSessionId?: number;
 }
 

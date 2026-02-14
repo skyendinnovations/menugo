@@ -232,7 +232,8 @@ function OrderScreenContent() {
 
         // Check session exists
         const tableInfoRes = await publicAPI.getTableInfo(slug as string, Number(table), did);
-        if (!tableInfoRes.data.table.existingSessionId) {
+        const existingSessionId = tableInfoRes.data.table.existingSessionId;
+        if (!existingSessionId) {
           router.replace(`/order/${slug}/${table}`);
           return;
         }
@@ -244,8 +245,8 @@ function OrderScreenContent() {
         setCurrency(menuRes.data.restaurant.currency || 'INR');
         setMenu(menuRes.data.menu);
 
-        // Fetch session
-        const sessionRes = await publicAPI.createOrGetSession(slug as string, Number(table), did);
+        // Fetch session status via GET (not POST)
+        const sessionRes = await publicAPI.getSessionStatus(existingSessionId);
         setSession(sessionRes.data);
 
         // Fetch existing orders

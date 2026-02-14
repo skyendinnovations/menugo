@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "../db";
 import { restaurants } from "../db/schemas";
 import { restaurantMembers } from "../db/schemas/restaurant-member.schema";
@@ -23,15 +23,14 @@ class RestaurantRepository {
         const [existingRole] = await db
             .select()
             .from(roles)
-            .where(eq(roles.restaurantId, restaurantId))
-            .where(eq(roles.name, 'owner'));
+            .where(and(eq(roles.restaurantId, restaurantId), eq(roles.name, 'owner')));
 
         let roleId: number;
         if (existingRole && existingRole.id) {
             roleId = existingRole.id;
         } else {
             const [newRole] = await db.insert(roles).values({ restaurantId, name: 'owner', permissions: {} }).returning();
-            roleId = newRole.id;
+            roleId = newRole!.id;
         }
 
         // map user to role for this restaurant
@@ -85,8 +84,7 @@ class RestaurantRepository {
         const [ownerRole] = await db
             .select()
             .from(roles)
-            .where(eq(roles.restaurantId, id))
-            .where(eq(roles.name, 'owner'));
+            .where(and(eq(roles.restaurantId, id), eq(roles.name, 'owner')));
 
         if (!ownerRole || !ownerRole.id) {
             return null;
@@ -95,8 +93,7 @@ class RestaurantRepository {
         const [userRole] = await db
             .select()
             .from(userRoles)
-            .where(eq(userRoles.roleId, ownerRole.id))
-            .where(eq(userRoles.restaurantId, id));
+            .where(and(eq(userRoles.roleId, ownerRole.id), eq(userRoles.restaurantId, id)));
 
         // resolved owner via role mapping
 

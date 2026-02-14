@@ -1,8 +1,9 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { menuAPI, type MenuCategory, type MenuItem } from '@/lib/api';
+import { fileAPI } from '@/lib/api/file';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -139,6 +140,13 @@ export default function MenuScreen() {
                     <Card className="mb-3">
                       <CardContent>
                         <View className="flex-row justify-between items-center">
+                          {item.imagePath ? (
+                            <Image
+                              source={{ uri: item.imagePath.startsWith('http') ? item.imagePath : fileAPI.getFullUrl(item.imagePath) }}
+                              className="w-14 h-14 rounded-xl mr-3"
+                              resizeMode="cover"
+                            />
+                          ) : null}
                           <View className="flex-1 mr-4">
                             <View className="flex-row items-center gap-2">
                               <Text className="text-white font-bold text-base">{item.name}</Text>

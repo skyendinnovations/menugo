@@ -1,4 +1,5 @@
 import QRCode from "qrcode";
+import { APP_URL } from "../envs";
 
 export async function generateQRCodeDataURL(text: string): Promise<string> {
   return QRCode.toDataURL(text, {
@@ -12,6 +13,5 @@ export function buildTableQRUrl(
   slug: string,
   tableNumber: number
 ): string {
-  const appUrl = process.env.APP_URL || "http://localhost:8081";
-  return `${appUrl}/order/${slug}/${tableNumber}`;
+  return `${APP_URL}/order/${slug}/${tableNumber}`;
 }

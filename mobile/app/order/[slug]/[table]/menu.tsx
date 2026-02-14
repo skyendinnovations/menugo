@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Modal,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect, useCallback } from 'react';
 import { publicAPI, type FullMenuCategory } from '@/lib/api';
 import type { MenuItem, MenuItemVariant } from '@/lib/api/menu';
+import { fileAPI } from '@/lib/api/file';
 import { getDeviceId } from '@/lib/utils/device-id';
 import { CartProvider, useCart } from '@/lib/context/CartContext';
 import { Button } from '@/components/ui/Button';
@@ -127,26 +129,35 @@ function MenuItemCard({ item, currency }: { item: MenuItemWithVariants; currency
             )}
           </View>
 
-          {/* Right: Add button (for non-variant items) or expand arrow (for variant items) */}
-          {hasVariants ? (
-            <View className="w-11 h-11 rounded-xl items-center justify-center self-start bg-brand/20">
-              <MaterialIcons
-                name={expanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
-                size={24}
-                color="#F97316"
+          {/* Right: Image + Add button */}
+          <View className="items-center gap-2">
+            {item.imagePath ? (
+              <Image
+                source={{ uri: item.imagePath.startsWith('http') ? item.imagePath : fileAPI.getFullUrl(item.imagePath) }}
+                className="w-16 h-16 rounded-xl"
+                resizeMode="cover"
               />
-            </View>
-          ) : (
-            <TouchableOpacity
-              onPress={() => handleAdd()}
-              activeOpacity={0.7}
-              className={`w-11 h-11 rounded-xl items-center justify-center self-start ${
-                isInCart() ? 'bg-brand' : 'bg-brand/20'
-              }`}
-            >
-              <MaterialIcons name="add" size={24} color={isInCart() ? '#fff' : '#F97316'} />
-            </TouchableOpacity>
-          )}
+            ) : null}
+            {hasVariants ? (
+              <View className="w-11 h-11 rounded-xl items-center justify-center bg-brand/20">
+                <MaterialIcons
+                  name={expanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                  size={24}
+                  color="#F97316"
+                />
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={() => handleAdd()}
+                activeOpacity={0.7}
+                className={`w-11 h-11 rounded-xl items-center justify-center ${
+                  isInCart() ? 'bg-brand' : 'bg-brand/20'
+                }`}
+              >
+                <MaterialIcons name="add" size={24} color={isInCart() ? '#fff' : '#F97316'} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
 

@@ -1,8 +1,9 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { restaurantAPI, type Restaurant } from '@/lib/api';
+import { fileAPI } from '@/lib/api/file';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -56,9 +57,17 @@ export default function RestaurantList() {
         <CardContent>
           <View className="flex-row justify-between items-center">
             <View className="flex-row items-center gap-4 flex-1">
-              <View className="w-12 h-12 rounded-xl bg-brand/15 items-center justify-center">
-                <MaterialIcons name="restaurant" size={24} color="#F97316" />
-              </View>
+              {item.logo ? (
+                <Image
+                  source={{ uri: item.logo.startsWith('http') ? item.logo : fileAPI.getFullUrl(item.logo) }}
+                  className="w-12 h-12 rounded-xl"
+                  resizeMode="cover"
+                />
+              ) : (
+                <View className="w-12 h-12 rounded-xl bg-brand/15 items-center justify-center">
+                  <MaterialIcons name="restaurant" size={24} color="#F97316" />
+                </View>
+              )}
               <View className="flex-1">
                 <Text className="text-white text-base font-bold">{item.name}</Text>
                 {item.description && (

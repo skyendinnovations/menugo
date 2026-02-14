@@ -11,3 +11,5 @@ export type { Order, OrderItem, Session } from './order';
 export { memberAPI } from './member';
 export type { Member, Role, Invitation, MyInvitation } from './member';
 export { publicAPI } from './public';
+export { fileAPI } from './file';
+export type { FileRecord, UploadImageParams } from './file';

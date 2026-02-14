@@ -97,8 +97,45 @@ class BaseAPI {
         });
     }
 
+    protected async patch<T>(endpoint: string, data?: any, options: RequestInit = {}): Promise<T> {
+        return this.request<T>(endpoint, {
+            ...options,
+            method: 'PATCH',
+            body: data ? JSON.stringify(data) : undefined,
+        });
+    }
+
     protected async delete<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
         return this.request<T>(endpoint, { ...options, method: 'DELETE' });
+    }
+
+    protected async upload<T>(endpoint: string, formData: FormData): Promise<T> {
+        const url = `${this.baseURL}${endpoint}`;
+        const token = await this.getAuthToken();
+
+        const headers: Record<string, string> = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        // Do NOT set Content-Type — let fetch set multipart/form-data with boundary
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers,
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error(`API upload failed for ${endpoint}:`, error);
+            throw error;
+        }
     }
 }
 

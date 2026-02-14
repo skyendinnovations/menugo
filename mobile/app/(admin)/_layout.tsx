@@ -56,6 +56,10 @@ export default function AdminLayout() {
         name="onboarding"
         options={{ href: null }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{ href: null }}
+      />
     </Tabs>
   );
 }

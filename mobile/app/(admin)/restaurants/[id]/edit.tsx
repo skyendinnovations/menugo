@@ -2,12 +2,14 @@ import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platfor
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { restaurantAPI } from '@/lib/api';
+import { fileAPI } from '@/lib/api/file';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 import { SUPPORTED_CURRENCIES } from '@/lib/utils/currency';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -16,6 +18,10 @@ export default function EditRestaurant() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Track the saved image URL (from API) and the user's pending pick
+  const [savedLogoUrl, setSavedLogoUrl] = useState<string | null>(null);
+  const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  const [imageRemoved, setImageRemoved] = useState(false);
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -38,11 +44,27 @@ export default function EditRestaurant() {
           email: r.email || '',
           currency: r.currency || 'INR',
         });
+        if (r.logo) {
+          setSavedLogoUrl(r.logo.startsWith('http') ? r.logo : fileAPI.getFullUrl(r.logo));
+        }
       } catch (err) {
         setError('Failed to load restaurant');
       }
     })();
   }, [id]);
+
+  const handleImageChange = (uri: string | null) => {
+    if (uri) {
+      setPendingImageUri(uri);
+      setImageRemoved(false);
+    } else {
+      setPendingImageUri(null);
+      setImageRemoved(true);
+    }
+  };
+
+  // What to display: pending pick > saved URL (unless removed)
+  const displayImage = pendingImageUri || (imageRemoved ? null : savedLogoUrl);
 
   const handleUpdate = async () => {
     if (!form.name.trim()) {
@@ -60,6 +82,23 @@ export default function EditRestaurant() {
         email: form.email.trim() || undefined,
         currency: form.currency,
       });
+
+      // Handle image: upload new or delete old
+      if (pendingImageUri) {
+        await fileAPI.uploadImage({
+          uri: pendingImageUri,
+          entityType: 'restaurant',
+          entityId: String(id),
+          purpose: 'logo',
+        });
+      } else if (imageRemoved && savedLogoUrl) {
+        try {
+          const res = await fileAPI.getEntityFiles('restaurant', String(id));
+          const match = (res.data || []).find((f) => f.purpose === 'logo');
+          if (match) await fileAPI.deleteFile(match.id);
+        } catch {}
+      }
+
       router.back();
     } catch (err: any) {
       setError(err.message || 'Failed to update');
@@ -87,6 +126,15 @@ export default function EditRestaurant() {
           </View>
           {error ? <Alert variant="destructive" description={error} className="mb-5" /> : null}
           <View className="gap-5">
+            <View className="items-center mb-2">
+              <Label>Logo</Label>
+              <ImageUpload
+                value={displayImage}
+                onChange={handleImageChange}
+                size={100}
+                shape="circle"
+              />
+            </View>
             <View>
               <Label required>Name</Label>
               <Input

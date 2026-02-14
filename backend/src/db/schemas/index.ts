@@ -9,3 +9,4 @@ export * from "./table.schema";
 export * from "./menu.schema";
 export * from "./session.schema";
 export * from "./order.schema";
+export * from "./file.schema";

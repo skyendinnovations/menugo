@@ -5,6 +5,7 @@ import { fromNodeHeaders } from "better-auth/node";
 import { db } from "../db";
 import { session as sessionTable, user as userTable } from "../db/schemas/auth.schema";
 import { eq } from "drizzle-orm";
+import { NODE_ENV } from "../envs";
 
 export const authenticate = async (
   req: Request,
@@ -15,7 +16,7 @@ export const authenticate = async (
 
     // During tests, if an Authorization header with a test token is provided,
     // look up the session in the local DB and attach the corresponding user.
-    if (process.env.NODE_ENV === 'test') {
+    if (NODE_ENV === 'test') {
       const authHeader = (req.headers.authorization || req.headers.Authorization) as string | undefined;
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.slice(7).trim();

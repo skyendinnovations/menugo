@@ -2,6 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platfor
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { menuAPI, type MenuCategory } from '@/lib/api';
+import { fileAPI } from '@/lib/api/file';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +10,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { Switch } from '@/components/ui/Switch';
+import { ImageUpload } from '@/components/ui/ImageUpload';
 import { MaterialIcons } from '@expo/vector-icons';
 
 interface VariantInput {
@@ -33,6 +35,11 @@ export default function ItemForm() {
   });
   const [variants, setVariants] = useState<VariantInput[]>([]);
 
+  // Image state
+  const [savedImageUrl, setSavedImageUrl] = useState<string | null>(null);
+  const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  const [imageRemoved, setImageRemoved] = useState(false);
+
   const restaurantId = Number(id);
   const isEdit = !!itemId;
 
@@ -53,6 +60,11 @@ export default function ItemForm() {
             isVeg: item.isVeg ?? false,
             hasVariants: item.hasVariants ?? false,
           });
+          if (item.imagePath) {
+            setSavedImageUrl(
+              item.imagePath.startsWith('http') ? item.imagePath : fileAPI.getFullUrl(item.imagePath)
+            );
+          }
           if (item.variants) {
             setVariants(item.variants.map((v) => ({ name: v.name, price: v.price })));
           }
@@ -74,6 +86,18 @@ export default function ItemForm() {
     setVariants(updated);
   };
 
+  const handleImageChange = (uri: string | null) => {
+    if (uri) {
+      setPendingImageUri(uri);
+      setImageRemoved(false);
+    } else {
+      setPendingImageUri(null);
+      setImageRemoved(true);
+    }
+  };
+
+  const displayImage = pendingImageUri || (imageRemoved ? null : savedImageUrl);
+
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.categoryId) {
       setError('Name and category are required');
@@ -92,7 +116,6 @@ export default function ItemForm() {
       return;
     }
 
-    // Auto-set base price to lowest variant price when hasVariants is on
     const effectivePrice = form.hasVariants
       ? String(Math.min(...validVariants.map((v) => parseFloat(v.price) || 0)))
       : form.price;
@@ -100,6 +123,8 @@ export default function ItemForm() {
     setLoading(true);
     setError('');
     try {
+      let targetItemId = itemId;
+
       if (isEdit) {
         await menuAPI.updateItem(restaurantId, Number(itemId), {
           categoryId: Number(form.categoryId),
@@ -111,7 +136,7 @@ export default function ItemForm() {
           variants: form.hasVariants ? validVariants : undefined,
         } as any);
       } else {
-        await menuAPI.createItem(restaurantId, {
+        const createRes = await menuAPI.createItem(restaurantId, {
           categoryId: Number(form.categoryId),
           name: form.name.trim(),
           description: form.description.trim() || undefined,
@@ -120,7 +145,27 @@ export default function ItemForm() {
           hasVariants: form.hasVariants,
           variants: form.hasVariants ? validVariants : undefined,
         });
+        targetItemId = String(createRes.data?.id);
       }
+
+      // Handle image: upload new or delete old
+      if (pendingImageUri && targetItemId) {
+        try {
+          await fileAPI.uploadImage({
+            uri: pendingImageUri,
+            entityType: 'menu_item',
+            entityId: String(targetItemId),
+            purpose: 'image',
+          });
+        } catch {}
+      } else if (imageRemoved && savedImageUrl && targetItemId) {
+        try {
+          const res = await fileAPI.getEntityFiles('menu_item', String(targetItemId));
+          const match = (res.data || []).find((f) => f.purpose === 'image');
+          if (match) await fileAPI.deleteFile(match.id);
+        } catch {}
+      }
+
       router.back();
     } catch (err: any) {
       setError(err.message || 'Failed to save item');
@@ -167,6 +212,16 @@ export default function ItemForm() {
                 value={form.description}
                 onChangeText={(description) => setForm((p) => ({ ...p, description }))}
                 placeholder="Item description"
+              />
+            </View>
+
+            <View className="items-center">
+              <Label>Image</Label>
+              <ImageUpload
+                value={displayImage}
+                onChange={handleImageChange}
+                size={120}
+                shape="square"
               />
             </View>
 

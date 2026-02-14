@@ -23,7 +23,10 @@ export default function AdminSettings() {
     <View className="flex-1 bg-slate-900 px-5 pt-4">
       <Card className="mb-4">
         <CardContent>
-          <TouchableOpacity className="flex-row items-center justify-between py-2">
+          <TouchableOpacity
+            onPress={() => router.push('/(admin)/profile')}
+            className="flex-row items-center justify-between py-2"
+          >
             <View className="flex-row items-center gap-4">
               <View className="w-10 h-10 rounded-xl bg-slate-700 items-center justify-center">
                 <MaterialIcons name="person" size={22} color="#94A3B8" />

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { user as userTable, session as sessionTable } from '../db/schemas/auth.schema';
 import { restaurants as restaurantsTable, restaurantMembers as restaurantMembersTable } from '../db/schemas';
@@ -30,21 +31,29 @@ router.post('/delete-user', async (req, res) => {
         if (!userId && !token) return res.status(400).json({ success: false, message: 'userId or token required' });
 
         if (token) {
-            const [sess] = await db.select().from(sessionTable).where(sessionTable.token.eq(token));
+            const [sess] = await db.select().from(sessionTable).where(eq(sessionTable.token, token));
             if (sess) {
-                await db.delete(restaurantMembersTable).where(restaurantMembersTable.userId.eq(sess.userId));
-                await db.delete(restaurantsTable).where(restaurantsTable.id.in(db.select().from(restaurantMembersTable).where(restaurantMembersTable.userId.eq(sess.userId)).select(restaurantMembersTable.restaurantId)));
-                await db.delete(sessionTable).where(sessionTable.token.eq(token));
-                await db.delete(userTable).where(userTable.id.eq(sess.userId));
+                const memberRows = await db.select({ restaurantId: restaurantMembersTable.restaurantId }).from(restaurantMembersTable).where(eq(restaurantMembersTable.userId, sess.userId));
+                const restaurantIds = memberRows.map(r => r.restaurantId);
+                if (restaurantIds.length > 0) {
+                    await db.delete(restaurantsTable).where(inArray(restaurantsTable.id, restaurantIds));
+                }
+                await db.delete(restaurantMembersTable).where(eq(restaurantMembersTable.userId, sess.userId));
+                await db.delete(sessionTable).where(eq(sessionTable.token, token));
+                await db.delete(userTable).where(eq(userTable.id, sess.userId));
                 return res.json({ success: true });
             }
         }
 
         if (userId) {
-            await db.delete(restaurantMembersTable).where(restaurantMembersTable.userId.eq(userId));
-            await db.delete(restaurantsTable).where(restaurantsTable.id.in(db.select().from(restaurantMembersTable).where(restaurantMembersTable.userId.eq(userId)).select(restaurantMembersTable.restaurantId)));
-            await db.delete(sessionTable).where(sessionTable.userId.eq(userId));
-            await db.delete(userTable).where(userTable.id.eq(userId));
+            const memberRows = await db.select({ restaurantId: restaurantMembersTable.restaurantId }).from(restaurantMembersTable).where(eq(restaurantMembersTable.userId, userId));
+            const restaurantIds = memberRows.map(r => r.restaurantId);
+            if (restaurantIds.length > 0) {
+                await db.delete(restaurantsTable).where(inArray(restaurantsTable.id, restaurantIds));
+            }
+            await db.delete(restaurantMembersTable).where(eq(restaurantMembersTable.userId, userId));
+            await db.delete(sessionTable).where(eq(sessionTable.userId, userId));
+            await db.delete(userTable).where(eq(userTable.id, userId));
             return res.json({ success: true });
         }
 

@@ -1,8 +1,9 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { restaurantAPI, type Restaurant } from '@/lib/api';
+import { fileAPI } from '@/lib/api/file';
 import { Card, CardContent } from '@/components/ui/Card';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -70,6 +71,13 @@ export default function RestaurantDashboard() {
               >
                 <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
               </TouchableOpacity>
+              {restaurant.logo ? (
+                <Image
+                  source={{ uri: restaurant.logo.startsWith('http') ? restaurant.logo : fileAPI.getFullUrl(restaurant.logo) }}
+                  className="w-12 h-12 rounded-xl"
+                  resizeMode="cover"
+                />
+              ) : null}
               <View className="flex-1">
                 <Text className="text-white text-2xl font-bold">{restaurant.name}</Text>
                 {restaurant.description && (

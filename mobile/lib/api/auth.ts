@@ -108,6 +108,10 @@ class AuthAPI extends BaseAPI {
         return this.get('/auth/users');
     }
 
+    async updateProfile(userId: string, data: { name?: string }) {
+        return this.patch<{ success: boolean; data: User }>(`/api/users/${userId}`, data);
+    }
+
     // Hook wrapper for session management
     useSession() {
         return useSession();

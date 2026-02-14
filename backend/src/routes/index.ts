@@ -8,6 +8,8 @@ import menuRoutes from './menu.routes';
 import sessionRoutes from './session.routes';
 import orderRoutes from './order.routes';
 import publicRoutes from './public.routes';
+import fileRoutes from './file.routes';
+import { fileController } from '../controllers/file.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
@@ -21,10 +23,14 @@ router.get('/health', (req, res) => {
     });
 });
 
+// Public file streaming (no auth — so <Image> tags can load directly)
+router.get('/files/stream/:fileId', fileController.stream.bind(fileController));
+
 // API routes
 router.use('/users', userRoutes);
 
 router.use('/restaurants', authenticate, restaurantRoutes);
+router.use('/files', authenticate, fileRoutes);
 
 // Restaurant sub-resources (all authenticated with permission middleware)
 router.use('/restaurants/:restaurantId/roles', authenticate, roleRoutes);

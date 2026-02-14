@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert as RNAlert, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -7,6 +7,8 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Alert } from '@/components/ui/Alert';
+import { InvitationCard } from '@/components/InvitationCard';
+import { useInvitationActions } from '@/lib/hooks/useInvitationActions';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function UserHomePage() {
@@ -16,8 +18,6 @@ export default function UserHomePage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [acceptingId, setAcceptingId] = useState<number | null>(null);
-  const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [signOutLoading, setSignOutLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -48,33 +48,8 @@ export default function UserHomePage() {
     fetchData();
   }, [fetchData]);
 
-  const isBusy = acceptingId !== null || rejectingId !== null;
-
-  const handleAccept = async (invitation: MyInvitation) => {
-    setAcceptingId(invitation.id);
-    try {
-      await memberAPI.acceptInvitation(invitation.token);
-      setInvitations((prev) => prev.filter((i) => i.id !== invitation.id));
-      fetchData();
-      RNAlert.alert('Invitation Accepted', `You have joined ${invitation.restaurantName}.`);
-    } catch (err: any) {
-      RNAlert.alert('Error', err.message || 'Failed to accept invitation');
-    } finally {
-      setAcceptingId(null);
-    }
-  };
-
-  const handleReject = async (invitation: MyInvitation) => {
-    setRejectingId(invitation.id);
-    try {
-      await memberAPI.rejectInvitation(invitation.token);
-      setInvitations((prev) => prev.filter((i) => i.id !== invitation.id));
-    } catch (err: any) {
-      RNAlert.alert('Error', err.message || 'Failed to reject invitation');
-    } finally {
-      setRejectingId(null);
-    }
-  };
+  const { acceptingId, rejectingId, isBusy, handleAccept, handleReject } =
+    useInvitationActions(setInvitations, { onUpdate: fetchData });
 
   const handleSignOut = async () => {
     setSignOutLoading(true);
@@ -83,14 +58,6 @@ export default function UserHomePage() {
     } finally {
       setSignOutLoading(false);
     }
-  };
-
-  const getExpiryBadge = (expiresAt: string) => {
-    const diff = new Date(expiresAt).getTime() - Date.now();
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    if (days <= 1) return { label: 'Expires today', variant: 'destructive' as const };
-    if (days <= 3) return { label: `${days}d left`, variant: 'default' as const };
-    return { label: `${days}d left`, variant: 'success' as const };
   };
 
   if (loading) {
@@ -135,48 +102,17 @@ export default function UserHomePage() {
         {hasInvitations && (
           <View className="mb-6">
             <Text className="text-white text-lg font-bold mb-3">Pending Invitations</Text>
-            {invitations.map((item) => {
-              const expiry = getExpiryBadge(item.expiresAt);
-              const isAccepting = acceptingId === item.id;
-              const isRejecting = rejectingId === item.id;
-
-              return (
-                <Card key={item.id} className="mb-3">
-                  <CardContent>
-                    <View className="flex-row items-center gap-4">
-                      <View className="w-12 h-12 rounded-xl bg-brand/15 items-center justify-center">
-                        <MaterialIcons name="mail" size={24} color="#F97316" />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-white text-base font-bold">{item.restaurantName}</Text>
-                        <View className="flex-row items-center gap-2 mt-1">
-                          <Badge variant={expiry.variant}>{expiry.label}</Badge>
-                        </View>
-                      </View>
-                    </View>
-                    <View className="flex-row gap-2 mt-3">
-                      <Button
-                        title="Reject"
-                        size="sm"
-                        variant="secondary"
-                        onPress={() => handleReject(item)}
-                        loading={isRejecting}
-                        disabled={isBusy}
-                        className="flex-1"
-                      />
-                      <Button
-                        title="Accept"
-                        size="sm"
-                        onPress={() => handleAccept(item)}
-                        loading={isAccepting}
-                        disabled={isBusy}
-                        className="flex-1"
-                      />
-                    </View>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {invitations.map((item) => (
+              <InvitationCard
+                key={item.id}
+                invitation={item}
+                onAccept={handleAccept}
+                onReject={handleReject}
+                isAccepting={acceptingId === item.id}
+                isRejecting={rejectingId === item.id}
+                disabled={isBusy}
+              />
+            ))}
           </View>
         )}
 

@@ -1,11 +1,15 @@
 import { memberRepository } from "../repositories/member.repository";
 import { invitationRepository } from "../repositories/invitation.repository";
+import { restaurantRepository } from "../repositories/restaurant.repository";
 import { AppError } from "../types";
 import type { InviteMemberDTO } from "@menugo/dto";
 import { generateId } from "../utils/helpers";
 import { db } from "@menugo/data";
 import { user as userTable } from "@menugo/data/schemas";
 import { eq } from "drizzle-orm";
+import { getEmailProvider } from "../email";
+import { renderInvitationEmail } from "@menugo/email";
+import { APP_URL } from "../envs";
 
 class MemberService {
   async getMembers(restaurantId: number) {
@@ -62,6 +66,15 @@ class MemberService {
       token,
       inviterId,
       expiresAt,
+    });
+
+    await this.sendInvitationEmail({
+      restaurantId,
+      inviterId,
+      email: dto.email,
+      token,
+      expiresAt,
+      isExistingUser: !!existingByEmail,
     });
 
     return invitation;
@@ -159,6 +172,48 @@ class MemberService {
 
   async getInvitations(restaurantId: number) {
     return invitationRepository.findByRestaurant(restaurantId);
+  }
+
+  private async sendInvitationEmail(params: {
+    restaurantId: number;
+    inviterId: string;
+    email: string;
+    token: string;
+    expiresAt: Date;
+    isExistingUser: boolean;
+  }) {
+    try {
+      const emailProvider = getEmailProvider();
+      if (!emailProvider) return;
+
+      const [restaurant, inviter] = await Promise.all([
+        restaurantRepository.findById(params.restaurantId),
+        this.findUserById(params.inviterId),
+      ]);
+
+      if (!restaurant || !inviter) return;
+
+      const action = params.isExistingUser ? "sign-in" : "sign-up";
+      const actionUrl = `${APP_URL}/invite?token=${params.token}&email=${encodeURIComponent(params.email)}&action=${action}`;
+
+      const { subject, html, text } = renderInvitationEmail({
+        restaurantName: restaurant.name,
+        inviterName: inviter.name,
+        inviterEmail: inviter.email,
+        expiresAt: params.expiresAt,
+        actionUrl,
+        isExistingUser: params.isExistingUser,
+      });
+
+      await emailProvider.sendEmail({
+        to: params.email,
+        subject,
+        html,
+        text,
+      });
+    } catch {
+      // Email failure should not fail the invitation creation
+    }
   }
 
   private async findUserByEmail(email: string) {

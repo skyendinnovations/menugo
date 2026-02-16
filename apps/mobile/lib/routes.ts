@@ -5,6 +5,7 @@ export const ROUTES = {
   },
   ADMIN: {
     HOME: '/(admin)' as const,
+    ACCEPT_INVITATION: '/(admin)/accept-invitation' as const,
     ONBOARDING: '/(admin)/onboarding' as const,
     PROFILE: '/(admin)/profile' as const,
     RESTAURANTS: {

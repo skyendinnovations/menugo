@@ -28,8 +28,8 @@ export default function SignUpScreen() {
     try {
       await authAPI.signUp({ name, email, password });
       await refetch();
-      if (params.redirect) {
-        router.push(`/(auth)/sign-in?email=${encodeURIComponent(email)}&redirect=${params.redirect}`);
+      if (isFromInvitation) {
+        router.replace(ROUTES.ADMIN.ACCEPT_INVITATION);
       } else {
         router.replace(ROUTES.ADMIN.HOME);
       }

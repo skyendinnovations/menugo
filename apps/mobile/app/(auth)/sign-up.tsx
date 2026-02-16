@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { Stack, Link, useRouter } from 'expo-router';
+import { Stack, Link, useRouter, useLocalSearchParams } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -13,9 +13,11 @@ import { ROUTES } from '@/lib/routes';
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ email?: string; redirect?: string }>();
   const { refetch } = useSession();
+  const isFromInvitation = !!params.email && params.redirect === 'invitations';
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(params.email ?? '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,7 +28,11 @@ export default function SignUpScreen() {
     try {
       await authAPI.signUp({ name, email, password });
       await refetch();
-      router.replace(ROUTES.ADMIN.HOME);
+      if (params.redirect) {
+        router.push(`/(auth)/sign-in?email=${encodeURIComponent(email)}&redirect=${params.redirect}`);
+      } else {
+        router.replace(ROUTES.ADMIN.HOME);
+      }
     } catch (e: any) {
       setError(e?.message ?? 'Failed to sign up');
     } finally {
@@ -67,6 +73,8 @@ export default function SignUpScreen() {
               placeholder="you@example.com"
               autoCapitalize="none"
               keyboardType="email-address"
+              editable={!isFromInvitation}
+              className={isFromInvitation ? 'opacity-60' : ''}
             />
           </View>
           <View>

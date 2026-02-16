@@ -1,6 +1,6 @@
 import { View, Text, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import React, { useState } from 'react';
-import { Stack, Link, useRouter } from 'expo-router';
+import { Stack, Link, useRouter, useLocalSearchParams } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -12,7 +12,8 @@ import { ROUTES } from '@/lib/routes';
 
 export function SignInForm() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const params = useLocalSearchParams<{ email?: string; redirect?: string }>();
+  const [email, setEmail] = useState(params.email ?? '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,7 +24,11 @@ export function SignInForm() {
     try {
       const result = await authAPI.signIn({ email, password });
       if (result.data?.user) {
-        router.replace(ROUTES.ADMIN.HOME);
+        if (params.redirect === 'invitations') {
+          router.replace(ROUTES.ADMIN.ACCEPT_INVITATION);
+        } else {
+          router.replace(ROUTES.ADMIN.HOME);
+        }
       } else {
         setError('Sign in failed');
       }

@@ -6,6 +6,7 @@ import { restaurantAPI, type Restaurant } from '@/lib/api';
 import { fileAPI } from '@/lib/api/file';
 import { Card, CardContent } from '@/components/ui/Card';
 import { MaterialIcons } from '@expo/vector-icons';
+import { ROUTES } from '@/lib/routes';
 
 interface DashboardCard {
   title: string;
@@ -137,7 +138,7 @@ export default function RestaurantDashboard() {
           {cards.map((card) => (
             <TouchableOpacity
               key={card.route}
-              onPress={() => router.push(`/(admin)/restaurants/${id}/${card.route}` as any)}
+              onPress={() => router.push(ROUTES.ADMIN.RESTAURANTS.subpage(id!, card.route) as any)}
               activeOpacity={0.7}
               style={{ width: '48%' }}>
               <Card>

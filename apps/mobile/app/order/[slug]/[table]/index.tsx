@@ -14,6 +14,7 @@ import { getDeviceId, setCustomerName as saveCustomerName } from '@/lib/utils/de
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { MaterialIcons } from '@expo/vector-icons';
+import { ROUTES } from '@/lib/routes';
 
 export default function SeatSelectionScreen() {
   const { slug, table } = useLocalSearchParams<{ slug: string; table: string }>();
@@ -55,7 +56,7 @@ export default function SeatSelectionScreen() {
 
         // If this device already has a session → go straight to menu
         if (t.existingSessionId) {
-          router.replace(`/order/${slug}/${table}/menu`);
+          router.replace(ROUTES.ORDER.menu(slug as string, table as string));
           return;
         }
       } catch (err: any) {
@@ -84,7 +85,7 @@ export default function SeatSelectionScreen() {
         personsCount,
         customerName.trim()
       );
-      router.replace(`/order/${slug}/${table}/menu`);
+      router.replace(ROUTES.ORDER.menu(slug as string, table as string));
     } catch (err: any) {
       setError(err.message || 'Could not join table');
       // Refresh availability
@@ -110,7 +111,7 @@ export default function SeatSelectionScreen() {
 
     try {
       await publicAPI.joinSession(joinCode.trim(), deviceId);
-      router.replace(`/order/${slug}/${table}/menu`);
+      router.replace(ROUTES.ORDER.menu(slug as string, table as string));
     } catch (err: any) {
       setError(err.message || 'Invalid code. Please check and try again.');
     } finally {
@@ -199,7 +200,7 @@ export default function SeatSelectionScreen() {
                   setOccupiedSeats(res.data.table.occupiedSeats);
                   setIsFull(res.data.table.isFull);
                   if (res.data.table.existingSessionId) {
-                    router.replace(`/order/${slug}/${table}/menu`);
+                    router.replace(ROUTES.ORDER.menu(slug as string, table as string));
                   }
                 } catch {}
                 setLoading(false);

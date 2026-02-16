@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { authAPI } from '@/lib/api';
-import { getSession } from '@/lib/auth-client';
 import { Alert } from '@/components/ui/Alert';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { MaterialIcons } from '@expo/vector-icons';
+import { ROUTES } from '@/lib/routes';
 
 export function SignInForm() {
   const router = useRouter();
@@ -23,11 +23,7 @@ export function SignInForm() {
     try {
       const result = await authAPI.signIn({ email, password });
       if (result.data?.user) {
-        const session = await getSession();
-        const role = session.data?.user?.role;
-        const target = role === 'admin' ? '/(admin)' : '/(user)';
-
-        router.replace(target);
+        router.replace(ROUTES.ADMIN.HOME);
       } else {
         setError('Sign in failed');
       }
@@ -92,7 +88,7 @@ export function SignInForm() {
             className="mt-4"
           />
 
-          <Link href="/(auth)/sign-up" asChild>
+          <Link href={ROUTES.AUTH.SIGN_UP} asChild>
             <Button title="Create an account" variant="ghost" size="lg" />
           </Link>
         </View>

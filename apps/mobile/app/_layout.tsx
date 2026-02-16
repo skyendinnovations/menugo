@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useSession } from '@/lib/api/auth';
 import { getSession } from '@/lib/auth-client';
+import { ROUTES } from '@/lib/routes';
 
 export default function Layout() {
   const router = useRouter();
@@ -13,7 +14,6 @@ export default function Layout() {
   const [sessionChecked, setSessionChecked] = useState(false);
 
   const isAuthenticated = !!data?.user || !!manualSession?.user;
-  const userRole = (data?.user as any)?.role || (manualSession?.user as any)?.role;
 
   // Wait for both the hook and the manual session check before redirecting
   const isReady = !isPending && sessionChecked;
@@ -30,12 +30,7 @@ export default function Layout() {
       // but useSession still has stale authenticated data.
       getSession().then((session) => {
         if (session.data?.user) {
-          const role = (session.data.user as any)?.role;
-          if (role === 'admin') {
-            router.replace('/(admin)');
-          } else {
-            router.replace('/(user)');
-          }
+          router.replace(ROUTES.ADMIN.HOME);
         } else {
           setManualSession(null);
           refetch();
@@ -50,11 +45,11 @@ export default function Layout() {
           setManualSession(session.data);
           refetch();
         } else {
-          router.replace('/(auth)/sign-in');
+          router.replace(ROUTES.AUTH.SIGN_IN);
         }
       });
     }
-  }, [isAuthenticated, isReady, segments, userRole]);
+  }, [isAuthenticated, isReady, segments]);
 
   useEffect(() => {
     const checkSession = async () => {

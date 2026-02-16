@@ -8,6 +8,7 @@ import { Alert } from '@/components/ui/Alert';
 import { InvitationCard } from '@/components/InvitationCard';
 import { useInvitationActions } from '@/lib/hooks/useInvitationActions';
 import { MaterialIcons } from '@expo/vector-icons';
+import { ROUTES } from '@/lib/routes';
 
 export default function AcceptInvitationScreen() {
   const router = useRouter();
@@ -61,7 +62,7 @@ export default function AcceptInvitationScreen() {
       <Button
         title="Create Restaurant"
         size="lg"
-        onPress={() => router.push('/(admin)/restaurants/create' as any)}
+        onPress={() => router.push(ROUTES.ADMIN.RESTAURANTS.CREATE as any)}
         className="mt-6 w-full"
       />
     </View>
@@ -75,7 +76,7 @@ export default function AcceptInvitationScreen() {
           title="+ Restaurant"
           size="sm"
           variant="ghost"
-          onPress={() => router.push('/(admin)/restaurants/create' as any)}
+          onPress={() => router.push(ROUTES.ADMIN.RESTAURANTS.CREATE as any)}
         />
       </View>
 

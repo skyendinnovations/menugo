@@ -17,6 +17,7 @@ import { CartProvider, useCart } from '@/lib/context/CartContext';
 import { Button } from '@/components/ui/Button';
 import { formatPrice } from '@menugo/dto';
 import { MaterialIcons } from '@expo/vector-icons';
+import { ROUTES } from '@/lib/routes';
 
 // ─── Types ───────────────────────────────────────────────
 type MenuItemWithVariants = MenuItem & { variants: MenuItemVariant[] };
@@ -253,7 +254,7 @@ function OrderScreenContent() {
         const tableInfoRes = await publicAPI.getTableInfo(slug as string, Number(table), did);
         const existingSessionId = tableInfoRes.data.table.existingSessionId;
         if (!existingSessionId) {
-          router.replace(`/order/${slug}/${table}`);
+          router.replace(ROUTES.ORDER.summary(slug as string, table as string));
           return;
         }
 
@@ -349,7 +350,7 @@ function OrderScreenContent() {
         <Text className="mt-2 text-center text-sm text-slate-400">{error}</Text>
         <Button
           title="Retry"
-          onPress={() => router.replace(`/order/${slug}/${table}/menu`)}
+          onPress={() => router.replace(ROUTES.ORDER.menu(slug as string, table as string))}
           variant="secondary"
           className="mt-6"
         />

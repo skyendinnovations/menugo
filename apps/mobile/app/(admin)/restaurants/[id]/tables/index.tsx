@@ -6,6 +6,7 @@ import { tableAPI, type Table } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { MaterialIcons } from '@expo/vector-icons';
+import { ROUTES } from '@/lib/routes';
 
 export default function TablesScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,7 +34,7 @@ export default function TablesScreen() {
 
   const renderTable = ({ item }: { item: Table }) => (
     <TouchableOpacity
-      onPress={() => router.push(`/(admin)/restaurants/${id}/tables/${item.id}` as any)}
+      onPress={() => router.push(ROUTES.ADMIN.TABLES.detail(id!, item.id) as any)}
       activeOpacity={0.7}
       className="m-[1%] w-[31%]">
       <Card>
@@ -72,7 +73,7 @@ export default function TablesScreen() {
           <Button
             title="+ Add"
             size="sm"
-            onPress={() => router.push(`/(admin)/restaurants/${id}/tables/create` as any)}
+            onPress={() => router.push(ROUTES.ADMIN.TABLES.create(id!) as any)}
           />
         </View>
 

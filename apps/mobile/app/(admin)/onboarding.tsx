@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Textarea } from '@/components/ui/Textarea';
 import { MaterialIcons } from '@expo/vector-icons';
+import { ROUTES } from '@/lib/routes';
 
 function ProgressDots({ current, total }: { current: number; total: number }) {
   return (
@@ -245,19 +246,19 @@ function CompleteStep({ restaurant }: { restaurant: Restaurant }) {
       <View className="mt-10 w-full gap-3">
         <Button
           title="Go to Dashboard"
-          onPress={() => router.replace(`/(admin)/restaurants/${restaurant.id}` as any)}
+          onPress={() => router.replace(ROUTES.ADMIN.RESTAURANTS.detail(restaurant.id) as any)}
           size="lg"
         />
         <Button
           title="Set up Menu"
-          onPress={() => router.replace(`/(admin)/restaurants/${restaurant.id}/menu` as any)}
+          onPress={() => router.replace(ROUTES.ADMIN.MENU.list(restaurant.id) as any)}
           variant="secondary"
           size="lg"
         />
         <Button
           title="Invite Staff"
           onPress={() =>
-            router.replace(`/(admin)/restaurants/${restaurant.id}/members/invite` as any)
+            router.replace(ROUTES.ADMIN.MEMBERS.invite(restaurant.id) as any)
           }
           variant="ghost"
           size="lg"

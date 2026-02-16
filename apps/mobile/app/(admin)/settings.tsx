@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { MaterialIcons } from '@expo/vector-icons';
 import { authAPI } from '@/lib/api';
+import { ROUTES } from '@/lib/routes';
 
 export default function AdminSettings() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function AdminSettings() {
       <Card className="mb-4">
         <CardContent>
           <TouchableOpacity
-            onPress={() => router.push('/(admin)/profile')}
+            onPress={() => router.push(ROUTES.ADMIN.PROFILE)}
             className="flex-row items-center justify-between py-2">
             <View className="flex-row items-center gap-4">
               <View className="h-10 w-10 items-center justify-center rounded-xl bg-slate-700">

@@ -10,9 +10,14 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "clean": "turbo clean",
-    "db:generate": "bun run --cwd packages/data drizzle-kit generate",
-    "db:migrate": "bun run --cwd packages/data drizzle-kit migrate",
-    "db:studio": "bun run --cwd packages/data drizzle-kit studio"
+    "format": "turbo format",
+    "db:generate": "bun run --cwd packages/data generate",
+    "db:migrate": "bun run --cwd packages/data migrate",
+    "db:migrate:up": "bun run --cwd packages/data migrate:up",
+    "db:migrate:down": "bun run --cwd packages/data migrate:down",
+    "db:migrate:status": "bun run --cwd packages/data migrate:status",
+    "db:studio": "bun run --cwd packages/data studio",
+    "db:push": "bun run --cwd packages/data push"
   },
   "devDependencies": {
     "turbo": "^2"

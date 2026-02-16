@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/Switch';
 import { formatPrice } from '@menugo/dto';
 import { restaurantAPI } from '@/lib/api';
 import { MaterialIcons } from '@expo/vector-icons';
+import { ROUTES } from '@/lib/routes';
 
 export default function MenuScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -93,12 +94,12 @@ export default function MenuScreen() {
               title="+ Category"
               size="sm"
               variant="secondary"
-              onPress={() => router.push(`/(admin)/restaurants/${id}/menu/category-form` as any)}
+              onPress={() => router.push(ROUTES.ADMIN.MENU.categoryForm(id!) as any)}
             />
             <Button
               title="+ Item"
               size="sm"
-              onPress={() => router.push(`/(admin)/restaurants/${id}/menu/item-form` as any)}
+              onPress={() => router.push(ROUTES.ADMIN.MENU.itemForm(id!) as any)}
             />
           </View>
         </View>
@@ -115,7 +116,7 @@ export default function MenuScreen() {
             <Text className="text-lg font-medium text-slate-400">No menu categories yet</Text>
             <Button
               title="Add Category"
-              onPress={() => router.push(`/(admin)/restaurants/${id}/menu/category-form` as any)}
+              onPress={() => router.push(ROUTES.ADMIN.MENU.categoryForm(id!) as any)}
               className="mt-5"
             />
           </View>
@@ -180,7 +181,7 @@ export default function MenuScreen() {
                             <TouchableOpacity
                               onPress={() =>
                                 router.push(
-                                  `/(admin)/restaurants/${id}/menu/item-form?itemId=${item.id}` as any
+                                  ROUTES.ADMIN.MENU.itemForm(id!, item.id) as any
                                 )
                               }
                               className="h-9 w-9 items-center justify-center rounded-lg bg-slate-700">

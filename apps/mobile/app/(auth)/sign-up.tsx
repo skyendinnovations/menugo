@@ -9,6 +9,7 @@ import { useSession } from '@/lib/api/auth';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Alert } from '@/components/ui/Alert';
 import { MaterialIcons } from '@expo/vector-icons';
+import { ROUTES } from '@/lib/routes';
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -16,7 +17,6 @@ export default function SignUpScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'user' | 'admin'>('user');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -24,9 +24,9 @@ export default function SignUpScreen() {
     setLoading(true);
     setError(null);
     try {
-      await authAPI.signUp({ name, email, password, role });
+      await authAPI.signUp({ name, email, password });
       await refetch();
-      router.push('/(auth)/sign-in');
+      router.replace(ROUTES.ADMIN.HOME);
     } catch (e: any) {
       setError(e?.message ?? 'Failed to sign up');
     } finally {
@@ -79,24 +79,6 @@ export default function SignUpScreen() {
             />
           </View>
 
-          <View>
-            <Label nativeID="role">Account Type</Label>
-            <View className="mt-1 flex-row gap-3">
-              <Button
-                title="User"
-                onPress={() => setRole('user')}
-                variant={role === 'user' ? 'primary' : 'ghost'}
-                className="flex-1"
-              />
-              <Button
-                title="Admin"
-                onPress={() => setRole('admin')}
-                variant={role === 'admin' ? 'primary' : 'ghost'}
-                className="flex-1"
-              />
-            </View>
-          </View>
-
           <Button
             title="Sign Up"
             loading={loading}
@@ -106,7 +88,7 @@ export default function SignUpScreen() {
             className="mt-4"
           />
 
-          <Link href="/(auth)/sign-in" asChild>
+          <Link href={ROUTES.AUTH.SIGN_IN} asChild>
             <Button title="Already have an account? Sign In" variant="ghost" />
           </Link>
         </View>

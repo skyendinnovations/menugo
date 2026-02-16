@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "menugo",
+    "slug": "menugo-mobile",
+    "owner": "pramoth_sgp",
+    "version": "1.0.0",
+    "scheme": "menugo",
+    "platforms": ["ios", "android", "web"],
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true,
+      "tsconfigPaths": true
+    },
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pramoth.menugo",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.pramoth.menugo"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "99135fea-fe06-479b-a0df-db981766630a"
+      }
+    }
+  }
+}

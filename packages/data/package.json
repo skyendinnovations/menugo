@@ -1,0 +1,18 @@
+{
+  "name": "@menugo/data",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schemas": "./src/schemas/index.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "*",
+    "@neondatabase/serverless": "*"
+  },
+  "devDependencies": {
+    "drizzle-kit": "*"
+  }
+}

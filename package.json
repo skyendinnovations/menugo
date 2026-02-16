@@ -1,0 +1,21 @@
+{
+  "name": "menugo",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev": "turbo dev",
+    "start": "turbo start",
+    "dev:backend": "turbo dev --filter=backend",
+    "dev:mobile": "turbo dev --filter=mobile",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "clean": "turbo clean",
+    "db:generate": "bun run --cwd packages/data drizzle-kit generate",
+    "db:migrate": "bun run --cwd packages/data drizzle-kit migrate",
+    "db:studio": "bun run --cwd packages/data drizzle-kit studio"
+  },
+  "devDependencies": {
+    "turbo": "^2"
+  },
+  "packageManager": "bun@1.2.5"
+}

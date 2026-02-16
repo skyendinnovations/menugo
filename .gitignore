@@ -1,0 +1,9 @@
+# Turbo
+.turbo
+
+# Dependencies
+node_modules
+
+# Env
+.env
+.env.local

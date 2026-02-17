@@ -1,7 +1,53 @@
 import type { Request, Response, NextFunction } from "express";
 import { memberService } from "../services/member.service";
+import { memberRepository } from "../repositories/member.repository";
+import type { Permissions, PermissionKey } from "@menugo/dto";
 
 class MemberController {
+  async getMyMembership(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const restaurantId = Number(req.params.restaurantId);
+
+      const member = await memberRepository.findByUserAndRestaurant(
+        userId,
+        restaurantId,
+      );
+      if (!member) {
+        return res
+          .status(403)
+          .json({ success: false, message: "You are not a member of this restaurant" });
+      }
+
+      const roles = await memberRepository.getMemberRoles(userId, restaurantId);
+
+      const isOwner = roles.some((r) => r.roleName === "owner");
+
+      // Merge permissions from all roles
+      const mergedPermissions: Permissions = {};
+      for (const role of roles) {
+        const perms = (role.permissions || {}) as Permissions;
+        for (const [key, value] of Object.entries(perms)) {
+          if (value) {
+            mergedPermissions[key as PermissionKey] = true;
+          }
+        }
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          id: member.id,
+          isOwner,
+          roles,
+          permissions: mergedPermissions,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getMembers(req: Request, res: Response, next: NextFunction) {
     try {
       const restaurantId = Number(req.params.restaurantId);

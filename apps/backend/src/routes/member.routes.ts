@@ -5,6 +5,11 @@ import { requirePermission } from "../middlewares/permission.middleware";
 const router = Router({ mergeParams: true });
 
 router.get(
+  "/me",
+  memberController.getMyMembership.bind(memberController),
+);
+
+router.get(
   "/",
   requirePermission("manage_members"),
   memberController.getMembers.bind(memberController),

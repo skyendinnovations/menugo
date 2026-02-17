@@ -1,12 +1,13 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { restaurantAPI, type Restaurant } from '@/lib/api';
 import { fileAPI } from '@/lib/api/file';
 import { Card, CardContent } from '@/components/ui/Card';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ROUTES } from '@/lib/routes';
+import { usePermissions } from '@/lib/hooks/usePermissions';
 
 interface DashboardCard {
   title: string;
@@ -14,6 +15,7 @@ interface DashboardCard {
   route: string;
   color: string;
   bg: string;
+  permission?: string;
 }
 
 export default function RestaurantDashboard() {
@@ -23,6 +25,7 @@ export default function RestaurantDashboard() {
   const [loading, setLoading] = useState(true);
 
   const restaurantId = Number(id);
+  const { hasPermission, isOwner, loading: permLoading } = usePermissions(restaurantId);
 
   useFocusEffect(
     useCallback(() => {
@@ -40,13 +43,14 @@ export default function RestaurantDashboard() {
     }, [restaurantId])
   );
 
-  const cards: DashboardCard[] = [
+  const allCards: DashboardCard[] = [
     {
       title: 'Tables',
       icon: 'table-restaurant',
       route: 'tables',
       color: '#3B82F6',
       bg: 'rgba(59,130,246,0.12)',
+      permission: 'manage_tables',
     },
     {
       title: 'Menu',
@@ -54,6 +58,7 @@ export default function RestaurantDashboard() {
       route: 'menu',
       color: '#10B981',
       bg: 'rgba(16,185,129,0.12)',
+      permission: 'manage_menu',
     },
     {
       title: 'Orders',
@@ -61,6 +66,7 @@ export default function RestaurantDashboard() {
       route: 'orders',
       color: '#F59E0B',
       bg: 'rgba(245,158,11,0.12)',
+      permission: 'view_orders',
     },
     {
       title: 'Members',
@@ -68,6 +74,7 @@ export default function RestaurantDashboard() {
       route: 'members',
       color: '#8B5CF6',
       bg: 'rgba(139,92,246,0.12)',
+      permission: 'manage_members',
     },
     {
       title: 'Kitchen',
@@ -75,6 +82,7 @@ export default function RestaurantDashboard() {
       route: 'kitchen',
       color: '#EF4444',
       bg: 'rgba(239,68,68,0.12)',
+      permission: 'view_orders',
     },
     {
       title: 'Waiter',
@@ -82,6 +90,7 @@ export default function RestaurantDashboard() {
       route: 'waiter',
       color: '#06B6D4',
       bg: 'rgba(6,182,212,0.12)',
+      permission: 'view_orders',
     },
     {
       title: 'Cashier',
@@ -89,11 +98,35 @@ export default function RestaurantDashboard() {
       route: 'cashier',
       color: '#22C55E',
       bg: 'rgba(34,197,94,0.12)',
+      permission: 'close_sessions',
     },
-    { title: 'Edit', icon: 'edit', route: 'edit', color: '#94A3B8', bg: 'rgba(148,163,184,0.12)' },
+    {
+      title: 'Roles',
+      icon: 'admin-panel-settings',
+      route: 'roles',
+      color: '#F43F5E',
+      bg: 'rgba(244,63,94,0.12)',
+      permission: 'manage_roles',
+    },
+    {
+      title: 'Edit',
+      icon: 'edit',
+      route: 'edit',
+      color: '#94A3B8',
+      bg: 'rgba(148,163,184,0.12)',
+      permission: 'manage_restaurant',
+    },
   ];
 
-  if (loading) {
+  const cards = useMemo(
+    () =>
+      allCards.filter(
+        (card) => !card.permission || isOwner || hasPermission(card.permission)
+      ),
+    [isOwner, hasPermission]
+  );
+
+  if (loading || permLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-slate-900">
         <ActivityIndicator size="large" color="#F97316" />

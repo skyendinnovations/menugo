@@ -1,11 +1,17 @@
 import BaseAPI from './base';
-import type { Member, Role, Invitation, MyInvitation } from '@menugo/dto';
+import type { Member, Role, Invitation, MyInvitation, MyMembership } from '@menugo/dto';
 
 class MemberAPI extends BaseAPI {
   // Members
   async getMembers(restaurantId: number) {
     return this.get<{ success: boolean; data: Member[] }>(
       `/api/restaurants/${restaurantId}/members`
+    );
+  }
+
+  async getMyMembership(restaurantId: number) {
+    return this.get<{ success: boolean; data: MyMembership }>(
+      `/api/restaurants/${restaurantId}/members/me`
     );
   }
 
@@ -50,6 +56,23 @@ class MemberAPI extends BaseAPI {
       name,
       permissions,
     });
+  }
+
+  async updateRole(
+    restaurantId: number,
+    roleId: number,
+    data: { name?: string; permissions?: Record<string, boolean> }
+  ) {
+    return this.put<{ success: boolean; data: Role }>(
+      `/api/restaurants/${restaurantId}/roles/${roleId}`,
+      data
+    );
+  }
+
+  async deleteRole(restaurantId: number, roleId: number) {
+    return this.delete<{ success: boolean }>(
+      `/api/restaurants/${restaurantId}/roles/${roleId}`
+    );
   }
 }
 

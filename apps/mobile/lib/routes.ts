@@ -35,6 +35,13 @@ export const ROUTES = {
       invite: (id: number | string) =>
         `/(admin)/restaurants/${id}/members/invite` as const,
     },
+    ROLES: {
+      list: (id: number | string) => `/(admin)/restaurants/${id}/roles` as const,
+      create: (id: number | string) =>
+        `/(admin)/restaurants/${id}/roles/form` as const,
+      edit: (id: number | string, roleId: number | string) =>
+        `/(admin)/restaurants/${id}/roles/form?roleId=${roleId}` as const,
+    },
   },
   ORDER: {
     JOIN: '/order/join' as const,

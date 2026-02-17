@@ -31,6 +31,13 @@ export interface MyInvitation {
     createdAt: string;
 }
 
+export interface MyMembership {
+    id: number;
+    isOwner: boolean;
+    roles: { roleId: number; roleName: string; permissions: Record<string, boolean> }[];
+    permissions: Record<string, boolean>;
+}
+
 export interface InviteMemberDTO {
     email: string;
     roleIds: number[];

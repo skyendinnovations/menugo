@@ -28,6 +28,12 @@ export function createServerAuth(config: ServerAuthConfig) {
             provider: "pg",
             schema,
         }),
+        account: {
+            // Mobile OAuth flows (Expo) don't reliably persist cookies
+            // between the initial redirect and the callback.
+            // State is still validated via the database verification table.
+            skipStateCookieCheck: true,
+        },
         socialProviders: {
             ...(google
                 ? {

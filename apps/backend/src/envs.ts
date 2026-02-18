@@ -31,6 +31,10 @@ const EnvsSchema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional().default("noreply@menugo.com"),
 
+  // Google OAuth
+  OAUTH_CLIENT_ID: z.string().optional(),
+  OAUTH_CLIENT_SECRET: z.string().optional(),
+
   // Mobile app URL (for QR codes)
   APP_URL: z.string().optional().default("http://localhost:8081"),
 });
@@ -57,5 +61,7 @@ export const {
   SMTP_USER,
   SMTP_PASS,
   SMTP_FROM,
+  OAUTH_CLIENT_ID,
+  OAUTH_CLIENT_SECRET,
   APP_URL,
 } = envs;

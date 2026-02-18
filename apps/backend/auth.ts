@@ -8,6 +8,8 @@ import {
     SMTP_PASS,
     SMTP_FROM,
     TRUSTED_ORIGINS,
+    OAUTH_CLIENT_ID,
+    OAUTH_CLIENT_SECRET,
 } from "./src/envs";
 
 export const auth = createServerAuth({
@@ -23,4 +25,8 @@ export const auth = createServerAuth({
               from: SMTP_FROM,
           }
         : undefined,
+    google:
+        OAUTH_CLIENT_ID && OAUTH_CLIENT_SECRET
+            ? { clientId: OAUTH_CLIENT_ID, clientSecret: OAUTH_CLIENT_SECRET }
+            : undefined,
 });

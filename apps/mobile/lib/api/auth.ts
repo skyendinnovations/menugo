@@ -2,6 +2,7 @@ import BaseAPI from './base';
 import { signIn, signUp, signOut, useSession as _useSession } from '../auth-client';
 import type { SignInData, SignUpData, User } from '@menugo/dto';
 import { ROUTES } from '@/lib/routes';
+import { Platform } from 'react-native';
 
 export { _useSession as useSession };
 
@@ -44,6 +45,28 @@ class AuthAPI extends BaseAPI {
       }
     } catch (error) {
       console.error('Sign out error:', error);
+      throw error;
+    }
+  }
+
+  async signInWithGoogle(callbackURL?: string) {
+    try {
+      // On web, redirect back to the app's own origin after OAuth.
+      // On native, the expo plugin handles the redirect via the menugo:// scheme.
+      const defaultCallback =
+        Platform.OS === 'web'
+          ? typeof window !== 'undefined'
+            ? window.location.origin
+            : 'http://localhost:8081'
+          : '/';
+
+      const result = await signIn.social({
+        provider: 'google',
+        callbackURL: callbackURL || defaultCallback,
+      });
+      return result;
+    } catch (error) {
+      console.error('Google sign in error:', error);
       throw error;
     }
   }

@@ -14,16 +14,30 @@ export interface ServerAuthConfig {
         pass: string;
         from: string;
     };
+    google?: {
+        clientId: string;
+        clientSecret: string;
+    };
 }
 
 export function createServerAuth(config: ServerAuthConfig) {
-    const { db, schema, trustedOrigins, smtp } = config;
+    const { db, schema, trustedOrigins, smtp, google } = config;
 
     return betterAuth({
         database: drizzleAdapter(db, {
             provider: "pg",
             schema,
         }),
+        socialProviders: {
+            ...(google
+                ? {
+                      google: {
+                          clientId: google.clientId,
+                          clientSecret: google.clientSecret,
+                      },
+                  }
+                : {}),
+        },
         user: {
             additionalFields: {
                 role: {

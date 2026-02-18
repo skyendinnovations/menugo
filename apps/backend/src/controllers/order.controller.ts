@@ -71,6 +71,21 @@ class OrderController {
       next(error);
     }
   }
+  async acceptOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const orderId = Number(req.params.orderId);
+      if (!orderId || isNaN(orderId)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid order ID" });
+      }
+      const userId = req.user!.id;
+      const order = await orderService.acceptOrder(orderId, userId);
+      return res.json({ success: true, data: order });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const orderController = new OrderController();

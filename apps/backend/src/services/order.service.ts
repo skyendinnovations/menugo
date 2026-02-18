@@ -2,9 +2,15 @@ import { orderRepository } from "../repositories/order.repository";
 import { sessionRepository } from "../repositories/session.repository";
 import { participantRepository } from "../repositories/participant.repository";
 import { menuRepository } from "../repositories/menu.repository";
+import { notificationService } from "./notification.service";
 import { AppError } from "../types";
-import type { CreateOrderDTO, OrderStatusUpdate } from "@menugo/dto";
+import type {
+  CreateOrderDTO,
+  OrderStatusUpdate,
+  NotificationTriggerEvent,
+} from "@menugo/dto";
 import { generateOrderNumber } from "../utils/order-number";
+import { logger } from "../utils/logger";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   received: ["preparing", "cancelled"],
@@ -91,6 +97,18 @@ class OrderService {
 
     const items = await orderRepository.createItems(order.id, orderItemsData);
 
+    // Send notification asynchronously
+    notificationService
+      .sendOrderNotification(restaurantId, "order_placed", {
+        type: "order_placed",
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        restaurantId,
+      })
+      .catch((err) =>
+        logger.error("Failed to send order placed notification", err)
+      );
+
     return { ...order, items };
   }
 
@@ -98,7 +116,6 @@ class OrderService {
     const order = await orderRepository.findById(id);
     if (!order) throw new AppError(404, "Order not found");
 
-    if (!order) throw new AppError(404, "Order not found");
     const currentStatus = order.status || "received";
     const allowed = VALID_TRANSITIONS[currentStatus];
     if (!allowed || !allowed.includes(status)) {
@@ -108,7 +125,43 @@ class OrderService {
       );
     }
 
-    return orderRepository.updateStatus(id, status);
+    const updated = await orderRepository.updateStatus(id, status);
+
+    // Send notification asynchronously
+    const triggerEvent =
+      status === "cancelled"
+        ? "order_cancelled"
+        : (`status_${currentStatus}_to_${status}` as NotificationTriggerEvent);
+
+    notificationService
+      .sendOrderNotification(order.restaurantId, triggerEvent, {
+        type: "order_status_changed",
+        orderId: id,
+        orderNumber: order.orderNumber,
+        restaurantId: order.restaurantId,
+        fromStatus: currentStatus,
+        toStatus: status,
+      })
+      .catch((err) =>
+        logger.error("Failed to send status change notification", err)
+      );
+
+    return updated;
+  }
+
+  async acceptOrder(orderId: number, userId: string) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new AppError(404, "Order not found");
+    if (order.acceptedBy) {
+      throw new AppError(400, "Order has already been accepted");
+    }
+
+    const updated = await orderRepository.acceptOrder(orderId, userId);
+    if (!updated) {
+      throw new AppError(400, "Order has already been accepted");
+    }
+
+    return updated;
   }
 
   async getOrdersBySession(sessionId: number) {

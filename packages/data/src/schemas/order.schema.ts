@@ -45,6 +45,12 @@ export const orders = pgTable(
         orderNumber: text("order_number").notNull(),
         status: orderStatusEnum("status").default("received"),
 
+        // Order acceptance tracking
+        acceptedBy: text("accepted_by").references(() => user.id, {
+            onDelete: "set null",
+        }),
+        acceptedAt: timestamp("accepted_at"),
+
         notes: text("notes"),
         createdAt: timestamp("created_at").defaultNow(),
         updatedAt: timestamp("updated_at").defaultNow(),
@@ -94,6 +100,12 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
     creator: one(user, {
         fields: [orders.createdBy],
         references: [user.id],
+        relationName: "orderCreator",
+    }),
+    acceptor: one(user, {
+        fields: [orders.acceptedBy],
+        references: [user.id],
+        relationName: "orderAcceptor",
     }),
 }));
 

@@ -42,6 +42,10 @@ export const ROUTES = {
       edit: (id: number | string, roleId: number | string) =>
         `/(admin)/restaurants/${id}/roles/form?roleId=${roleId}` as const,
     },
+    NOTIFICATIONS: {
+      settings: (id: number | string) =>
+        `/(admin)/restaurants/${id}/notification-settings` as const,
+    },
   },
   ORDER: {
     JOIN: '/order/join' as const,

@@ -2,6 +2,7 @@ import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useState, useCallback, useEffect } from 'react';
 import { orderAPI, tableAPI, type Order, type Table } from '@/lib/api';
+import { notificationAPI } from '@/lib/api/notification';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -36,6 +37,15 @@ export default function WaiterView() {
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  const handleAcceptOrder = async (orderId: number) => {
+    try {
+      await notificationAPI.acceptOrder(restaurantId, orderId);
+      fetchData();
+    } catch (error) {
+      console.error('Accept order failed:', error);
+    }
+  };
 
   const handleMarkDelivered = async (orderId: number) => {
     try {
@@ -128,13 +138,31 @@ export default function WaiterView() {
                           Table {order.tableNumber}
                         </Badge>
                       </View>
-                      <Button
-                        title="Delivered"
-                        size="sm"
-                        variant="success"
-                        onPress={() => handleMarkDelivered(order.id)}
-                      />
+                      <View className="flex-row items-center gap-2">
+                        {!order.acceptedBy && (
+                          <Button
+                            title="Accept"
+                            size="sm"
+                            variant="primary"
+                            onPress={() => handleAcceptOrder(order.id)}
+                          />
+                        )}
+                        <Button
+                          title="Delivered"
+                          size="sm"
+                          variant="success"
+                          onPress={() => handleMarkDelivered(order.id)}
+                        />
+                      </View>
                     </View>
+                    {order.acceptedBy && (
+                      <View className="mb-1 flex-row items-center gap-1">
+                        <MaterialIcons name="check-circle" size={12} color="#22C55E" />
+                        <Text className="text-xs text-green-400">
+                          Accepted{order.acceptedByName ? ` by ${order.acceptedByName}` : ''}
+                        </Text>
+                      </View>
+                    )}
                     {order.items?.map((item, idx) => (
                       <Text key={idx} className="text-sm text-slate-300">
                         {item.quantity}x {item.itemName}

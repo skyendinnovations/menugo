@@ -10,3 +10,5 @@ export * from "./menu.schema";
 export * from "./session.schema";
 export * from "./order.schema";
 export * from "./file.schema";
+export * from "./device-token.schema";
+export * from "./notification-settings.schema";

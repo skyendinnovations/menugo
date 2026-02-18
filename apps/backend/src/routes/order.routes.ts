@@ -34,4 +34,10 @@ router.patch(
   orderController.updateStatus.bind(orderController),
 );
 
+router.post(
+  "/:orderId/accept",
+  requirePermission("update_orders"),
+  orderController.acceptOrder.bind(orderController),
+);
+
 export default router;

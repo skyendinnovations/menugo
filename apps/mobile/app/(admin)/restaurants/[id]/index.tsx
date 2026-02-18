@@ -109,6 +109,14 @@ export default function RestaurantDashboard() {
       permission: 'manage_roles',
     },
     {
+      title: 'Notifications',
+      icon: 'notifications-active',
+      route: 'notification-settings',
+      color: '#F59E0B',
+      bg: 'rgba(245,158,11,0.12)',
+      permission: 'manage_restaurant',
+    },
+    {
       title: 'Edit',
       icon: 'edit',
       route: 'edit',

@@ -2,6 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'rea
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useState, useCallback, useEffect } from 'react';
 import { orderAPI, type Order } from '@/lib/api';
+import { notificationAPI } from '@/lib/api/notification';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -48,6 +49,15 @@ export default function KitchenView() {
     const interval = setInterval(fetchOrders, 10000);
     return () => clearInterval(interval);
   }, [fetchOrders]);
+
+  const handleAcceptOrder = async (orderId: number) => {
+    try {
+      await notificationAPI.acceptOrder(restaurantId, orderId);
+      fetchOrders();
+    } catch (error) {
+      console.error('Accept order failed:', error);
+    }
+  };
 
   const handleAdvanceStatus = async (orderId: number, currentStatus: string) => {
     const nextMap: Record<string, string> = {
@@ -106,6 +116,27 @@ export default function KitchenView() {
                 )}
               </View>
             ))}
+
+            {order.status === 'received' && !order.acceptedBy && (
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  handleAcceptOrder(order.id);
+                }}
+                activeOpacity={0.7}
+                className="mt-3 rounded-lg bg-green-600 py-2.5">
+                <Text className="text-center text-sm font-bold text-white">Accept Order</Text>
+              </TouchableOpacity>
+            )}
+
+            {order.acceptedBy && (
+              <View className="mt-2 flex-row items-center gap-1.5">
+                <MaterialIcons name="check-circle" size={14} color="#22C55E" />
+                <Text className="text-xs text-green-400">
+                  Accepted{order.acceptedByName ? ` by ${order.acceptedByName}` : ''}
+                </Text>
+              </View>
+            )}
 
             <View className="mt-3 border-t border-slate-700 pt-3">
               <Text className="text-center text-xs text-slate-500">Tap to advance status</Text>

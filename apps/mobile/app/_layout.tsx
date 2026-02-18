@@ -6,6 +6,7 @@ import { useSession } from '@/lib/api/auth';
 import { getSession } from '@/lib/auth-client';
 import { ROUTES } from '@/lib/routes';
 import { getInvitationParams, clearInvitationParams } from '@/lib/utils/invitation-params';
+import { useNotifications } from '@/lib/hooks/useNotifications';
 
 export default function Layout() {
   const router = useRouter();
@@ -16,6 +17,9 @@ export default function Layout() {
 
   const isAuthenticated = !!data?.user || !!manualSession?.user;
 
+  // Initialize push notifications when authenticated
+  useNotifications(isAuthenticated);
+
   // Wait for both the hook and the manual session check before redirecting
   const isReady = !isPending && sessionChecked;
 
@@ -23,13 +27,13 @@ export default function Layout() {
     if (!isReady) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inAdminGroup = segments[0] === '(admin)';
     const inPublicGroup = segments[0] === 'order';
     const inInviteRoute = segments[0] === 'invite';
 
-    if (isAuthenticated && inAuthGroup) {
-      // Re-verify session before redirecting away from auth group.
-      // This prevents a race condition where sign-out navigates to sign-in
-      // but useSession still has stale authenticated data.
+    if (isAuthenticated && !inAdminGroup && !inPublicGroup) {
+      // Authenticated user not in admin group (e.g. on root index or auth pages).
+      // Re-verify session then redirect to admin home.
       getSession().then(async (session) => {
         if (session.data?.user) {
           // Check for stored invitation params before default redirect

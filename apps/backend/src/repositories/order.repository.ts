@@ -1,10 +1,11 @@
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { eq, and, sql, inArray, isNull } from "drizzle-orm";
 import { db } from "@menugo/data";
 import {
   orders,
   orderItems,
   tableSessions,
   restaurantTables,
+  user as userTable,
 } from "@menugo/data/schemas";
 
 class OrderRepository {
@@ -177,6 +178,36 @@ class OrderRepository {
       tableNumber: row.tableNumber,
       items: allItems.filter((item) => item.orderId === row.order.id),
     }));
+  }
+
+  async acceptOrder(id: number, userId: string) {
+    const [order] = await db
+      .update(orders)
+      .set({
+        acceptedBy: userId,
+        acceptedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(orders.id, id), isNull(orders.acceptedBy)))
+      .returning();
+    return order || null;
+  }
+
+  async findWithAcceptor(id: number) {
+    const [result] = await db
+      .select({
+        order: orders,
+        acceptorName: userTable.name,
+      })
+      .from(orders)
+      .leftJoin(userTable, eq(orders.acceptedBy, userTable.id))
+      .where(eq(orders.id, id));
+
+    if (!result) return null;
+    return {
+      ...result.order,
+      acceptedByName: result.acceptorName,
+    };
   }
 
   async calculateSessionTotal(sessionId: number): Promise<string> {

@@ -35,6 +35,16 @@ const EnvsSchema = z.object({
   OAUTH_CLIENT_ID: z.string().optional(),
   OAUTH_CLIENT_SECRET: z.string().optional(),
 
+  // Firebase Cloud Messaging
+  FIREBASE_PROJECT_ID: z.string(),
+  FIREBASE_CLIENT_EMAIL: z.string(),
+  FIREBASE_PRIVATE_KEY: z.string(),
+
+  // Firebase Web Client Config (public keys for service worker)
+  FIREBASE_WEB_API_KEY: z.string().optional(),
+  FIREBASE_MESSAGING_SENDER_ID: z.string().optional(),
+  FIREBASE_WEB_APP_ID: z.string().optional(),
+
   // Mobile app URL (for QR codes)
   APP_URL: z.string().optional().default("http://localhost:8081"),
 });
@@ -63,5 +73,11 @@ export const {
   SMTP_FROM,
   OAUTH_CLIENT_ID,
   OAUTH_CLIENT_SECRET,
+  FIREBASE_PROJECT_ID,
+  FIREBASE_CLIENT_EMAIL,
+  FIREBASE_PRIVATE_KEY,
+  FIREBASE_WEB_API_KEY,
+  FIREBASE_MESSAGING_SENDER_ID,
+  FIREBASE_WEB_APP_ID,
   APP_URL,
 } = envs;

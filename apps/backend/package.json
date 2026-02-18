@@ -39,22 +39,23 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@menugo/dto": "workspace:*",
-    "@menugo/auth": "workspace:*",
-    "@menugo/data": "workspace:*",
-    "@menugo/email": "workspace:*",
-    "@menugo/storage": "workspace:*",
     "@aws-sdk/client-s3": "^3.990.0",
     "@better-auth/expo": "^1.4.10",
+    "@menugo/auth": "workspace:*",
+    "@menugo/data": "workspace:*",
+    "@menugo/dto": "workspace:*",
+    "@menugo/email": "workspace:*",
+    "@menugo/storage": "workspace:*",
     "@neondatabase/serverless": "^1.0.2",
     "better-auth": "^1.4.10",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.45.1",
     "express": "^5.2.1",
+    "firebase-admin": "^13.6.1",
     "multer": "^2.0.2",
+    "nodemailer": "^6.10.1",
     "qrcode": "^1.5.4",
     "sonare": "^0.0.1",
-    "nodemailer": "^6.10.1",
     "zod": "^4.3.6"
   }
 }

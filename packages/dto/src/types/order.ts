@@ -5,6 +5,9 @@ export interface Order {
     orderNumber: string;
     status: string;
     notes?: string;
+    acceptedBy?: string;
+    acceptedAt?: string;
+    acceptedByName?: string;
     createdAt?: string;
     updatedAt?: string;
     items: OrderItem[];

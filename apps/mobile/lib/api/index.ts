@@ -8,6 +8,7 @@ export { memberAPI } from './member';
 export { publicAPI } from './public';
 export { fileAPI } from './file';
 export type { UploadImageParams } from './file';
+export { notificationAPI } from './notification';
 
 // Re-export shared types from @menugo/dto
 export type {

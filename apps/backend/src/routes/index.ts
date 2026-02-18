@@ -9,8 +9,16 @@ import sessionRoutes from "./session.routes";
 import orderRoutes from "./order.routes";
 import publicRoutes from "./public.routes";
 import fileRoutes from "./file.routes";
+import notificationRoutes from "./notification.routes";
+import notificationSettingsRoutes from "./notification-settings.routes";
 import { fileController } from "../controllers/file.controller";
 import { authenticate } from "../middlewares/auth.middleware";
+import {
+  FIREBASE_PROJECT_ID,
+  FIREBASE_WEB_API_KEY,
+  FIREBASE_MESSAGING_SENDER_ID,
+  FIREBASE_WEB_APP_ID,
+} from "../envs";
 
 const router = Router();
 
@@ -20,6 +28,17 @@ router.get("/health", (req, res) => {
     status: "ok",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+  });
+});
+
+// Public Firebase web config (for service worker)
+router.get("/config/firebase", (req, res) => {
+  res.json({
+    apiKey: FIREBASE_WEB_API_KEY || "",
+    authDomain: `${FIREBASE_PROJECT_ID}.firebaseapp.com`,
+    projectId: FIREBASE_PROJECT_ID,
+    messagingSenderId: FIREBASE_MESSAGING_SENDER_ID || "",
+    appId: FIREBASE_WEB_APP_ID || "",
   });
 });
 
@@ -39,6 +58,14 @@ router.use("/restaurants/:restaurantId/tables", authenticate, tableRoutes);
 router.use("/restaurants/:restaurantId/menu", authenticate, menuRoutes);
 router.use("/restaurants/:restaurantId/sessions", authenticate, sessionRoutes);
 router.use("/restaurants/:restaurantId/orders", authenticate, orderRoutes);
+router.use(
+  "/restaurants/:restaurantId/notification-settings",
+  authenticate,
+  notificationSettingsRoutes,
+);
+
+// Notification token management (authenticated, not restaurant-scoped)
+router.use("/notifications", authenticate, notificationRoutes);
 
 // Accept invitation (authenticated but not restaurant-scoped)
 import { memberController } from "../controllers/member.controller";

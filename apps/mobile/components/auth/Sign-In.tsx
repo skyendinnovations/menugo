@@ -7,16 +7,19 @@ import { Label } from '@/components/ui/Label';
 import { authAPI } from '@/lib/api';
 import { Alert } from '@/components/ui/Alert';
 import { PasswordInput } from '@/components/ui/PasswordInput';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, AntDesign } from '@expo/vector-icons';
 import { ROUTES } from '@/lib/routes';
+import { useSession } from '@/lib/api/auth';
 
 export function SignInForm() {
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string; redirect?: string }>();
+  const { refetch } = useSession();
   const [email, setEmail] = useState(params.email ?? '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   async function onSubmit() {
     setLoading(true);
@@ -36,6 +39,29 @@ export function SignInForm() {
       setError(e?.message ?? 'Failed to sign in');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function onGoogleSignIn() {
+    setGoogleLoading(true);
+    setError(null);
+    try {
+      const result = await authAPI.signInWithGoogle();
+      // After the OAuth flow completes, refetch session and navigate
+      await refetch();
+      if (result?.data && 'user' in result.data && result.data.user) {
+        if (params.redirect === 'invitations') {
+          router.replace(ROUTES.ADMIN.ACCEPT_INVITATION);
+        } else {
+          router.replace(ROUTES.ADMIN.HOME);
+        }
+      }
+      // If no user data (web redirect), the _layout will handle navigation
+      // after session is detected via the auth redirect callback
+    } catch (e: any) {
+      setError(e?.message ?? 'Google sign in failed');
+    } finally {
+      setGoogleLoading(false);
     }
   }
 
@@ -88,9 +114,25 @@ export function SignInForm() {
             title="Sign In"
             loading={loading}
             onPress={onSubmit}
-            disabled={loading || !email || !password}
+            disabled={loading || googleLoading || !email || !password}
             size="lg"
             className="mt-4"
+          />
+
+          <View className="my-2 flex-row items-center gap-3">
+            <View className="h-px flex-1 bg-slate-700" />
+            <Text className="text-sm text-slate-500">or</Text>
+            <View className="h-px flex-1 bg-slate-700" />
+          </View>
+
+          <Button
+            title="Continue with Google"
+            variant="ghost"
+            loading={googleLoading}
+            onPress={onGoogleSignIn}
+            disabled={loading || googleLoading}
+            size="lg"
+            icon={!googleLoading ? <AntDesign name="google" size={20} color="#fff" /> : undefined}
           />
 
           <Link href={ROUTES.AUTH.SIGN_UP} asChild>

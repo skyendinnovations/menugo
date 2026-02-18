@@ -114,6 +114,23 @@ export function createMobileAuthClient(config: MobileAuthClientConfig) {
             }
             return result;
         },
+        social: async (params: {
+            provider: "google";
+            callbackURL?: string;
+        }) => {
+            const result = await originalSignIn.social(params);
+            // On native, the expo plugin handles the redirect flow.
+            // On web, the browser redirects so this code may not run
+            // immediately, but after redirect the session is picked up
+            // automatically via cookies.
+            if (result?.data?.user) {
+                sessionManager.saveSession({
+                    user: result.data.user,
+                    token: (result.data as any).token,
+                });
+            }
+            return result;
+        },
     };
 
     const originalSignUp = authClient.signUp;

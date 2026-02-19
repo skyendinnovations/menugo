@@ -50,11 +50,30 @@ jobs:
           docker push "$IMAGE_TAG"
           docker push "$IMAGE_LATEST"
 
-      - name: Parse env vars for Cloud Run
+      - name: Generate env vars YAML for Cloud Run
         run: |
           echo "${{ secrets.BACKEND_ENV }}" > /tmp/.env
-          ENV_VARS=$(grep -v '^\s*#' /tmp/.env | grep -v '^\s*$' | sed 's/\s*=\s*/=/' | paste -sd ',' -)
-          echo "ENV_VARS=$ENV_VARS" >> "$GITHUB_ENV"
+
+          # Convert .env to YAML, skipping comments, blank lines, and Cloud Run reserved vars (PORT, K_SERVICE, etc.)
+          echo "" > /tmp/env.yaml
+          while IFS= read -r line; do
+            # Skip comments and blank lines
+            [[ "$line" =~ ^[[:space:]]*# ]] && continue
+            [[ -z "${line// }" ]] && continue
+
+            # Extract key and value
+            key="${line%%=*}"
+            value="${line#*=}"
+
+            # Skip Cloud Run reserved env vars
+            case "$key" in
+              PORT|K_SERVICE|K_REVISION|K_CONFIGURATION) continue ;;
+            esac
+
+            # Write as YAML (quote value to handle commas, special chars)
+            echo "$key: \"$value\"" >> /tmp/env.yaml
+          done < /tmp/.env
+
           rm /tmp/.env
 
       - name: Deploy to Cloud Run
@@ -63,7 +82,7 @@ jobs:
           service: ${{ env.CLOUD_RUN_SERVICE }}
           region: ${{ env.GCP_REGION }}
           image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GAR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          env_vars: ${{ env.ENV_VARS }}
+          env_vars_file: /tmp/env.yaml
           flags: |
             --allow-unauthenticated
             --port=5000

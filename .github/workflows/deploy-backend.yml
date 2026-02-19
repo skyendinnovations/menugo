@@ -1,0 +1,90 @@
+name: Deploy Backend to Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/backend/**"
+      - "packages/**"
+      - "Dockerfile"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+env:
+  CLOUD_RUN_SERVICE: menugo-backend
+  IMAGE_NAME: menugo-backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Extract GCP project info
+        run: |
+          PROJECT_ID=$(echo '${{ secrets.GCP_SA_KEY }}' | jq -r '.project_id')
+          echo "GCP_PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
+          echo "GCP_REGION=${{ secrets.GCP_REGION }}" >> "$GITHUB_ENV"
+          echo "GAR_REPO=${{ secrets.GAR_REPO }}" >> "$GITHUB_ENV"
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        run: |
+          IMAGE_TAG="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GAR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          IMAGE_LATEST="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GAR_REPO }}/${{ env.IMAGE_NAME }}:latest"
+          docker build -t "$IMAGE_TAG" -t "$IMAGE_LATEST" .
+          docker push "$IMAGE_TAG"
+          docker push "$IMAGE_LATEST"
+
+      - name: Generate env vars file for Cloud Run
+        run: |
+          echo "${{ secrets.BACKEND_ENV }}" > /tmp/.env
+
+          python3 << 'PYEOF'
+          import yaml
+
+          reserved = {"PORT", "NODE_ENV", "K_SERVICE", "K_REVISION", "K_CONFIGURATION"}
+          env = {}
+
+          with open("/tmp/.env") as f:
+              for line in f:
+                  line = line.strip()
+                  if not line or line.startswith("#"):
+                      continue
+                  key, _, value = line.partition("=")
+                  key = key.strip()
+                  if key and key not in reserved:
+                      env[key] = value
+
+          with open("/tmp/env.yaml", "w") as f:
+              yaml.dump(env, f, default_flow_style=False, allow_unicode=True)
+          PYEOF
+
+          rm /tmp/.env
+
+      - name: Deploy to Cloud Run
+        run: |
+          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GAR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
+          gcloud run deploy ${{ env.CLOUD_RUN_SERVICE }} \
+            --image "$IMAGE" \
+            --region ${{ env.GCP_REGION }} \
+            --allow-unauthenticated \
+            --memory=512Mi \
+            --cpu=1 \
+            --min-instances=0 \
+            --max-instances=3 \
+            --concurrency=80 \
+            --env-vars-file /tmp/env.yaml

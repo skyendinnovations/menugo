@@ -2,7 +2,7 @@ module.exports = function (api) {
   api.cache(true);
   let plugins = [
     [
-      'module-resolver',
+      require.resolve('babel-plugin-module-resolver'),
       {
         alias: {
           'better-auth/react': './node_modules/better-auth/dist/client/react/index.mjs',
@@ -13,10 +13,10 @@ module.exports = function (api) {
     ],
   ];
 
-  plugins.push('react-native-worklets/plugin');
+  plugins.push(require.resolve('react-native-worklets/plugin'));
 
   return {
-    presets: [['babel-preset-expo', { jsxImportSource: 'nativewind' }], 'nativewind/babel'],
+    presets: [[require.resolve('babel-preset-expo'), { jsxImportSource: 'nativewind' }], require.resolve('nativewind/babel')],
 
     plugins,
   };

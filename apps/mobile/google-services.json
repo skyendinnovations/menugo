@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "277544356287",
+    "project_id": "skyend-menugo",
+    "storage_bucket": "skyend-menugo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:277544356287:android:22e1171ab9dfd78092390a",
+        "android_client_info": {
+          "package_name": "com.skyend.menugo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFKkehGKhz-pixVBUhUCbfN1NMQldYITk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

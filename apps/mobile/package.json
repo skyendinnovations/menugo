@@ -24,6 +24,7 @@
     "@expo/vector-icons": "^15.0.2",
     "@menugo/auth": "workspace:*",
     "@menugo/dto": "workspace:*",
+    "@react-native-google-signin/google-signin": "^16.1.1",
     "@react-navigation/bottom-tabs": "^7.13.0",
     "@react-navigation/drawer": "^7.7.10",
     "@react-navigation/native": "^7.1.6",

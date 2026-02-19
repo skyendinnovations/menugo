@@ -47,9 +47,13 @@ export function SignInForm() {
     setError(null);
     try {
       const result = await authAPI.signInWithGoogle();
-      // After the OAuth flow completes, refetch session and navigate
+
+      if (!result?.data) {
+        return; // User cancelled
+      }
+
       await refetch();
-      if (result?.data && 'user' in result.data && result.data.user) {
+      if ('user' in result.data && result.data.user) {
         if (params.redirect === 'invitations') {
           router.replace(ROUTES.ADMIN.ACCEPT_INVITATION);
         } else {

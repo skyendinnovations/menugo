@@ -3,6 +3,7 @@ import { signIn, signUp, signOut, useSession as _useSession } from '../auth-clie
 import type { SignInData, SignUpData, User } from '@menugo/dto';
 import { ROUTES } from '@/lib/routes';
 import { Platform } from 'react-native';
+import { nativeGoogleSignIn, isNativeGoogleSignInAvailable } from '../google-signin';
 
 export { _useSession as useSession };
 
@@ -51,8 +52,25 @@ class AuthAPI extends BaseAPI {
 
   async signInWithGoogle(callbackURL?: string) {
     try {
-      // On web, redirect back to the app's own origin after OAuth.
-      // On native, the expo plugin handles the redirect via the menugo:// scheme.
+      // On native, use Google's native Sign-In SDK to get an idToken
+      // and pass it directly to Better Auth (no browser redirect needed).
+      if (isNativeGoogleSignInAvailable()) {
+        const googleResult = await nativeGoogleSignIn();
+        if (!googleResult) {
+          return { data: null, error: null };
+        }
+
+        const result = await signIn.social({
+          provider: 'google',
+          idToken: {
+            token: googleResult.idToken,
+            accessToken: googleResult.accessToken,
+          },
+        });
+        return result;
+      }
+
+      // Fallback: browser-based OAuth redirect (web platform)
       const defaultCallback =
         Platform.OS === 'web'
           ? typeof window !== 'undefined'

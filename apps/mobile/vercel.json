@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd ../.. && bun install && cd apps/mobile && NODE_PRESERVE_SYMLINKS=1 npx expo export --platform web",
+  "buildCommand": "cd ../.. && bun install && cd apps/mobile && NODE_PATH=$(cd ../.. && pwd)/node_modules npx expo export --platform web",
   "outputDirectory": "dist",
   "framework": null,
   "installCommand": "echo 'skip'"

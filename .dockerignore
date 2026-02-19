@@ -1,0 +1,43 @@
+# Mobile app
+apps/mobile
+
+# Dependencies (installed in Docker)
+node_modules
+**/node_modules
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files
+**/.env
+**/.env.local
+
+# Turbo cache
+.turbo
+**/.turbo
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+**/jest.config.*
+**/__tests__
+**/coverage
+
+# Build artifacts
+**/dist
+**/build
+**/.next
+
+# CI/CD
+.github

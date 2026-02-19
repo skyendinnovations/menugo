@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd ../.. && bun install && node scripts/fix-bun-symlinks.mjs && cd apps/mobile && npx expo export --platform web",
+  "buildCommand": "cd ../.. && bun install && cd apps/mobile && bun expo export --platform web",
   "outputDirectory": "dist",
   "framework": null,
   "installCommand": "echo 'skip'"

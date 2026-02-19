@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd ../.. && bun install && cd apps/mobile && npx expo export --platform web",
+  "outputDirectory": "dist",
+  "framework": null,
+  "installCommand": "echo 'skip'"
+}

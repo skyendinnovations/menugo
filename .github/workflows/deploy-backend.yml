@@ -3,8 +3,6 @@ name: Deploy Backend to Cloud Run
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
     paths:
       - "apps/backend/**"
       - "packages/**"

@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd ../.. && corepack enable && pnpm install --shamefully-hoist && cd apps/mobile && npx expo export --platform web",
+  "buildCommand": "cd ../.. && npm i -g pnpm@9 && pnpm install --shamefully-hoist --no-frozen-lockfile && cd apps/mobile && npx expo export --platform web",
   "outputDirectory": "dist",
   "framework": null,
   "installCommand": "echo 'skip'"

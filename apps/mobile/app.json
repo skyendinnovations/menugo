@@ -19,7 +19,8 @@
           "color": "#F97316",
           "defaultChannel": "orders"
         }
-      ]
+      ],
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,

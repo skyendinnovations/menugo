@@ -117,6 +117,10 @@ export function createMobileAuthClient(config: MobileAuthClientConfig) {
         social: async (params: {
             provider: "google";
             callbackURL?: string;
+            idToken?: {
+                token: string;
+                accessToken?: string;
+            };
         }) => {
             const result = await originalSignIn.social(params);
             // On native, the expo plugin handles the redirect flow.

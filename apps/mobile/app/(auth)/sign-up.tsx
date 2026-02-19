@@ -46,9 +46,13 @@ export default function SignUpScreen() {
     setError(null);
     try {
       const result = await authAPI.signInWithGoogle();
-      // After the OAuth flow, refetch session and navigate
+
+      if (!result?.data) {
+        return; // User cancelled
+      }
+
       await refetch();
-      if (result?.data && 'user' in result.data && result.data.user) {
+      if ('user' in result.data && result.data.user) {
         if (isFromInvitation) {
           router.replace(ROUTES.ADMIN.ACCEPT_INVITATION);
         } else {

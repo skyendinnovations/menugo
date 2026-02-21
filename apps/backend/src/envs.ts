@@ -45,6 +45,11 @@ const EnvsSchema = z.object({
   FIREBASE_MESSAGING_SENDER_ID: z.string().optional(),
   FIREBASE_WEB_APP_ID: z.string().optional(),
 
+  // Skyend Payment Hub
+  SKYEND_URL: z.string().optional(),
+  SKYEND_API_KEY: z.string().optional(),
+  SKYEND_CALLBACK_URL: z.string().optional(),
+
   // Mobile app URL (for QR codes)
   APP_URL: z.string().optional().default("http://localhost:8081"),
 });
@@ -79,5 +84,8 @@ export const {
   FIREBASE_WEB_API_KEY,
   FIREBASE_MESSAGING_SENDER_ID,
   FIREBASE_WEB_APP_ID,
+  SKYEND_URL,
+  SKYEND_API_KEY,
+  SKYEND_CALLBACK_URL,
   APP_URL,
 } = envs;

@@ -10,6 +10,9 @@ import {
   CLOUDFLARE_SECRET_ACCESS_KEY,
   CLOUDFLARE_BUCKET_NAME,
   CLOUDFLARE_PUBLIC_URL,
+  SKYEND_URL,
+  SKYEND_API_KEY,
+  SKYEND_CALLBACK_URL,
 } from "../envs";
 
 const allowedOrigins = CORS_ALLOWED_ORIGINS
@@ -52,6 +55,11 @@ export const config = {
       bucketName: CLOUDFLARE_BUCKET_NAME,
       publicUrl: CLOUDFLARE_PUBLIC_URL,
     },
+  },
+  skyend: {
+    url: SKYEND_URL,
+    apiKey: SKYEND_API_KEY,
+    callbackUrl: SKYEND_CALLBACK_URL,
   },
 } as const;
 

@@ -43,6 +43,13 @@
       "when": 1771394413066,
       "tag": "0005_closed_tiger_shark",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771652929420,
+      "tag": "0006_hesitant_hawkeye",
+      "breakpoints": true
     }
   ]
 }

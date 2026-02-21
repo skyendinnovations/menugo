@@ -17,7 +17,8 @@
     "db:migrate:down": "bun run --cwd packages/data migrate:down",
     "db:migrate:status": "bun run --cwd packages/data migrate:status",
     "db:studio": "bun run --cwd packages/data studio",
-    "db:push": "bun run --cwd packages/data push"
+    "db:push": "bun run --cwd packages/data push",
+    "db:seed:plans": "bun run packages/data/src/seeds/subscription-plans.seed.ts"
   },
   "devDependencies": {
     "turbo": "^2"

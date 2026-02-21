@@ -46,6 +46,10 @@ export const ROUTES = {
       settings: (id: number | string) =>
         `/(admin)/restaurants/${id}/notification-settings` as const,
     },
+    SUBSCRIPTION: {
+      detail: (id: number | string) =>
+        `/(admin)/restaurants/${id}/subscription` as const,
+    },
   },
   ORDER: {
     JOIN: '/order/join' as const,

@@ -11,6 +11,7 @@ import publicRoutes from "./public.routes";
 import fileRoutes from "./file.routes";
 import notificationRoutes from "./notification.routes";
 import notificationSettingsRoutes from "./notification-settings.routes";
+import subscriptionRoutes from "./subscription.routes";
 import { fileController } from "../controllers/file.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 import {
@@ -84,6 +85,9 @@ router.post(
   authenticate,
   memberController.rejectInvitation.bind(memberController),
 );
+
+// Subscription management (has own auth handling per route)
+router.use("/subscription", subscriptionRoutes);
 
 // Public routes (NO auth middleware)
 router.use("/public", publicRoutes);

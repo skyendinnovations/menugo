@@ -117,6 +117,14 @@ export default function RestaurantDashboard() {
       permission: 'manage_restaurant',
     },
     {
+      title: 'Subscription',
+      icon: 'workspace-premium',
+      route: 'subscription',
+      color: '#F97316',
+      bg: 'rgba(249,115,22,0.12)',
+      permission: 'manage_restaurant',
+    },
+    {
       title: 'Edit',
       icon: 'edit',
       route: 'edit',

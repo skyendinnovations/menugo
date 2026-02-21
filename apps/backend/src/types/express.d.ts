@@ -6,6 +6,12 @@ declare global {
         email: string;
         role: string;
       };
+      subscription?: {
+        planSlug: string;
+        active: boolean;
+        interval: string | null;
+        expiresAt: string | null;
+      };
     }
   }
 }

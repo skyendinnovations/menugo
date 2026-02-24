@@ -3,8 +3,6 @@ name: Run Database Migrations
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
     paths:
       - "packages/data/src/drizzle/**"
       - "packages/data/src/schemas/**"

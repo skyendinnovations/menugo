@@ -1,0 +1,41 @@
+name: Run Database Migrations
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/data/src/drizzle/**"
+      - "packages/data/src/schemas/**"
+      - ".github/workflows/migrate-db.yml"
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Extract DATABASE_URL from BACKEND_ENV
+        run: |
+          DATABASE_URL=$(echo "${{ secrets.BACKEND_ENV }}" | grep '^DATABASE_URL=' | cut -d'=' -f2-)
+          echo "::add-mask::$DATABASE_URL"
+          echo "DATABASE_URL=$DATABASE_URL" >> "$GITHUB_ENV"
+
+      - name: Run database migrations
+        id: migrate
+        continue-on-error: true
+        run: bun db:migrate
+
+      - name: Fallback to db push if migrate fails
+        if: steps.migrate.outcome == 'failure'
+        run: bun db:push

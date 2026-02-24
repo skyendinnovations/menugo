@@ -37,7 +37,7 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pramoth.menugo",
+      "bundleIdentifier": "com.skyend.menugo",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -47,7 +47,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.pramoth.menugo",
+      "package": "com.skyend.menugo",
       "googleServicesFile": "./google-services.json"
     },
     "extra": {

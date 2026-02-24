@@ -1,5 +1,5 @@
 {
-  "installCommand": "cd ../.. && bun install && node -e \"const f=require('fs'),p=require('path'),n=p.resolve('node_modules'),b=p.join(n,'.bun');if(f.existsSync(b))for(const d of f.readdirSync(b)){const m=p.join(b,d,'node_modules');if(!f.existsSync(m)||!f.statSync(m).isDirectory())continue;for(const k of f.readdirSync(m)){const s=p.join(m,k);if(k.startsWith('@')){if(!f.statSync(s).isDirectory())continue;const c=p.join(n,k);if(!f.existsSync(c))f.mkdirSync(c,{recursive:true});for(const x of f.readdirSync(s)){const t=p.join(c,x);if(!f.existsSync(t))try{f.symlinkSync(p.join(s,x),t)}catch{}}}else{const t=p.join(n,k);if(!f.existsSync(t))try{f.symlinkSync(s,t)}catch{}}}}\"",
+  "installCommand": "cd ../.. && bun install && node scripts/hoist-bun-deps.cjs",
   "buildCommand": "npx expo export --platform web",
   "outputDirectory": "dist",
   "framework": null

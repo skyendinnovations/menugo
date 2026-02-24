@@ -2,5 +2,8 @@
   "installCommand": "cd ../.. && bun install && node scripts/hoist-bun-deps.cjs",
   "buildCommand": "npx expo export --platform web",
   "outputDirectory": "dist",
-  "framework": null
+  "framework": null,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
+  ]
 }

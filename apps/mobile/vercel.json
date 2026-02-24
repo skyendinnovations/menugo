@@ -1,6 +1,6 @@
 {
-  "installCommand": "cd ../.. && bun install --backend=copyfile",
-  "buildCommand": "npx expo export --platform web",
+  "installCommand": "cd ../.. && bun install",
+  "buildCommand": "NODE_PATH=$(cd ../.. && pwd)/node_modules npx expo export --platform web",
   "outputDirectory": "dist",
   "framework": null
 }

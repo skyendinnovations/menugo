@@ -69,3 +69,23 @@ export interface OrderNotificationPayload {
     toStatus?: string;
     acceptedByName?: string;
 }
+
+export interface NotificationLogEntry {
+    id: number;
+    restaurantId: number;
+    orderId?: number | null;
+    eventType: string;
+    recipientRoleIds: number[];
+    recipientUserIds: string[];
+    fcmSuccessCount: number;
+    fcmFailureCount: number;
+    payload: Record<string, unknown>;
+    sentAt?: string | null;
+}
+
+export interface NotificationLogFilters {
+    orderId?: number;
+    eventType?: string;
+    page?: number;
+    limit?: number;
+}

@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "@menugo/data";
 import {
   menuCategories,
@@ -178,8 +178,173 @@ class MenuRepository {
     return v;
   }
 
+  // --- Stock Management ---
+
+  /** Set stock count for a menu item. Pass null for unlimited. */
+  async updateItemStock(id: number, stockCount: number | null) {
+    const isSoldOut = stockCount !== null && stockCount <= 0;
+    const [item] = await db
+      .update(menuItems)
+      .set({
+        stockCount,
+        isSoldOut,
+        isAvailable: isSoldOut ? false : undefined,
+        updatedAt: new Date(),
+      })
+      .where(eq(menuItems.id, id))
+      .returning();
+    return item;
+  }
+
+  /** Toggle sold-out status for a menu item. */
+  async toggleItemSoldOut(id: number, isSoldOut: boolean) {
+    const [item] = await db
+      .update(menuItems)
+      .set({
+        isSoldOut,
+        isAvailable: isSoldOut ? false : true,
+        updatedAt: new Date(),
+      })
+      .where(eq(menuItems.id, id))
+      .returning();
+    return item;
+  }
+
+  /**
+   * Atomically decrement stock for a menu item.
+   * Returns the updated item, or null if stock is insufficient.
+   */
+  async decrementItemStock(id: number, quantity: number) {
+    const [item] = await db
+      .update(menuItems)
+      .set({
+        stockCount: sql`${menuItems.stockCount} - ${quantity}`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(menuItems.id, id),
+          sql`${menuItems.stockCount} IS NOT NULL AND ${menuItems.stockCount} >= ${quantity}`,
+        ),
+      )
+      .returning();
+    return item || null;
+  }
+
+  /**
+   * Atomically increment stock for a menu item.
+   * Only applies to tracked stock (stockCount IS NOT NULL).
+   */
+  async incrementItemStock(id: number, quantity: number) {
+    const [item] = await db
+      .update(menuItems)
+      .set({
+        stockCount: sql`${menuItems.stockCount} + ${quantity}`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(menuItems.id, id),
+          sql`${menuItems.stockCount} IS NOT NULL`,
+        ),
+      )
+      .returning();
+    return item || null;
+  }
+
+  /** Auto-mark item as sold out when stock hits zero. */
+  async markSoldOutIfZero(id: number) {
+    const [item] = await db
+      .update(menuItems)
+      .set({ isSoldOut: true, isAvailable: false, updatedAt: new Date() })
+      .where(
+        and(
+          eq(menuItems.id, id),
+          sql`${menuItems.stockCount} IS NOT NULL AND ${menuItems.stockCount} <= 0`,
+        ),
+      )
+      .returning();
+    return item || null;
+  }
+
+  /** Set stock count for a variant. Pass null for unlimited. */
+  async updateVariantStock(id: number, stockCount: number | null) {
+    const isSoldOut = stockCount !== null && stockCount <= 0;
+    const [v] = await db
+      .update(menuItemVariants)
+      .set({ stockCount, isSoldOut })
+      .where(eq(menuItemVariants.id, id))
+      .returning();
+    return v;
+  }
+
+  /** Toggle sold-out status for a variant. */
+  async toggleVariantSoldOut(id: number, isSoldOut: boolean) {
+    const [v] = await db
+      .update(menuItemVariants)
+      .set({ isSoldOut })
+      .where(eq(menuItemVariants.id, id))
+      .returning();
+    return v;
+  }
+
+  /**
+   * Atomically decrement stock for a variant.
+   * Returns the updated variant, or null if stock is insufficient.
+   */
+  async decrementVariantStock(id: number, quantity: number) {
+    const [v] = await db
+      .update(menuItemVariants)
+      .set({
+        stockCount: sql`${menuItemVariants.stockCount} - ${quantity}`,
+      })
+      .where(
+        and(
+          eq(menuItemVariants.id, id),
+          sql`${menuItemVariants.stockCount} IS NOT NULL AND ${menuItemVariants.stockCount} >= ${quantity}`,
+        ),
+      )
+      .returning();
+    return v || null;
+  }
+
+  /**
+   * Atomically increment stock for a variant.
+   * Only applies to tracked stock (stockCount IS NOT NULL).
+   */
+  async incrementVariantStock(id: number, quantity: number) {
+    const [v] = await db
+      .update(menuItemVariants)
+      .set({
+        stockCount: sql`${menuItemVariants.stockCount} + ${quantity}`,
+      })
+      .where(
+        and(
+          eq(menuItemVariants.id, id),
+          sql`${menuItemVariants.stockCount} IS NOT NULL`,
+        ),
+      )
+      .returning();
+    return v || null;
+  }
+
+  /** Auto-mark variant as sold out when stock hits zero. */
+  async markVariantSoldOutIfZero(id: number) {
+    const [v] = await db
+      .update(menuItemVariants)
+      .set({ isSoldOut: true })
+      .where(
+        and(
+          eq(menuItemVariants.id, id),
+          sql`${menuItemVariants.stockCount} IS NOT NULL AND ${menuItemVariants.stockCount} <= 0`,
+        ),
+      )
+      .returning();
+    return v || null;
+  }
+
   // --- Full menu ---
-  async getFullMenu(restaurantId: number) {
+  async getFullMenu(restaurantId: number, options?: { hideSoldOut?: boolean }) {
     const categories = await db
       .select()
       .from(menuCategories)
@@ -201,19 +366,24 @@ class MenuRepository {
         ),
       );
 
-    const itemIds = items.map((i) => i.id);
+    // Filter out sold-out items when serving the public menu
+    const filteredItems = options?.hideSoldOut
+      ? items.filter((item) => !item.isSoldOut)
+      : items;
+
+    const itemIds = filteredItems.map((i) => i.id);
     let variants: any[] = [];
     if (itemIds.length > 0) {
       // Fetch all variants for active items
       const allVariants = await db.select().from(menuItemVariants);
       variants = allVariants.filter(
-        (v) => itemIds.includes(v.menuItemId) && v.isActive,
+        (v) => itemIds.includes(v.menuItemId) && v.isActive && (options?.hideSoldOut ? !v.isSoldOut : true),
       );
     }
 
     return categories.map((cat) => ({
       ...cat,
-      items: items
+      items: filteredItems
         .filter((item) => item.categoryId === cat.id)
         .map((item) => ({
           ...item,

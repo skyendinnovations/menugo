@@ -1,6 +1,7 @@
 import { getMessaging } from "../config/firebase";
 import { deviceTokenRepository } from "../repositories/device-token.repository";
 import { notificationSettingsRepository } from "../repositories/notification-settings.repository";
+import { notificationLogRepository } from "../repositories/notification-log.repository";
 import { logger } from "../utils/logger";
 import { eq, inArray, and } from "drizzle-orm";
 import { db } from "@menugo/data";
@@ -165,6 +166,20 @@ class NotificationService {
                     ? String(payload.tableNumber)
                     : "",
             });
+
+            // Log notification dispatch for history / audit
+            notificationLogRepository
+                .create({
+                    restaurantId,
+                    orderId: payload.orderId,
+                    eventType: triggerEvent,
+                    recipientRoleIds: roleIds,
+                    recipientUserIds: userIds,
+                    fcmSuccessCount: fcmTokens.length,
+                    fcmFailureCount: 0,
+                    payload: payload as unknown as Record<string, unknown>,
+                })
+                .catch(() => {});
 
             logger.info(
                 `Sent ${triggerEvent} notification to ${fcmTokens.length} devices for order #${payload.orderNumber}`

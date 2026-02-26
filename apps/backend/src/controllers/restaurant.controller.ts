@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { restaurantService } from "../services/restaurant.service";
+import { restaurantRepository } from "../repositories/restaurant.repository";
 
 class RestaurantController {
   async createRestaurant(req: Request, res: Response, next: NextFunction) {
@@ -163,6 +164,56 @@ class RestaurantController {
   //     next(error);
   //   }
   // }
+
+  async updateWorkflowMode(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = req.params.id as string;
+      if (!id || !/^\d+$/.test(id)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid id" });
+      }
+
+      const userId = req.user?.id;
+      if (!userId) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Not authenticated" });
+      }
+
+      // Ensure restaurant exists
+      try {
+        await restaurantService.getRestaurantById(Number(id));
+      } catch {
+        return res
+          .status(404)
+          .json({ success: false, message: "Restaurant not found" });
+      }
+
+      // Only owner can change workflow mode
+      const ownerId = await restaurantService.getOwnerByRestaurantId(
+        Number(id),
+      );
+      if (ownerId && ownerId !== userId) {
+        return res
+          .status(403)
+          .json({ success: false, message: "Forbidden" });
+      }
+
+      const { workflowMode } = req.body;
+      const restaurant = await restaurantRepository.updateWorkflowMode(
+        Number(id),
+        workflowMode,
+      );
+      return res.json({
+        success: true,
+        message: "Workflow mode updated",
+        data: restaurant,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const restaurantController = new RestaurantController();

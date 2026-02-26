@@ -98,6 +98,94 @@ class OrderController {
       next(error);
     }
   }
+
+  async claimOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const orderId = Number(req.params.orderId);
+      if (!orderId || isNaN(orderId)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid order ID" });
+      }
+      const userId = req.user!.id;
+      const order = await orderService.claimOrder(
+        orderId,
+        userId,
+        restaurantId,
+        auditCtx(req),
+      );
+      return res.json({ success: true, data: order });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async resendNotification(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const orderId = Number(req.params.orderId);
+      if (!orderId || isNaN(orderId)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid order ID" });
+      }
+      await orderService.resendNotification(
+        orderId,
+        restaurantId,
+        auditCtx(req),
+      );
+      return res.json({ success: true, message: "Notification resent" });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async voidOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const orderId = Number(req.params.orderId);
+      if (!orderId || isNaN(orderId)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid order ID" });
+      }
+      const { reason } = req.body;
+      const order = await orderService.voidOrder(
+        orderId,
+        restaurantId,
+        reason,
+        auditCtx(req),
+      );
+      return res.json({ success: true, data: order, message: "Order voided" });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateOrderItem(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const orderId = Number(req.params.orderId);
+      const itemId = Number(req.params.itemId);
+      if (!orderId || isNaN(orderId) || !itemId || isNaN(itemId)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid order or item ID" });
+      }
+
+      const result = await orderService.updateOrderItem(
+        orderId,
+        itemId,
+        restaurantId,
+        req.body,
+        auditCtx(req),
+      );
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const orderController = new OrderController();

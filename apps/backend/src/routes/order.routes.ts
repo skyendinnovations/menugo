@@ -6,8 +6,11 @@ import { validate } from "../middlewares/validate.middleware";
 import {
   orderParams,
   orderIdParams,
+  orderItemParams,
   getOrdersQuery,
   updateOrderStatusBody,
+  voidOrderBody,
+  updateOrderItemBody,
 } from "../validations";
 
 const router = Router({ mergeParams: true });
@@ -54,6 +57,36 @@ router.post(
   validate({ params: orderIdParams }),
   requirePermission("update_orders"),
   orderController.acceptOrder.bind(orderController),
+);
+
+router.post(
+  "/:orderId/claim",
+  validate({ params: orderIdParams }),
+  requireSubscription("professional"),
+  requirePermission("update_orders"),
+  orderController.claimOrder.bind(orderController),
+);
+
+router.post(
+  "/:orderId/resend-notification",
+  validate({ params: orderIdParams }),
+  requireSubscription("professional"),
+  requirePermission("resend_notification"),
+  orderController.resendNotification.bind(orderController),
+);
+
+router.post(
+  "/:orderId/void",
+  validate({ params: orderIdParams, body: voidOrderBody }),
+  requirePermission("modify_order"),
+  orderController.voidOrder.bind(orderController),
+);
+
+router.put(
+  "/:orderId/items/:itemId",
+  validate({ params: orderItemParams, body: updateOrderItemBody }),
+  requirePermission("modify_order"),
+  orderController.updateOrderItem.bind(orderController),
 );
 
 export default router;

@@ -14,6 +14,8 @@ import notificationSettingsRoutes from "./notification-settings.routes";
 import subscriptionRoutes from "./subscription.routes";
 import auditRoutes from "./audit.routes";
 import eventsRoutes from "./events.routes";
+import availabilityRoutes from "./availability.routes";
+import workflowRoutes from "./workflow.routes";
 import { fileController } from "../controllers/file.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 import {
@@ -75,6 +77,16 @@ router.use(
   "/restaurants/:restaurantId/events",
   authenticate,
   eventsRoutes,
+);
+router.use(
+  "/restaurants/:restaurantId/staff",
+  authenticate,
+  availabilityRoutes,
+);
+router.use(
+  "/restaurants/:restaurantId/workflows",
+  authenticate,
+  workflowRoutes,
 );
 
 // Notification token management (authenticated, not restaurant-scoped)

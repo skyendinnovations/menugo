@@ -34,3 +34,10 @@ export const updateTableBody = z.object({
   capacity: z.number().int().positive().optional(),
   isActive: z.boolean().optional(),
 });
+
+export const forceReleaseBody = z.object({
+  reason: z
+    .string()
+    .min(3, "Reason must be at least 3 characters")
+    .max(500, "Reason must be at most 500 characters"),
+});

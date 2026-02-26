@@ -12,3 +12,5 @@ export * from "./subscription";
 export * from "./file";
 export * from "./audit";
 export * from "./events";
+export * from "./availability";
+export * from "./workflow";

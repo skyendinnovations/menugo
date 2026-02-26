@@ -24,6 +24,21 @@ class OrderRepository {
     return { ...order, items };
   }
 
+  async findItemById(id: number) {
+    const [item] = await db
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.id, id));
+    return item || null;
+  }
+
+  async findItemsByOrder(orderId: number) {
+    return db
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, orderId));
+  }
+
   async create(data: {
     restaurantId: number;
     tableSessionId: number;
@@ -61,6 +76,40 @@ class OrderRepository {
       .where(eq(orders.id, id))
       .returning();
     return order;
+  }
+
+  async updateStatusIfIn(id: number, status: string, allowed: string[]) {
+    const [order] = await db
+      .update(orders)
+      .set({ status: status as any, updatedAt: new Date() })
+      .where(and(eq(orders.id, id), inArray(orders.status, allowed as any)))
+      .returning();
+    return order || null;
+  }
+
+  async updateItemQuantity(id: number, quantity: number) {
+    const [item] = await db
+      .update(orderItems)
+      .set({ quantity })
+      .where(eq(orderItems.id, id))
+      .returning();
+    return item || null;
+  }
+
+  async deleteOrderItem(id: number) {
+    const [item] = await db
+      .delete(orderItems)
+      .where(eq(orderItems.id, id))
+      .returning();
+    return item || null;
+  }
+
+  async cancelItemsByOrder(orderId: number) {
+    return db
+      .update(orderItems)
+      .set({ status: "cancelled" })
+      .where(eq(orderItems.orderId, orderId))
+      .returning();
   }
 
   async findBySession(sessionId: number) {
@@ -193,6 +242,24 @@ class OrderRepository {
     return order || null;
   }
 
+  /**
+   * Atomically claim an order for delivery (waiter assignment).
+   * Uses `WHERE claimed_by IS NULL` to guarantee only one waiter wins.
+   * Returns null if already claimed (caller should return 409).
+   */
+  async claimOrder(id: number, userId: string) {
+    const [order] = await db
+      .update(orders)
+      .set({
+        claimedBy: userId,
+        claimedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(orders.id, id), isNull(orders.claimedBy)))
+      .returning();
+    return order || null;
+  }
+
   async findWithAcceptor(id: number) {
     const [result] = await db
       .select({
@@ -208,6 +275,25 @@ class OrderRepository {
       ...result.order,
       acceptedByName: result.acceptorName,
     };
+  }
+
+  /**
+   * Cancel all non-terminal orders for a given session (force release).
+   * Only cancels orders in received, preparing, or ready status.
+   * Returns the list of cancelled orders.
+   */
+  async cancelPendingBySession(sessionId: number) {
+    const nonTerminalStatuses = ["received", "preparing", "ready"] as const;
+    return db
+      .update(orders)
+      .set({ status: "cancelled", updatedAt: new Date() })
+      .where(
+        and(
+          eq(orders.tableSessionId, sessionId),
+          inArray(orders.status, [...nonTerminalStatuses]),
+        ),
+      )
+      .returning();
   }
 
   async calculateSessionTotal(sessionId: number): Promise<string> {

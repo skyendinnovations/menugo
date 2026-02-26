@@ -5,6 +5,9 @@ export interface Table {
     qrCode?: string;
     capacity: number;
     isActive?: boolean;
+    helperBlockedBy?: string | null;
+    helperBlockedAt?: string | null;
+    helperBlockedByName?: string | null;
     updatedAt?: string;
 }
 

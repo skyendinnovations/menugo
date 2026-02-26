@@ -153,6 +153,14 @@ class MenuService {
   async getFullMenu(restaurantId: number) {
     return menuRepository.getFullMenu(restaurantId);
   }
+
+  /**
+   * Public-facing menu: hides sold-out items and variants
+   * so customers only see what's available.
+   */
+  async getPublicMenu(restaurantId: number) {
+    return menuRepository.getFullMenu(restaurantId, { hideSoldOut: true });
+  }
 }
 
 export const menuService = new MenuService();

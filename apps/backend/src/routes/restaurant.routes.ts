@@ -6,6 +6,7 @@ import {
   updateRestaurantBody,
   restaurantIdParam,
 } from "../validations";
+import { updateWorkflowModeBody } from "../validations/workflow";
 
 const router = Router();
 
@@ -33,6 +34,12 @@ router.delete(
   "/:id",
   validate({ params: restaurantIdParam }),
   restaurantController.deleteRestaurant.bind(restaurantController),
+);
+
+router.put(
+  "/:id/workflow-mode",
+  validate({ params: restaurantIdParam, body: updateWorkflowModeBody }),
+  restaurantController.updateWorkflowMode.bind(restaurantController),
 );
 
 export default router;

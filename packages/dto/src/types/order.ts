@@ -8,6 +8,9 @@ export interface Order {
     acceptedBy?: string;
     acceptedAt?: string;
     acceptedByName?: string;
+    claimedBy?: string;
+    claimedAt?: string;
+    claimedByName?: string;
     createdAt?: string;
     updatedAt?: string;
     items: OrderItem[];

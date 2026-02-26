@@ -51,6 +51,12 @@ export const orders = pgTable(
         }),
         acceptedAt: timestamp("accepted_at"),
 
+        // Waiter claim tracking (concurrency-safe delivery assignment)
+        claimedBy: text("claimed_by").references(() => user.id, {
+            onDelete: "set null",
+        }),
+        claimedAt: timestamp("claimed_at"),
+
         notes: text("notes"),
         createdAt: timestamp("created_at").defaultNow(),
         updatedAt: timestamp("updated_at").defaultNow(),
@@ -106,6 +112,11 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
         fields: [orders.acceptedBy],
         references: [user.id],
         relationName: "orderAcceptor",
+    }),
+    claimer: one(user, {
+        fields: [orders.claimedBy],
+        references: [user.id],
+        relationName: "orderClaimer",
     }),
 }));
 

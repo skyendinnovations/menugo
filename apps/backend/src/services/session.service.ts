@@ -10,6 +10,7 @@ import type {
   JoinSessionDTO,
   TableInfoDTO,
 } from "@menugo/dto";
+import { logger } from "../utils/logger";
 
 /** Contextual info passed from the controller for audit logging. */
 interface AuditContext {
@@ -157,6 +158,20 @@ class SessionService {
 
     if (!newSession) throw new AppError(500, "Failed to create session");
 
+    // Auto-clear helper block when a customer creates a session on a blocked table
+    if (table.helperBlockedBy) {
+      await tableRepository.unblock(table.id);
+      eventBus.emit(restaurantId, "table_status_changed", {
+        tableId: table.id,
+        tableNumber: table.tableNumber,
+        previousStatus: "blocked",
+        currentStatus: "occupied",
+      });
+      logger.info(
+        `Auto-cleared helper block on table ${table.tableNumber} (session created)`,
+      );
+    }
+
     // Add host as first participant with customer name
     await participantRepository.add(
       newSession.id,
@@ -207,6 +222,18 @@ class SessionService {
     if (!session) throw new AppError(404, "Session not found");
     if (session.status !== "active") {
       throw new AppError(400, "Session is not active");
+    }
+
+    // Ensure all orders in this session are served or cancelled
+    const orders = await orderRepository.findBySession(id);
+    const hasOpenOrders = orders.some(
+      (o) => !["served", "cancelled"].includes(o.status || "received"),
+    );
+    if (hasOpenOrders) {
+      throw new AppError(
+        400,
+        "Cannot close bill: all orders must be served or cancelled",
+      );
     }
 
     const total = await orderRepository.calculateSessionTotal(id);

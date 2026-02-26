@@ -1,5 +1,6 @@
 import { restaurantRepository } from "../repositories/restaurant.repository";
 import { roleRepository } from "../repositories/role.repository";
+import { workflowRepository } from "../repositories/workflow.repository";
 import { db } from "@menugo/data";
 import { restaurants, restaurantMembers } from "@menugo/data/schemas";
 import { eq } from "drizzle-orm";
@@ -29,6 +30,8 @@ class RestaurantService {
     try {
       // Seed all default roles for the restaurant
       await roleRepository.seedDefaultRoles(createdRestaurant.id);
+      // Seed default workflow transitions for the restaurant
+      await workflowRepository.seedDefaults(createdRestaurant.id);
       // Delegate owner insertion to repository helper
       await restaurantRepository.addRestaurantOwner(
         createdRestaurant.id,

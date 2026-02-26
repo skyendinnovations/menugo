@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { notificationService } from "../services/notification.service";
+import { notificationLogRepository } from "../repositories/notification-log.repository";
 
 class NotificationController {
     async registerToken(req: Request, res: Response, next: NextFunction) {
@@ -78,6 +79,35 @@ class NotificationController {
             const restaurantId = Number(req.params.restaurantId);
             await notificationService.seedDefaults(restaurantId);
             return res.json({ success: true });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async getNotificationHistory(
+        req: Request,
+        res: Response,
+        next: NextFunction,
+    ) {
+        try {
+            const restaurantId = Number(req.params.restaurantId);
+            const { orderId, eventType, page, limit } = req.query;
+
+            const result = await notificationLogRepository.findByRestaurant(
+                restaurantId,
+                {
+                    orderId: orderId ? Number(orderId) : undefined,
+                    eventType: eventType as string | undefined,
+                    page: page ? Number(page) : undefined,
+                    limit: limit ? Number(limit) : undefined,
+                },
+            );
+
+            return res.json({
+                success: true,
+                data: result.data,
+                pagination: result.pagination,
+            });
         } catch (error) {
             next(error);
         }

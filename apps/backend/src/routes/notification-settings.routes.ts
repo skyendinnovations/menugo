@@ -4,6 +4,7 @@ import { requirePermission } from "../middlewares/permission.middleware";
 import { requireSubscription } from "../middlewares/subscription.middleware";
 import { validate } from "../middlewares/validate.middleware";
 import { notificationParams, updateSettingsBody } from "../validations";
+import { notificationHistoryQuery } from "../validations/workflow";
 
 const router = Router({ mergeParams: true });
 
@@ -29,6 +30,14 @@ router.post(
     requireSubscription("professional"),
     requirePermission("manage_restaurant"),
     notificationController.seedDefaults.bind(notificationController)
+);
+
+router.get(
+    "/history",
+    validate({ params: notificationParams, query: notificationHistoryQuery }),
+    requireSubscription("professional"),
+    requirePermission("manage_restaurant"),
+    notificationController.getNotificationHistory.bind(notificationController)
 );
 
 export default router;

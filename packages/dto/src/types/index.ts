@@ -11,3 +11,5 @@ export * from "./file";
 export * from "./notification";
 export * from "./audit";
 export * from "./realtime";
+export * from "./availability";
+export * from "./workflow";

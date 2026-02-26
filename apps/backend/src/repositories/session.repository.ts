@@ -128,6 +128,29 @@ class SessionRepository {
       .where(eq(tableSessions.restaurantId, restaurantId))
       .orderBy(sql`${tableSessions.startTime} desc`);
   }
+
+  /**
+   * Force-close all active sessions on a specific table.
+   * Returns the list of closed session IDs.
+   */
+  async forceCloseByTable(tableId: number, endedBy: string) {
+    const closedSessions = await db
+      .update(tableSessions)
+      .set({
+        status: "closed",
+        endedBy,
+        endTime: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(tableSessions.tableId, tableId),
+          eq(tableSessions.status, "active"),
+        ),
+      )
+      .returning();
+    return closedSessions;
+  }
 }
 
 export const sessionRepository = new SessionRepository();

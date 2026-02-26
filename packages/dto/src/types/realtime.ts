@@ -10,10 +10,13 @@ export const REALTIME_EVENT_NAMES = [
   "order_status_changed",
   "order_accepted",
   "order_cancelled",
+  "order_claimed",
   "session_created",
   "session_closed",
   "table_status_changed",
   "menu_availability_changed",
+  "workflow_changed",
+  "stock_updated",
 ] as const;
 
 export type RealTimeEventName = (typeof REALTIME_EVENT_NAMES)[number];
@@ -49,6 +52,13 @@ export interface OrderCancelledPayload {
   tableNumber?: number;
 }
 
+export interface OrderClaimedPayload {
+  orderId: number;
+  orderNumber: string;
+  claimedBy: string;
+  claimedByName?: string;
+}
+
 export interface SessionCreatedPayload {
   sessionId: number;
   tableId: number;
@@ -78,6 +88,19 @@ export interface MenuAvailabilityChangedPayload {
   categoryId?: number;
 }
 
+export interface WorkflowChangedPayload {
+  transitionCount: number;
+}
+
+export interface StockUpdatedPayload {
+  menuItemId: number;
+  itemName: string;
+  variantId?: number;
+  variantName?: string;
+  stockCount: number | null;
+  isSoldOut: boolean;
+}
+
 // ─── Payload Map ────────────────────────────────────────────────────
 
 export interface RealTimeEventPayloadMap {
@@ -85,10 +108,13 @@ export interface RealTimeEventPayloadMap {
   order_status_changed: OrderStatusChangedPayload;
   order_accepted: OrderAcceptedPayload;
   order_cancelled: OrderCancelledPayload;
+  order_claimed: OrderClaimedPayload;
   session_created: SessionCreatedPayload;
   session_closed: SessionClosedPayload;
   table_status_changed: TableStatusChangedPayload;
   menu_availability_changed: MenuAvailabilityChangedPayload;
+  workflow_changed: WorkflowChangedPayload;
+  stock_updated: StockUpdatedPayload;
 }
 
 // ─── Unified Real-Time Event ────────────────────────────────────────

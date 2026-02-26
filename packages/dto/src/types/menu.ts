@@ -17,6 +17,8 @@ export interface MenuItem {
     imagePath?: string;
     isAvailable?: boolean;
     isActive?: boolean;
+    stockCount?: number | null;
+    isSoldOut?: boolean;
     hasVariants?: boolean;
     variants?: MenuItemVariant[];
 }
@@ -26,6 +28,8 @@ export interface MenuItemVariant {
     menuItemId: number;
     name: string;
     price: string;
+    stockCount?: number | null;
+    isSoldOut?: boolean;
     isActive?: boolean;
 }
 

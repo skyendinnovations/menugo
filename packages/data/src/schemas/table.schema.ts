@@ -2,6 +2,7 @@ import { pgTable, serial, text, integer, boolean, timestamp, unique } from "driz
 import { relations } from "drizzle-orm";
 import { restaurants } from "./restaurant.schema";
 import { tableSessions } from "./session.schema";
+import { user } from "./auth.schema";
 
 export const restaurantTables = pgTable(
     "restaurant_tables",
@@ -17,6 +18,13 @@ export const restaurantTables = pgTable(
 
         // Removed status field - calculate dynamically from active sessions
         isActive: boolean("is_active").default(true),
+
+        // Helper soft-block: when set (non-null), table is blocked by a helper
+        helperBlockedBy: text("helper_blocked_by").references(() => user.id, {
+            onDelete: "set null",
+        }),
+        helperBlockedAt: timestamp("helper_blocked_at"),
+
         updatedAt: timestamp("updated_at").defaultNow(),
     },
     (t) => ({
@@ -32,5 +40,10 @@ export const restaurantTablesRelations = relations(
             references: [restaurants.id],
         }),
         sessions: many(tableSessions),
+        blocker: one(user, {
+            fields: [restaurantTables.helperBlockedBy],
+            references: [user.id],
+            relationName: "tableBlocker",
+        }),
     })
 );

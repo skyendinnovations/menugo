@@ -8,6 +8,7 @@ import {
   createTableBody,
   bulkCreateTablesBody,
   updateTableBody,
+  forceReleaseBody,
 } from "../validations";
 
 const router = Router({ mergeParams: true });
@@ -52,6 +53,31 @@ router.get(
   validate({ params: tableIdParams }),
   requirePermission("manage_tables"),
   tableController.getTableQR.bind(tableController),
+);
+
+// ─── Helper Soft-Block ────────────────────────────────────────────
+
+router.post(
+  "/:tableId/block",
+  validate({ params: tableIdParams }),
+  requirePermission("helper_block_table"),
+  tableController.blockTable.bind(tableController),
+);
+
+router.post(
+  "/:tableId/unblock",
+  validate({ params: tableIdParams }),
+  requirePermission("helper_block_table"),
+  tableController.unblockTable.bind(tableController),
+);
+
+// ─── Force Release ────────────────────────────────────────────────
+
+router.post(
+  "/:tableId/force-release",
+  validate({ params: tableIdParams, body: forceReleaseBody }),
+  requirePermission("table_force_release"),
+  tableController.forceReleaseTable.bind(tableController),
 );
 
 export default router;

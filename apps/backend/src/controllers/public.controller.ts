@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { menuService } from "../services/menu.service";
 import { sessionService } from "../services/session.service";
 import { orderService } from "../services/order.service";
+import { customerDeviceTokenRepository } from "../repositories/customer-device-token.repository";
 import { AppError } from "../types";
 
 // ── Shared helpers to avoid duplicated slug → restaurant → table lookup ──
@@ -74,7 +75,7 @@ class PublicController {
   async getMenu(req: Request, res: Response, next: NextFunction) {
     try {
       const restaurant = await resolveRestaurant(req.params.slug as string);
-      const menu = await menuService.getFullMenu(restaurant.id);
+      const menu = await menuService.getPublicMenu(restaurant.id);
 
       return res.json({
         success: true,
@@ -201,6 +202,33 @@ class PublicController {
 
       const orders = await orderService.getOrdersBySession(sessionId);
       return res.json({ success: true, data: orders });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Register a customer device FCM token (no auth required).
+   * Used by the self-service workflow so customers receive
+   * "order ready" push notifications on their device.
+   */
+  async registerDeviceToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { deviceId, token, deviceType } = req.body;
+
+      if (!deviceId || !token || !deviceType) {
+        return res.status(400).json({
+          success: false,
+          message: "deviceId, token, and deviceType are required",
+        });
+      }
+
+      const result = await customerDeviceTokenRepository.upsert(
+        deviceId,
+        token,
+        deviceType,
+      );
+      return res.json({ success: true, data: result });
     } catch (error) {
       next(error);
     }

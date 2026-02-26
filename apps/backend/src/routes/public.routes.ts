@@ -63,4 +63,10 @@ router.get(
   publicController.getSessionOrders.bind(publicController),
 );
 
+// Register customer device FCM token (self-service workflow)
+router.post(
+  "/register-device-token",
+  publicController.registerDeviceToken.bind(publicController),
+);
+
 export default router;

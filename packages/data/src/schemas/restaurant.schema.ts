@@ -6,6 +6,7 @@ import { restaurantTables } from "./table.schema";
 import { menuCategories } from "./menu.schema";
 import { tableSessions } from "./session.schema";
 import { restaurantInvitations } from "./invitation.schema";
+import { restaurantWorkflows } from "./workflow.schema";
 
 // Table count range enum
 export const tableCountRangeEnum = pgEnum("table_count_range", [
@@ -36,6 +37,9 @@ export const restaurants = pgTable("restaurants", {
     workersCount: integer("workers_count"),
     seatingCapacity: integer("seating_capacity"),
 
+    // Workflow mode: full_service | fast_service | self_service
+    workflowMode: text("workflow_mode").default("full_service").notNull(),
+
     workflowSettings: jsonb("workflow_settings").notNull().default({
         hasKitchenView: true,
         orderFlow: ["received", "preparing", "ready", "served", "paid"],
@@ -55,4 +59,5 @@ export const restaurantsRelations = relations(restaurants, ({ many }) => ({
     menuCategories: many(menuCategories),
     sessions: many(tableSessions),
     invitations: many(restaurantInvitations),
+    workflows: many(restaurantWorkflows),
 }));

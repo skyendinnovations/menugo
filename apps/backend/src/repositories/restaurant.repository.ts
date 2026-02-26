@@ -114,6 +114,15 @@ class RestaurantRepository {
 
     return userRole?.userId ?? null;
   }
+
+  async updateWorkflowMode(id: number, workflowMode: string) {
+    const [restaurant] = await db
+      .update(restaurants)
+      .set({ workflowMode, updatedAt: new Date() })
+      .where(eq(restaurants.id, id))
+      .returning();
+    return restaurant;
+  }
 }
 
 export const restaurantRepository = new RestaurantRepository();

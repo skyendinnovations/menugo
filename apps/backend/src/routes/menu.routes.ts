@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { menuController } from "../controllers/menu.controller";
+import { stockController } from "../controllers/stock.controller";
 import { requirePermission } from "../middlewares/permission.middleware";
 import { requireSubscription } from "../middlewares/subscription.middleware";
 import { validate } from "../middlewares/validate.middleware";
@@ -15,6 +16,8 @@ import {
   updateItemBody,
   createVariantBody,
   updateVariantBody,
+  setStockBody,
+  toggleSoldOutBody,
 } from "../validations";
 
 const router = Router({ mergeParams: true });
@@ -114,6 +117,37 @@ router.delete(
   requireSubscription("professional"),
   requirePermission("manage_menu"),
   menuController.deleteVariant.bind(menuController),
+);
+
+// --- Stock Management (guard with manage_stock) ---
+router.put(
+  "/items/:itemId/stock",
+  validate({ params: itemIdParams, body: setStockBody }),
+  requirePermission("manage_stock"),
+  stockController.setItemStock.bind(stockController),
+);
+
+router.put(
+  "/items/:itemId/sold-out",
+  validate({ params: itemIdParams, body: toggleSoldOutBody }),
+  requirePermission("manage_stock"),
+  stockController.toggleItemSoldOut.bind(stockController),
+);
+
+router.put(
+  "/variants/:variantId/stock",
+  validate({ params: variantIdParams, body: setStockBody }),
+  requireSubscription("professional"),
+  requirePermission("manage_stock"),
+  stockController.setVariantStock.bind(stockController),
+);
+
+router.put(
+  "/variants/:variantId/sold-out",
+  validate({ params: variantIdParams, body: toggleSoldOutBody }),
+  requireSubscription("professional"),
+  requirePermission("manage_stock"),
+  stockController.toggleVariantSoldOut.bind(stockController),
 );
 
 export default router;

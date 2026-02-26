@@ -21,6 +21,14 @@ export const orderIdParams = z
   })
   .passthrough();
 
+export const orderItemParams = z
+  .object({
+    restaurantId: numericId,
+    orderId: numericId,
+    itemId: numericId,
+  })
+  .passthrough();
+
 // ─── Query ──────────────────────────────────────────────────────────
 
 export const getOrdersQuery = z
@@ -36,3 +44,16 @@ export const updateOrderStatusBody = z.object({
     message: `Status must be one of: ${ORDER_STATUSES.join(", ")}`,
   }),
 });
+
+export const voidOrderBody = z.object({
+  reason: z.string().min(3).max(500),
+});
+
+export const updateOrderItemBody = z
+  .object({
+    quantity: z.number().int().min(1).optional(),
+    remove: z.boolean().optional(),
+  })
+  .refine((data) => data.remove === true || data.quantity !== undefined, {
+    message: "Provide a quantity or set remove=true",
+  });

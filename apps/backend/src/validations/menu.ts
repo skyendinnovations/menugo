@@ -87,3 +87,13 @@ export const updateVariantBody = z.object({
   price: z.string().regex(PRICE_REGEX, "Invalid price format").optional(),
   isActive: z.boolean().optional(),
 });
+
+// ─── Stock Bodies ───────────────────────────────────────────────────
+
+export const setStockBody = z.object({
+  stockCount: z.number().int().min(0).nullable(),
+});
+
+export const toggleSoldOutBody = z.object({
+  isSoldOut: z.boolean(),
+});

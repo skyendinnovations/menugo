@@ -35,6 +35,9 @@ export const menuItems = pgTable("menu_items", {
     isAvailable: boolean("is_available").default(true),
     isActive: boolean("is_active").default(true),
 
+    stockCount: integer("stock_count"),
+    isSoldOut: boolean("is_sold_out").default(false),
+
     hasVariants: boolean("has_variants").default(false),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
@@ -48,6 +51,9 @@ export const menuItemVariants = pgTable("menu_item_variants", {
 
     name: text("name").notNull(),
     price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+
+    stockCount: integer("stock_count"),
+    isSoldOut: boolean("is_sold_out").default(false),
 
     isActive: boolean("is_active").default(true),
     createdAt: timestamp("created_at").defaultNow(),

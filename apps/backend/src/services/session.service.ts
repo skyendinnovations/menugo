@@ -2,12 +2,20 @@ import { sessionRepository } from "../repositories/session.repository";
 import { participantRepository } from "../repositories/participant.repository";
 import { orderRepository } from "../repositories/order.repository";
 import { tableRepository } from "../repositories/table.repository";
+import { auditService } from "./audit.service";
+import { eventBus } from "./event-bus.service";
 import { AppError } from "../types";
 import type {
   CreateSessionDTO,
   JoinSessionDTO,
   TableInfoDTO,
 } from "@menugo/dto";
+
+/** Contextual info passed from the controller for audit logging. */
+interface AuditContext {
+  actorUserId: string;
+  ipAddress?: string;
+}
 
 class SessionService {
   async getActiveSessions(restaurantId: number) {
@@ -159,6 +167,16 @@ class SessionService {
     const participants = await participantRepository.findBySession(
       newSession.id,
     );
+
+    // Emit real-time event for SSE / polling clients
+    eventBus.emit(restaurantId, "session_created", {
+      sessionId: newSession.id,
+      tableId: dto.tableId,
+      tableNumber: table.tableNumber,
+      personsCount: requestedSeats,
+      customerName: dto.customerName.trim(),
+    });
+
     return { ...newSession, participants, existed: false };
   }
 
@@ -184,7 +202,7 @@ class SessionService {
     return { session, participant, alreadyJoined: false };
   }
 
-  async closeSession(id: number, endedBy: string) {
+  async closeSession(id: number, endedBy: string, ctx?: AuditContext) {
     const session = await sessionRepository.findById(id);
     if (!session) throw new AppError(404, "Session not found");
     if (session.status !== "active") {
@@ -192,7 +210,33 @@ class SessionService {
     }
 
     const total = await orderRepository.calculateSessionTotal(id);
-    return sessionRepository.close(id, endedBy, total);
+    const result = await sessionRepository.close(id, endedBy, total);
+
+    if (ctx) {
+      auditService
+        .log({
+          restaurantId: session.restaurantId,
+          actorUserId: ctx.actorUserId,
+          action: "session_closed",
+          entityType: "session",
+          entityId: id,
+          oldValue: { status: "active" },
+          newValue: { status: "closed", total },
+          ipAddress: ctx.ipAddress,
+        })
+        .catch(() => {});
+    }
+
+    // Emit real-time event for SSE / polling clients
+    const table = await tableRepository.findById(session.tableId);
+    eventBus.emit(session.restaurantId, "session_closed", {
+      sessionId: id,
+      tableId: session.tableId,
+      tableNumber: table?.tableNumber,
+      total,
+    });
+
+    return result;
   }
 }
 

@@ -2,7 +2,10 @@ import { orderRepository } from "../repositories/order.repository";
 import { sessionRepository } from "../repositories/session.repository";
 import { participantRepository } from "../repositories/participant.repository";
 import { menuRepository } from "../repositories/menu.repository";
+import { tableRepository } from "../repositories/table.repository";
 import { notificationService } from "./notification.service";
+import { auditService } from "./audit.service";
+import { eventBus } from "./event-bus.service";
 import { AppError } from "../types";
 import type {
   CreateOrderDTO,
@@ -11,6 +14,12 @@ import type {
 } from "@menugo/dto";
 import { generateOrderNumber } from "../utils/order-number";
 import { logger } from "../utils/logger";
+
+/** Contextual info passed from the controller for audit logging. */
+interface AuditContext {
+  actorUserId: string;
+  ipAddress?: string;
+}
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   received: ["preparing", "cancelled"],
@@ -109,10 +118,26 @@ class OrderService {
         logger.error("Failed to send order placed notification", err)
       );
 
+    // Emit real-time event for SSE / polling clients
+    const table = session.tableId
+      ? await tableRepository.findById(session.tableId)
+      : null;
+    eventBus.emit(restaurantId, "order_placed", {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      tableNumber: table?.tableNumber,
+      sessionId: dto.sessionId,
+      itemCount: items.length,
+    });
+
     return { ...order, items };
   }
 
-  async updateOrderStatus(id: number, status: OrderStatusUpdate) {
+  async updateOrderStatus(
+    id: number,
+    status: OrderStatusUpdate,
+    ctx?: AuditContext,
+  ) {
     const order = await orderRepository.findById(id);
     if (!order) throw new AppError(404, "Order not found");
 
@@ -126,6 +151,22 @@ class OrderService {
     }
 
     const updated = await orderRepository.updateStatus(id, status);
+
+    // Audit log the status transition
+    if (ctx) {
+      auditService
+        .log({
+          restaurantId: order.restaurantId,
+          actorUserId: ctx.actorUserId,
+          action: "order_status_changed",
+          entityType: "order",
+          entityId: id,
+          oldValue: { status: currentStatus },
+          newValue: { status },
+          ipAddress: ctx.ipAddress,
+        })
+        .catch(() => {});
+    }
 
     // Send notification asynchronously
     const triggerEvent =
@@ -146,6 +187,21 @@ class OrderService {
         logger.error("Failed to send status change notification", err)
       );
 
+    // Emit real-time event for SSE / polling clients
+    if (status === "cancelled") {
+      eventBus.emit(order.restaurantId, "order_cancelled", {
+        orderId: id,
+        orderNumber: order.orderNumber,
+      });
+    } else {
+      eventBus.emit(order.restaurantId, "order_status_changed", {
+        orderId: id,
+        orderNumber: order.orderNumber,
+        fromStatus: currentStatus,
+        toStatus: status,
+      });
+    }
+
     return updated;
   }
 
@@ -160,6 +216,13 @@ class OrderService {
     if (!updated) {
       throw new AppError(400, "Order has already been accepted");
     }
+
+    // Emit real-time event for SSE / polling clients
+    eventBus.emit(order.restaurantId, "order_accepted", {
+      orderId,
+      orderNumber: order.orderNumber,
+      acceptedBy: userId,
+    });
 
     return updated;
   }

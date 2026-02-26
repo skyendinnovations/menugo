@@ -9,3 +9,5 @@ export * from "./member";
 export * from "./role";
 export * from "./file";
 export * from "./notification";
+export * from "./audit";
+export * from "./realtime";

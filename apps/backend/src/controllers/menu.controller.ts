@@ -1,6 +1,14 @@
 import type { Request, Response, NextFunction } from "express";
 import { menuService } from "../services/menu.service";
 
+/** Extract audit context from Express request. */
+function auditCtx(req: Request) {
+  return {
+    actorUserId: req.user!.id,
+    ipAddress: req.ip ?? (req.headers["x-forwarded-for"] as string) ?? null,
+  };
+}
+
 class MenuController {
   // --- Categories ---
   async getCategories(req: Request, res: Response, next: NextFunction) {
@@ -142,7 +150,7 @@ class MenuController {
           .status(400)
           .json({ success: false, message: "Invalid item ID" });
       }
-      const item = await menuService.toggleAvailability(id);
+      const item = await menuService.toggleAvailability(id, auditCtx(req));
       return res.json({ success: true, data: item });
     } catch (error) {
       next(error);

@@ -1,6 +1,7 @@
 import { memberRepository } from "../repositories/member.repository";
 import { invitationRepository } from "../repositories/invitation.repository";
 import { restaurantRepository } from "../repositories/restaurant.repository";
+import { auditService } from "./audit.service";
 import { AppError } from "../types";
 import type { InviteMemberDTO } from "@menugo/dto";
 import { generateId } from "../utils/helpers";
@@ -10,6 +11,12 @@ import { eq } from "drizzle-orm";
 import { getEmailProvider } from "../email";
 import { renderInvitationEmail } from "@menugo/email";
 import { APP_URL } from "../envs";
+
+/** Contextual info passed from the controller for audit logging. */
+interface AuditContext {
+  actorUserId: string;
+  ipAddress?: string;
+}
 
 class MemberService {
   async getMembers(restaurantId: number) {
@@ -31,6 +38,7 @@ class MemberService {
     restaurantId: number,
     inviterId: string,
     dto: InviteMemberDTO,
+    ctx?: AuditContext,
   ) {
     // Check if already a member
     const existingByEmail = await this.findUserByEmail(dto.email);
@@ -67,6 +75,20 @@ class MemberService {
       inviterId,
       expiresAt,
     });
+
+    if (ctx && invitation) {
+      auditService
+        .log({
+          restaurantId,
+          actorUserId: ctx.actorUserId,
+          action: "member_invited",
+          entityType: "invitation",
+          entityId: invitation.id,
+          newValue: { email: dto.email, roleIds: dto.roleIds },
+          ipAddress: ctx.ipAddress,
+        })
+        .catch(() => {});
+    }
 
     await this.sendInvitationEmail({
       restaurantId,
@@ -146,7 +168,11 @@ class MemberService {
     return invitation;
   }
 
-  async removeMember(memberId: number, restaurantId: number) {
+  async removeMember(
+    memberId: number,
+    restaurantId: number,
+    ctx?: AuditContext,
+  ) {
     // Look up the member to get the userId
     const members = await memberRepository.findByRestaurant(restaurantId);
     const member = members.find((m) => m.id === memberId);
@@ -163,7 +189,23 @@ class MemberService {
     await memberRepository.removeUserRoles(member.userId, restaurantId);
 
     // Remove member
-    return memberRepository.remove(memberId);
+    const result = await memberRepository.remove(memberId);
+
+    if (ctx) {
+      auditService
+        .log({
+          restaurantId,
+          actorUserId: ctx.actorUserId,
+          action: "member_removed",
+          entityType: "member",
+          entityId: memberId,
+          oldValue: { userId: member.userId },
+          ipAddress: ctx.ipAddress,
+        })
+        .catch(() => {});
+    }
+
+    return result;
   }
 
   async getMyInvitations(email: string) {

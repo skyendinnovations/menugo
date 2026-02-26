@@ -12,6 +12,8 @@ import fileRoutes from "./file.routes";
 import notificationRoutes from "./notification.routes";
 import notificationSettingsRoutes from "./notification-settings.routes";
 import subscriptionRoutes from "./subscription.routes";
+import auditRoutes from "./audit.routes";
+import eventsRoutes from "./events.routes";
 import { fileController } from "../controllers/file.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 import {
@@ -64,12 +66,24 @@ router.use(
   authenticate,
   notificationSettingsRoutes,
 );
+router.use(
+  "/restaurants/:restaurantId/audit-logs",
+  authenticate,
+  auditRoutes,
+);
+router.use(
+  "/restaurants/:restaurantId/events",
+  authenticate,
+  eventsRoutes,
+);
 
 // Notification token management (authenticated, not restaurant-scoped)
 router.use("/notifications", authenticate, notificationRoutes);
 
 // Accept invitation (authenticated but not restaurant-scoped)
 import { memberController } from "../controllers/member.controller";
+import { validate } from "../middlewares/validate.middleware";
+import { acceptInvitationBody, rejectInvitationBody } from "../validations";
 router.get(
   "/invitations/my",
   authenticate,
@@ -78,11 +92,13 @@ router.get(
 router.post(
   "/invitations/accept",
   authenticate,
+  validate({ body: acceptInvitationBody }),
   memberController.acceptInvitation.bind(memberController),
 );
 router.post(
   "/invitations/reject",
   authenticate,
+  validate({ body: rejectInvitationBody }),
   memberController.rejectInvitation.bind(memberController),
 );
 

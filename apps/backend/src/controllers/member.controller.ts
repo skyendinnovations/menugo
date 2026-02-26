@@ -3,6 +3,14 @@ import { memberService } from "../services/member.service";
 import { memberRepository } from "../repositories/member.repository";
 import type { Permissions, PermissionKey } from "@menugo/dto";
 
+/** Extract audit context from Express request. */
+function auditCtx(req: Request) {
+  return {
+    actorUserId: req.user!.id,
+    ipAddress: req.ip ?? (req.headers["x-forwarded-for"] as string) ?? null,
+  };
+}
+
 class MemberController {
   async getMyMembership(req: Request, res: Response, next: NextFunction) {
     try {
@@ -82,6 +90,7 @@ class MemberController {
           email,
           roleIds,
         },
+        auditCtx(req),
       );
       return res.status(201).json({ success: true, data: invitation });
     } catch (error) {
@@ -144,7 +153,7 @@ class MemberController {
           .json({ success: false, message: "Invalid member ID" });
       }
 
-      await memberService.removeMember(memberId, restaurantId);
+      await memberService.removeMember(memberId, restaurantId, auditCtx(req));
       return res.json({ success: true, message: "Member removed" });
     } catch (error) {
       next(error);

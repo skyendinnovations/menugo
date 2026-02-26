@@ -1,24 +1,63 @@
+import { z } from "zod";
 import type { Request, Response, NextFunction } from "express";
 import { AppError } from "../types";
 
-type ValidationType = "body" | "query" | "params";
+interface ValidationSchemas {
+  body?: z.ZodType;
+  params?: z.ZodType;
+  query?: z.ZodType;
+}
 
-export const validate = (schema: any, type: ValidationType = "body") => {
+/**
+ * Express middleware that validates request body, params, and/or query
+ * against Zod schemas. Validation runs before any business logic.
+ *
+ * - **params**: validated for format only (Express params stay as strings)
+ * - **query**: parsed and merged back (allows coercion, e.g. string → number)
+ * - **body**: parsed and replaced (sanitizes input, strips unknown keys)
+ */
+export const validate = (schemas: ValidationSchemas) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
-      const data = req[type];
+      if (schemas.params) {
+        schemas.params.parse(req.params);
+      }
 
-      // TODO: Add validation library like Zod or Joi
-      // const validated = schema.parse(data);
-      // req[type] = validated;
+      if (schemas.query) {
+        const parsed = schemas.query.parse(req.query);
+        req.query = parsed as typeof req.query;
+      }
+
+      if (schemas.body) {
+        req.body = schemas.body.parse(req.body);
+      }
 
       next();
-    } catch (error) {
-      if (error instanceof Error) {
-        next(new AppError(400, error.message));
-      } else {
-        next(new AppError(400, "Validation failed"));
+    } catch (error: unknown) {
+      // Handle ZodError (check for .issues array — works across Zod versions)
+      if (error && typeof error === "object" && "issues" in error) {
+        const issues = (
+          error as {
+            issues: Array<{ path?: (string | number)[]; message: string }>;
+          }
+        ).issues;
+        const messages = issues.map((issue) => {
+          const path =
+            issue.path && issue.path.length > 0
+              ? issue.path.join(".")
+              : "value";
+          return `${path}: ${issue.message}`;
+        });
+        return next(
+          new AppError(400, `Validation failed: ${messages.join("; ")}`),
+        );
       }
+
+      if (error instanceof Error) {
+        return next(new AppError(400, error.message));
+      }
+
+      return next(new AppError(400, "Validation failed"));
     }
   };
 };

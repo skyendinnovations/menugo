@@ -13,3 +13,4 @@ export * from "./file.schema";
 export * from "./device-token.schema";
 export * from "./notification-settings.schema";
 export * from "./subscription-plan.schema";
+export * from "./audit-log.schema";

@@ -1,6 +1,14 @@
 import type { Request, Response, NextFunction } from "express";
 import { orderService } from "../services/order.service";
 
+/** Extract audit context from Express request. */
+function auditCtx(req: Request) {
+  return {
+    actorUserId: req.user!.id,
+    ipAddress: req.ip ?? (req.headers["x-forwarded-for"] as string) ?? null,
+  };
+}
+
 class OrderController {
   async getOrders(req: Request, res: Response, next: NextFunction) {
     try {
@@ -65,7 +73,11 @@ class OrderController {
           .status(400)
           .json({ success: false, message: "Status required" });
       }
-      const order = await orderService.updateOrderStatus(id, status);
+      const order = await orderService.updateOrderStatus(
+        id,
+        status,
+        auditCtx(req),
+      );
       return res.json({ success: true, data: order });
     } catch (error) {
       next(error);

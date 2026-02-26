@@ -1,6 +1,14 @@
 import type { Request, Response, NextFunction } from "express";
 import { sessionService } from "../services/session.service";
 
+/** Extract audit context from Express request. */
+function auditCtx(req: Request) {
+  return {
+    actorUserId: req.user!.id,
+    ipAddress: req.ip ?? (req.headers["x-forwarded-for"] as string) ?? null,
+  };
+}
+
 class SessionController {
   async getSessions(req: Request, res: Response, next: NextFunction) {
     try {
@@ -42,7 +50,11 @@ class SessionController {
           .json({ success: false, message: "Invalid session ID" });
       }
       const userId = req.user!.id;
-      const session = await sessionService.closeSession(id, userId);
+      const session = await sessionService.closeSession(
+        id,
+        userId,
+        auditCtx(req),
+      );
       return res.json({
         success: true,
         data: session,

@@ -1,4 +1,6 @@
 import { menuRepository } from "../repositories/menu.repository";
+import { auditService } from "./audit.service";
+import { eventBus } from "./event-bus.service";
 import { AppError } from "../types";
 import type {
   CreateCategoryDTO,
@@ -8,6 +10,12 @@ import type {
   CreateVariantDTO,
   UpdateVariantDTO,
 } from "@menugo/dto";
+
+/** Contextual info passed from the controller for audit logging. */
+interface AuditContext {
+  actorUserId: string;
+  ipAddress?: string;
+}
 
 class MenuService {
   // --- Categories ---
@@ -85,9 +93,34 @@ class MenuService {
     return menuRepository.updateItem(id, dto);
   }
 
-  async toggleAvailability(id: number) {
+  async toggleAvailability(id: number, ctx?: AuditContext) {
     const item = await menuRepository.toggleAvailability(id);
     if (!item) throw new AppError(404, "Menu item not found");
+
+    if (ctx) {
+      auditService
+        .log({
+          restaurantId: item.restaurantId,
+          actorUserId: ctx.actorUserId,
+          action: "menu_availability_changed",
+          entityType: "menu_item",
+          entityId: id,
+          // toggleAvailability flipped the value, so old is the inverse
+          oldValue: { isAvailable: !item.isAvailable },
+          newValue: { isAvailable: item.isAvailable },
+          ipAddress: ctx.ipAddress,
+        })
+        .catch(() => {});
+    }
+
+    // Emit real-time event for SSE / polling clients
+    eventBus.emit(item.restaurantId, "menu_availability_changed", {
+      menuItemId: id,
+      itemName: item.name,
+      isAvailable: item.isAvailable ?? false,
+      categoryId: item.categoryId,
+    });
+
     return item;
   }
 

@@ -16,6 +16,7 @@ import auditRoutes from "./audit.routes";
 import eventsRoutes from "./events.routes";
 import availabilityRoutes from "./availability.routes";
 import workflowRoutes from "./workflow.routes";
+import adminRoutes from "./admin.routes";
 import { fileController } from "../controllers/file.controller";
 import { authenticate } from "../middlewares/auth.middleware";
 import {
@@ -91,6 +92,9 @@ router.use(
 
 // Notification token management (authenticated, not restaurant-scoped)
 router.use("/notifications", authenticate, notificationRoutes);
+
+// Platform admin routes (authenticated + super admin check)
+router.use("/admin", authenticate, adminRoutes);
 
 // Accept invitation (authenticated but not restaurant-scoped)
 import { memberController } from "../controllers/member.controller";

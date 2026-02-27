@@ -9,6 +9,10 @@ export { publicAPI } from './public';
 export { fileAPI } from './file';
 export type { UploadImageParams } from './file';
 export { notificationAPI } from './notification';
+export { auditAPI } from './audit';
+export { availabilityAPI } from './availability';
+export { workflowAPI } from './workflow';
+export { adminAPI } from './admin';
 
 // Re-export shared types from @menugo/dto
 export type {
@@ -31,4 +35,10 @@ export type {
   Invitation,
   MyInvitation,
   FileRecord,
+  WorkflowTransition,
+  WorkflowTransitionInput,
+  WorkflowMode,
+  AdminRestaurantListItem,
+  AdminUserListItem,
+  PlatformStats,
 } from '@menugo/dto';

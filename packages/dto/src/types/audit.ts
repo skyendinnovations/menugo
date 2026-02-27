@@ -20,6 +20,10 @@ export const AUDIT_ACTIONS = [
   "stock_updated",
   "workflow_changed",
   "override",
+  "restaurant_suspended",
+  "restaurant_activated",
+  "user_banned",
+  "user_unbanned",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
@@ -37,6 +41,7 @@ export const AUDIT_ENTITIES = [
   "menu_variant",
   "restaurant",
   "workflow",
+  "user",
 ] as const;
 
 export type AuditEntity = (typeof AUDIT_ENTITIES)[number];

@@ -123,6 +123,15 @@ class RestaurantRepository {
       .returning();
     return restaurant;
   }
+
+  async setDemoMode(id: number, isDemoMode: boolean) {
+    const [restaurant] = await db
+      .update(restaurants)
+      .set({ isDemoMode, updatedAt: new Date() })
+      .where(eq(restaurants.id, id))
+      .returning();
+    return restaurant;
+  }
 }
 
 export const restaurantRepository = new RestaurantRepository();

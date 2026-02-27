@@ -68,6 +68,9 @@ export const restaurants = pgTable("restaurants", {
     orderFlow: ["received", "preparing", "ready", "served", "paid"],
   }),
 
+  // Training / demo mode – when true, notifications are suppressed and data can be reset
+  isDemoMode: boolean("is_demo_mode").default(false).notNull(),
+
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

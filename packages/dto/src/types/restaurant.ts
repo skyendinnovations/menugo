@@ -14,6 +14,7 @@ export interface Restaurant {
     seatingCapacity?: number;
     workflowSettings: any;
     operatingHours?: any;
+    isDemoMode?: boolean;
     isActive?: boolean;
     createdAt?: string;
     updatedAt?: string;

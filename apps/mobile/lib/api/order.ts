@@ -58,6 +58,37 @@ class OrderAPI extends BaseAPI {
       }
     );
   }
+
+  async voidOrder(restaurantId: number, orderId: number, reason: string) {
+    return this.post<{ success: boolean; data: Order }>(
+      `/api/restaurants/${restaurantId}/orders/${orderId}/void`,
+      { reason }
+    );
+  }
+
+  async modifyOrderItem(
+    restaurantId: number,
+    orderId: number,
+    itemId: number,
+    data: { quantity?: number; removed?: boolean }
+  ) {
+    return this.put<{ success: boolean; data: Order }>(
+      `/api/restaurants/${restaurantId}/orders/${orderId}/items/${itemId}`,
+      data
+    );
+  }
+
+  async claimOrder(restaurantId: number, orderId: number) {
+    return this.post<{ success: boolean; data: Order }>(
+      `/api/restaurants/${restaurantId}/orders/${orderId}/claim`
+    );
+  }
+
+  async resendNotification(restaurantId: number, orderId: number) {
+    return this.post<{ success: boolean; message: string }>(
+      `/api/restaurants/${restaurantId}/orders/${orderId}/resend-notification`
+    );
+  }
 }
 
 export const orderAPI = new OrderAPI();

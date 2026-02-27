@@ -8,9 +8,10 @@ import {
   ScrollView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { publicAPI } from '@/lib/api';
 import { getDeviceId, setCustomerName as saveCustomerName } from '@/lib/utils/device-id';
+import { registerForPushNotifications } from '@/lib/notifications';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -37,6 +38,19 @@ export default function SeatSelectionScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [deviceId, setDeviceId] = useState('');
+
+  /** Silently register the push token so the customer gets order-status updates */
+  const tryRegisterPushToken = useCallback(async (did: string) => {
+    try {
+      const token = await registerForPushNotifications();
+      if (token) {
+        const deviceType = Platform.OS === 'web' ? 'web' : Platform.OS === 'ios' ? 'ios' : 'android';
+        await publicAPI.registerDeviceToken(did, token, deviceType);
+      }
+    } catch {
+      // Non-critical – swallow silently
+    }
+  }, []);
 
   // Single fetch — loads table info and auto-redirects if device already has session
   useEffect(() => {
@@ -85,6 +99,8 @@ export default function SeatSelectionScreen() {
         personsCount,
         customerName.trim()
       );
+      // Register push token so customer receives order status updates
+      tryRegisterPushToken(deviceId);
       router.replace(ROUTES.ORDER.menu(slug as string, table as string));
     } catch (err: any) {
       setError(err.message || 'Could not join table');
@@ -111,6 +127,8 @@ export default function SeatSelectionScreen() {
 
     try {
       await publicAPI.joinSession(joinCode.trim(), deviceId);
+      // Register push token so customer receives order status updates
+      tryRegisterPushToken(deviceId);
       router.replace(ROUTES.ORDER.menu(slug as string, table as string));
     } catch (err: any) {
       setError(err.message || 'Invalid code. Please check and try again.');

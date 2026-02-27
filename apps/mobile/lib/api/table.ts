@@ -40,6 +40,27 @@ class TableAPI extends BaseAPI {
       `/api/restaurants/${restaurantId}/tables/${tableId}/qr`
     );
   }
+
+  async blockTable(restaurantId: number, tableId: number) {
+    return this.patch<{ success: boolean }>(
+      `/api/restaurants/${restaurantId}/tables/${tableId}/block`,
+      {}
+    );
+  }
+
+  async unblockTable(restaurantId: number, tableId: number) {
+    return this.patch<{ success: boolean }>(
+      `/api/restaurants/${restaurantId}/tables/${tableId}/unblock`,
+      {}
+    );
+  }
+
+  async forceRelease(restaurantId: number, tableId: number, reason: string) {
+    return this.post<{ success: boolean; message: string }>(
+      `/api/restaurants/${restaurantId}/tables/${tableId}/force-release`,
+      { reason }
+    );
+  }
 }
 
 export const tableAPI = new TableAPI();

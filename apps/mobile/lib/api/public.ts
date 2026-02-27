@@ -104,6 +104,13 @@ class PublicAPI {
       `/api/public/session/${sessionId}/orders`
     );
   }
+
+  async registerDeviceToken(deviceId: string, token: string, deviceType: 'ios' | 'android' | 'web') {
+    return this.request<{ success: boolean; data: any }>('/api/public/register-device-token', {
+      method: 'POST',
+      body: JSON.stringify({ deviceId, token, deviceType }),
+    });
+  }
 }
 
 export const publicAPI = new PublicAPI();

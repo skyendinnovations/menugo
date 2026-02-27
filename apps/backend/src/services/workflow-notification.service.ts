@@ -249,6 +249,7 @@ class WorkflowNotificationService {
     if (tokens.length === 0) return null;
 
     const messaging = getMessaging();
+    if (!messaging) return null;
     const message = {
       tokens,
       notification: {

@@ -14,3 +14,4 @@ export * from "./audit";
 export * from "./events";
 export * from "./availability";
 export * from "./workflow";
+export * from "./admin";

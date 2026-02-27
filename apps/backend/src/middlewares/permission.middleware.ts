@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { AppError } from "../types";
 import { db } from "@menugo/data";
-import { userRoles, roles } from "@menugo/data/schemas";
+import { userRoles, roles, user as userTable } from "@menugo/data/schemas";
 import { eq, and } from "drizzle-orm";
 import type { PermissionKey, Permissions } from "@menugo/dto";
 
@@ -15,6 +15,16 @@ export const requirePermission = (...permissions: PermissionKey[]) => {
       const restaurantId = Number(req.params.restaurantId);
       if (!restaurantId || isNaN(restaurantId)) {
         return next(new AppError(400, "Invalid restaurant ID"));
+      }
+
+      // Super admin bypasses all permission checks (tenant isolation override)
+      const [superAdminRecord] = await db
+        .select({ isSuperAdmin: userTable.isSuperAdmin })
+        .from(userTable)
+        .where(eq(userTable.id, req.user.id))
+        .limit(1);
+      if (superAdminRecord?.isSuperAdmin) {
+        return next();
       }
 
       // Get all roles for this user in this restaurant
@@ -89,6 +99,16 @@ export const requireMembership = async (
     const restaurantId = Number(req.params.restaurantId);
     if (!restaurantId || isNaN(restaurantId)) {
       return next(new AppError(400, "Invalid restaurant ID"));
+    }
+
+    // Super admin bypasses membership check (tenant isolation override)
+    const [superAdminRecord] = await db
+      .select({ isSuperAdmin: userTable.isSuperAdmin })
+      .from(userTable)
+      .where(eq(userTable.id, req.user.id))
+      .limit(1);
+    if (superAdminRecord?.isSuperAdmin) {
+      return next();
     }
 
     const [entry] = await db

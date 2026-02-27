@@ -132,6 +132,30 @@ export default function RestaurantDashboard() {
       bg: 'rgba(148,163,184,0.12)',
       permission: 'manage_restaurant',
     },
+    {
+      title: 'Permissions',
+      icon: 'security',
+      route: 'permissions',
+      color: '#A855F7',
+      bg: 'rgba(168,85,247,0.12)',
+      permission: 'manage_roles',
+    },
+    {
+      title: 'Helper',
+      icon: 'cleaning-services',
+      route: 'helper',
+      color: '#14B8A6',
+      bg: 'rgba(20,184,166,0.12)',
+      permission: 'helper_block_table',
+    },
+    {
+      title: 'Audit Logs',
+      icon: 'history',
+      route: 'audit-logs',
+      color: '#64748B',
+      bg: 'rgba(100,116,139,0.12)',
+      permission: 'view_audit_log',
+    },
   ];
 
   const cards = useMemo(

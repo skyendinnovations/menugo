@@ -6,6 +6,7 @@ import { logger } from "../utils/logger";
 import { eq, inArray, and } from "drizzle-orm";
 import { db } from "@menugo/data";
 import { userRoles, roles, restaurantMembers } from "@menugo/data/schemas";
+import { restaurants } from "@menugo/data/schemas";
 import type {
     NotificationTriggerEvent,
     OrderNotificationPayload,
@@ -83,6 +84,19 @@ class NotificationService {
         payload: OrderNotificationPayload
     ) {
         try {
+            // Demo mode guard — suppress all push notifications
+            const [restaurant] = await db
+                .select({ isDemoMode: restaurants.isDemoMode })
+                .from(restaurants)
+                .where(eq(restaurants.id, restaurantId));
+
+            if (restaurant?.isDemoMode) {
+                logger.debug(
+                    `Skipping notification for restaurant ${restaurantId} (demo mode)`
+                );
+                return;
+            }
+
             // 1. Get enabled roles for this event
             const enabledRoles =
                 await notificationSettingsRepository.findEnabledByEvent(
@@ -198,6 +212,7 @@ class NotificationService {
         if (tokens.length === 0) return;
 
         const messaging = getMessaging();
+        if (!messaging) return;
 
         const message = {
             tokens,

@@ -42,4 +42,16 @@ router.put(
   restaurantController.updateWorkflowMode.bind(restaurantController),
 );
 
+router.put(
+  "/:id/demo-mode",
+  validate({ params: restaurantIdParam }),
+  restaurantController.toggleDemoMode.bind(restaurantController),
+);
+
+router.post(
+  "/:id/demo-reset",
+  validate({ params: restaurantIdParam }),
+  restaurantController.resetDemoData.bind(restaurantController),
+);
+
 export default router;

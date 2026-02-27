@@ -1,505 +1,181 @@
-# MenuGo — Implementation TODO
+# MenuGo — Pending Tasks
 
-> Generated: 2026-02-24
-> Scope: Roles & Permissions hardening, Notification workflows, Audit system, Real-time infrastructure, and remaining features.
-
----
-
-## Current State Summary
-
-### ✅ Already Implemented
-- **Role CRUD** — Create, update, delete roles per restaurant (schema, repo, service, controller, routes)
-- **Permission middleware** — `requirePermission()` checks user's merged role permissions; owner bypasses all
-- **User-Role assignment** — `user_roles` table, assignment during invitation acceptance
-- **Permission-gated routes** — All admin routes use `requirePermission(PERMISSION_KEY)`
-- **Member & Invitation system** — Invite by email, accept token, assign roles on join
-- **FCM push notifications** — Device token registration, notification settings matrix (event × role), `triggerOrderNotification()` pipeline, default seeding
-- **Order status transitions** — Hardcoded valid transitions in `order.service.ts`
-- **Session/group system** — Create, join, close sessions with capacity checks
-- **Menu, Tables, File uploads, Subscriptions, Auth** — All fully working
-
-### ⚠️ Partially Implemented
-- **Subscription plan enforcement** — `requirePlan()` middleware exists but is NOT mounted on any route
-- **Validation middleware** — Placeholder with TODO; no Zod/Joi validation
-- **Notification workflows** — Basic FCM send exists but lacks the 3 distinct workflow modes (Full-Service, Fast-Service, Self-Service)
-
-### ❌ Not Implemented At All
-- WebSocket / Real-time events
-- Audit log system
-- Dynamic workflow engine (configurable per-restaurant order flows)
-- Staff clock-in / availability tracking
-- Helper soft-block system
-- Inventory / stock management (86ing)
-- Order modification & voiding
-- Manual notification re-send
-- Table force release with audit
-- Bill splitting & discounts
-- Training / demo mode
-- Super-admin platform management
+> Updated: 2026-02-27
+> **Backend is 100% complete.** All remaining work is on the mobile app.
 
 ---
 
-## Implementation Phases
+## Status Summary
+
+| Layer | Done | Remaining |
+|-------|------|-----------|
+| **Backend** (schema, services, APIs) | ✅ 100% | Nothing |
+| **Mobile — Admin screens** | ~75% | Workflow config, stock mgmt, super admin |
+| **Mobile — Staff screens** | ~85% | Void UI, force-release UI, resend notification |
+| **Mobile — API client** | ✅ 100% | Done |
+| **Mobile — Real-time** | ~40% | SSE client, FCM push handler, customer alerts |
 
 ---
 
-### Phase 1: Permission System Hardening
+## Section 1: ~~Missing~~ API Client Methods ✅
 
-> Goal: Ensure the existing permission system is robust, consistent, and complete before building on top of it.
+> **File locations:** `apps/mobile/lib/api/`
 
-#### 1.1 — Define canonical permission constants
-- [ ] **File:** `packages/dto/src/constants/permissions.ts`
-- [ ] Audit the current `PERMISSIONS` object — ensure all 4 modules from `Changes.md` are covered
-- [ ] Add any missing permission keys:
-  - `MANAGE_STOCK` (inventory toggle / 86ing)
-  - `TABLE_FORCE_RELEASE`
-  - `HELPER_BLOCK_TABLE`
-  - `MODIFY_ORDER` (void/edit after creation)
-  - `RESEND_NOTIFICATION`
-  - `VIEW_AUDIT_LOG`
-  - `MANAGE_WORKFLOWS`
-- [ ] Group permissions by domain in the DTO for frontend rendering (e.g., Orders, Tables, Menu, Staff, System)
-- [ ] Add TS type for the permission matrix shape so role.permissions is strongly typed
+### 1.1 — `order.ts` — Add missing methods ✅
+- [x] `voidOrder(restaurantId, orderId, reason)` → `POST /api/restaurants/:id/orders/:orderId/void`
+- [x] `modifyOrderItem(restaurantId, orderId, itemId, data)` → `PUT /api/restaurants/:id/orders/:orderId/items/:itemId`
+- [x] `claimOrder(restaurantId, orderId)` → `POST /api/restaurants/:id/orders/:orderId/claim`
+- [x] `resendNotification(restaurantId, orderId)` → `POST /api/restaurants/:id/orders/:orderId/resend-notification`
 
-#### 1.2 — Default role templates
-- [ ] **File:** `packages/dto/src/constants/permissions.ts` or new `role-templates.ts`
-- [ ] Define default permission sets for each standard role as specified in `Changes.md`:
-  - **Kitchen** — `VIEW_ORDERS`, `ORDER_PREPARE`, `MANAGE_STOCK` (if granted)
-  - **Waiter** — `VIEW_ORDERS`, `ORDER_DELIVER`, `TABLE_FORCE_RELEASE` (if granted)
-  - **Cashier** — `CLOSE_BILL`, `VIEW_ORDERS`
-  - **Helper** — `MANAGE_TABLES`, `HELPER_BLOCK_TABLE`
-  - **Manager** — All except `MANAGE_ROLES` (configurable)
-  - **Owner** — All permissions (hardcoded bypass, no template needed)
-- [ ] Update the restaurant creation seed logic in `restaurant.service.ts` to use these templates
+### 1.2 — `table.ts` — Add missing method ✅
+- [x] `forceRelease(restaurantId, tableId, reason)` → `POST /api/restaurants/:id/tables/:tableId/force-release`
 
-#### 1.3 — Permission matrix admin API
-- [ ] **Endpoint:** `PUT /api/restaurants/:id/roles/:roleId/permissions`
-- [ ] Accept a full permissions object (toggle on/off individual permissions)
-- [ ] Validate that `Owner` role permissions cannot be modified
-- [ ] Validate that the actor has `MANAGE_ROLES` permission
-- [ ] Return the updated role with its new permissions
-- [ ] **Frontend:** Admin permission matrix toggle UI (grid of roles × permissions with checkboxes)
+### 1.3 — `restaurant.ts` — Add missing method ✅
+- [x] `updateWorkflowMode(id, mode)` → `PUT /api/restaurants/:id/workflow-mode` (modes: `full_service` | `fast_service` | `self_service`)
 
-#### 1.4 — Mount `requirePlan()` middleware
-- [ ] **File:** `apps/backend/src/routes/` (all relevant route files)
-- [ ] Identify features gated by subscription tier from `subscription-plans.ts` config
-- [ ] Mount `requirePlan('professional')` or `requirePlan('enterprise')` on appropriate routes
-- [ ] Test that free-tier restaurants are blocked from premium features
+### 1.4 — `menu.ts` — Add missing stock methods ✅
+- [x] `updateItemStock(restaurantId, itemId, stockCount)` → `PUT /api/restaurants/:id/menu/items/:itemId/stock`
+- [x] `toggleItemSoldOut(restaurantId, itemId, isSoldOut)` → `PUT /api/restaurants/:id/menu/items/:itemId/sold-out`
+- [x] `updateVariantStock(restaurantId, variantId, stockCount)` → `PUT /api/restaurants/:id/menu/variants/:variantId/stock`
+- [x] `toggleVariantSoldOut(restaurantId, variantId, isSoldOut)` → `PUT /api/restaurants/:id/menu/variants/:variantId/sold-out`
 
-#### 1.5 — Input validation with Zod
-- [ ] **File:** `apps/backend/src/middlewares/validate.middleware.ts`
-- [ ] Install Zod (or use existing if in deps)
-- [ ] Replace the no-op `validateRequest()` with real Zod schema validation
-- [ ] Create Zod schemas for all existing endpoints (body, params, query)
-- [ ] Apply `validateRequest(schema)` to all routes
+### 1.5 — New file: `workflow.ts` ✅
+- [x] Create `apps/mobile/lib/api/workflow.ts`
+- [x] `getWorkflows(restaurantId)` → `GET /api/restaurants/:id/workflows`
+- [x] `updateWorkflows(restaurantId, transitions)` → `PUT /api/restaurants/:id/workflows`
+- [x] Export `workflowAPI` instance and add to `apps/mobile/lib/api/index.ts`
+
+### 1.6 — New file: `admin.ts` ✅
+- [x] Create `apps/mobile/lib/api/admin.ts`
+- [x] `getRestaurants(query?)` → `GET /api/admin/restaurants`
+- [x] `suspendRestaurant(id, reason)` → `PUT /api/admin/restaurants/:id/suspend`
+- [x] `activateRestaurant(id, reason?)` → `PUT /api/admin/restaurants/:id/activate`
+- [x] `getUsers(query?)` → `GET /api/admin/users`
+- [x] `banUser(id, reason)` → `PUT /api/admin/users/:id/ban`
+- [x] `unbanUser(id, reason?)` → `PUT /api/admin/users/:id/unban`
+- [x] Export `adminAPI` instance and add to `apps/mobile/lib/api/index.ts`
 
 ---
 
-### Phase 2: Audit Log System
+## Section 2: Missing Admin Screens
 
-> Goal: Implement the audit log infrastructure as defined in `rules.md` §5 — required before building overrides, force actions, and workflow changes.
+> **File locations:** `apps/mobile/app/(admin)/restaurants/[id]/`
 
-#### 2.1 — Audit log schema
-- [ ] **File:** `apps/backend/schema.ts` (or `packages/data/src/schemas/`)
-- [ ] Create `audit_logs` table:
-  ```
-  id, restaurant_id, actor_user_id, action_type, entity_type, entity_id,
-  old_value (jsonb), new_value (jsonb), reason (text, nullable),
-  ip_address, created_at
-  ```
-- [ ] Create `action_type` enum: `ROLE_CREATED`, `ROLE_UPDATED`, `ROLE_DELETED`, `PERMISSION_CHANGED`, `MEMBER_INVITED`, `MEMBER_REMOVED`, `ORDER_STATUS_CHANGED`, `ORDER_VOIDED`, `SESSION_FORCE_CLOSED`, `TABLE_FORCE_RELEASED`, `MENU_AVAILABILITY_CHANGED`, `STOCK_UPDATED`, `WORKFLOW_CHANGED`, `OVERRIDE`
-- [ ] Run migration
+### 2.1 — Workflow mode selector in restaurant edit screen
+- [ ] **File:** `apps/mobile/app/(admin)/restaurants/[id]/edit.tsx`
+- [ ] Add a segmented control / radio group for `workflow_mode`: Full Service | Fast Service | Self Service
+- [ ] On change, call `restaurantAPI.updateWorkflowMode(id, mode)`
+- [ ] Show description of each mode:
+  - **Full Service** — Kitchen notifies available waiter only
+  - **Fast Service** — All waiters notified, first to accept wins
+  - **Self Service** — Customer notified directly when order is ready
 
-#### 2.2 — Audit log repository & service
-- [ ] **File:** `apps/backend/src/repositories/audit.repository.ts`
-- [ ] `createAuditLog(entry)` — insert
-- [ ] `getAuditLogs(restaurantId, filters)` — paginated query with filters by entity_type, action_type, actor, date range
-- [ ] **File:** `apps/backend/src/services/audit.service.ts`
-- [ ] `log(restaurantId, actorId, action, entityType, entityId, oldValue, newValue, reason?)` — convenience wrapper
-- [ ] Consider a middleware/decorator pattern to auto-audit certain actions
+### 2.2 — Workflow configuration screen (new screen)
+- [ ] **File:** `apps/mobile/app/(admin)/restaurants/[id]/workflows.tsx`
+- [ ] List all order state transitions (from_state → to_state → required permission)
+- [ ] Allow toggling transitions on/off
+- [ ] Add card link on the restaurant dashboard `apps/mobile/app/(admin)/restaurants/[id]/index.tsx`
+- [ ] Guard: only show for users with `MANAGE_WORKFLOWS` permission
 
-#### 2.3 — Audit log API
-- [ ] **File:** `apps/backend/src/controllers/audit.controller.ts`
-- [ ] `GET /api/restaurants/:id/audit-logs` — paginated, filterable, guarded by `VIEW_AUDIT_LOG`
-- [ ] **File:** `apps/backend/src/routes/audit.routes.ts`
-- [ ] Register routes
+### 2.3 — Stock / inventory management screen (new screen)
+- [ ] **File:** `apps/mobile/app/(admin)/restaurants/[id]/stock.tsx`
+- [ ] List all menu items and variants with current stock status
+- [ ] Toggle "Sold Out" per item / variant
+- [ ] Set stock count (numeric input) per item / variant
+- [ ] Items with `stock_count = 0` highlighted in red
+- [ ] Add card link on the restaurant dashboard
+- [ ] Guard: only show for users with `MANAGE_STOCK` permission
 
-#### 2.4 — Integrate audit logging into existing actions
-- [ ] Role create / update / delete → audit log
-- [ ] Permission change → audit log (old vs new permissions diff)
-- [ ] Member invite / remove → audit log
-- [ ] Order status transitions → audit log
-- [ ] Menu item availability toggle → audit log
-- [ ] Session close → audit log
-- [ ] Any future force/override action → audit log with mandatory `reason`
-
----
-
-
-### Phase 3: Real-Time Infrastructure (FCM Push & SSE)
-
-> Goal: Use FCM push notifications for all critical events and Server-Sent Events (SSE) for live dashboard updates. No WebSocket dependency.
-
-#### 3.1 — FCM push for all real-time events
-- [ ] Ensure all critical events (order placed, order ready, delivery, table status, etc.) trigger FCM push notifications to relevant devices/roles
-- [ ] Use FCM as the "ping" to wake up the app and trigger UI refresh
-- [ ] Extend notification service to support all event types needed for staff and customer flows
-
-#### 3.2 — SSE endpoint for live dashboards
-- [ ] **File:** `apps/backend/src/routes/sse.routes.ts`
-- [ ] Implement `/api/restaurants/:id/events/stream` SSE endpoint for staff dashboards (kitchen, waiter, helper, cashier)
-- [ ] Stream events as `res.write()` in text/event-stream format
-- [ ] Use Redis pub/sub or in-memory event bus for multi-instance scaling
-
-#### 3.3 — Mobile/Web client integration
-- [ ] On FCM push, invalidate relevant React Query caches to fetch latest data
-- [ ] For always-on screens (kitchen display, table grid), use SSE client (or polling as fallback)
-- [ ] Use `react-native-sse` or similar for mobile SSE support
-- [ ] Remove all WebSocket dependencies from mobile/web
-
-#### 3.4 — REST polling fallback
-- [ ] For non-critical or low-frequency updates, use React Query polling (e.g., every 5s)
-- [ ] Ensure polling is only active when screen is focused
-
-#### 3.5 — Documentation
-- [ ] Document FCM + SSE architecture for future devs
-- [ ] Add usage examples for both FCM and SSE endpoints
+### 2.4 — Super admin panel (new screen)
+- [ ] **File:** `apps/mobile/app/(admin)/super-admin.tsx`
+- [ ] Accessible only when `user.globalRole === 'SUPER_ADMIN'`
+- [ ] Platform stats dashboard (total restaurants, users, active sessions)
+- [ ] Scrollable list of all restaurants with status badges
+- [ ] Suspend / Activate action per restaurant (with confirmation dialog)
+- [ ] User list with ban / unban actions
+- [ ] Add link from `apps/mobile/app/(admin)/index.tsx` (show only for super admin)
 
 ---
 
-### Phase 4: Notification Workflow Engine
+## Section 3: Missing Staff Screen Actions
 
-> Goal: Implement the three notification workflows from `Changes.md` Module 2 with smart filtering.
+### 3.1 — Order void / cancel UI
+- [ ] **File:** `apps/mobile/app/(admin)/restaurants/[id]/orders/index.tsx`
+- [ ] Add "Void Order" button on order cards (visible only if order is in `received` or `preparing` state)
+- [ ] Guard: requires `MODIFY_ORDER` permission
+- [ ] Show confirmation dialog with a mandatory `reason` text input
+- [ ] Call `orderAPI.voidOrder(restaurantId, orderId, reason)` on confirm
+- [ ] Refresh order list on success; show error toast on failure
 
-#### 4.1 — Staff availability tracking (Clock-In system)
-- [ ] **Schema:** Add `staff_availability` table:
-  ```
-  id, user_id, restaurant_id, status (clocked_in | clocked_out),
-  active_order_count (integer, default 0), clocked_in_at, clocked_out_at
-  ```
-- [ ] **Repository:** `availability.repository.ts` — clockIn, clockOut, getAvailableStaff, incrementActiveOrders, decrementActiveOrders
-- [ ] **Service:** `availability.service.ts` — clock in/out logic, auto clock-out at end of day
-- [ ] **API:** `POST /api/restaurants/:id/staff/clock-in`, `POST /api/restaurants/:id/staff/clock-out`, `GET /api/restaurants/:id/staff/availability`
-- [ ] Update active order count when waiter accepts/completes a delivery
+### 3.2 — Order item modification UI
+- [ ] **File:** `apps/mobile/app/(admin)/restaurants/[id]/orders/index.tsx`
+- [ ] In order detail view, allow quantity changes and item removal while order is in `received` state
+- [ ] Guard: requires `MODIFY_ORDER` permission
+- [ ] Call `orderAPI.modifyOrderItem(restaurantId, orderId, itemId, { qty })` on save
+- [ ] Refresh order on success
 
-#### 4.2 — Restaurant workflow mode configuration
-- [ ] **Schema:** Add `workflow_mode` field to `restaurants` table (or in `workflow_settings` JSONB):
-  - `full_service` — Kitchen prepares → filtered waiter notification → waiter delivers
-  - `fast_service` — Broadcast to all waiters immediately
-  - `self_service` — Kitchen prepares → customer notified directly
-- [ ] **API:** `PUT /api/restaurants/:id/settings/workflow-mode`
-- [ ] **Validation:** Only owner/manager can change workflow mode
+### 3.3 — Table force-release UI
+- [ ] **File:** `apps/mobile/app/(admin)/restaurants/[id]/helper.tsx`
+- [ ] Add a "Force Release" action on occupied/blocked table cards
+- [ ] Guard: requires `TABLE_FORCE_RELEASE` permission
+- [ ] Show confirmation dialog with a mandatory `reason` text input
+- [ ] Call `tableAPI.forceRelease(restaurantId, tableId, reason)` on confirm
+- [ ] Refresh table grid on success
 
-#### 4.3 — Full-Service workflow (Kitchen + Waiter)
-- [ ] When order placed → notify Kitchen role
-- [ ] When kitchen marks "Order Ready":
-  1. Query all waiters who are `clocked_in` AND `active_order_count == 0`
-  2. Send push notification ONLY to those filtered waiters
-  3. First waiter to tap "Accept" claims the order (atomic DB lock — `UPDATE ... WHERE claimed_by IS NULL`)
-  4. Losers get "Order already claimed" response
-- [ ] Waiter flow: Accept → Pickup → Deliver → Mark Delivered
-- [ ] On delivery complete: decrement waiter's active_order_count
-
-#### 4.4 — Fast-Service workflow (Waiter Broadcast)
-- [ ] When order placed → broadcast notification to ALL clocked-in waiters (no filtering)
-- [ ] First waiter to accept claims it (same atomic lock)
-- [ ] Waiter gets food and delivers
-
-#### 4.5 — Self-Service workflow (Kitchen + Customer)
-- [ ] When order placed → notify Kitchen role
-- [ ] When kitchen marks "Order Ready" → send notification to the customer's device
-- [ ] Requires: customer device token registration (extend `device_tokens` table to support device-based tokens, not just user-based)
-- [ ] Customer walks to pickup counter
-
-#### 4.6 — Waiter order acceptance (concurrency-safe)
-- [ ] **Schema:** Add `claimed_by` (user_id) and `claimed_at` (timestamp) to `orders` table
-- [ ] **Endpoint:** `POST /api/restaurants/:id/orders/:orderId/claim`
-- [ ] Use `UPDATE orders SET claimed_by = ? WHERE id = ? AND claimed_by IS NULL` for atomic claim
-- [ ] Return 409 Conflict if already claimed
-- [ ] Emit `ORDER_CLAIMED` WebSocket event to all waiters
-
-#### 4.7 — Manual notification re-send
-- [ ] **Endpoint:** `POST /api/restaurants/:id/orders/:orderId/resend-notification`
-- [ ] Guard with `RESEND_NOTIFICATION` permission
-- [ ] Re-trigger the appropriate notification based on current order status
-- [ ] Audit log the re-send
-
-#### 4.8 — Notification history
-- [ ] **Schema:** Add `notification_logs` table:
-  ```
-  id, restaurant_id, order_id (nullable), event_type, recipient_role_id,
-  recipient_user_ids (jsonb), fcm_success_count, fcm_failure_count,
-  payload (jsonb), sent_at
-  ```
-- [ ] Log every notification dispatch in `triggerOrderNotification()`
-- [ ] **API:** `GET /api/restaurants/:id/notifications/history` (for debugging/admin)
+### 3.4 — Resend notification button
+- [ ] **File:** `apps/mobile/app/(admin)/restaurants/[id]/kitchen.tsx` and/or orders screen
+- [ ] Add a re-send push button on order cards for managers (3-dot menu or long press)
+- [ ] Guard: requires `RESEND_NOTIFICATION` permission
+- [ ] Call `orderAPI.resendNotification(restaurantId, orderId)` on tap
+- [ ] Show success/error toast feedback
 
 ---
 
-### Phase 5: Helper & Table Management
+## Section 4: Real-Time Integration
 
-> Goal: Implement the Helper soft-block system and table force-release from `Changes.md` Module 3.
+### 4.1 — FCM push → React Query cache invalidation
+- [ ] **File:** `apps/mobile/app/_layout.tsx` or a new `apps/mobile/lib/hooks/usePushHandler.ts`
+- [ ] Add an `onMessage` listener for foreground FCM messages in the root layout
+- [ ] On message, parse the `type` field from the notification data payload
+- [ ] Invalidate the matching React Query key:
+  - `ORDER_PLACED`, `ORDER_STATUS_CHANGED`, `ORDER_CLAIMED` → invalidate `['orders', restaurantId]`
+  - `TABLE_STATUS_CHANGED`, `TABLE_CLOSED` → invalidate `['tables', restaurantId]`
+  - `STOCK_UPDATED` → invalidate `['menu', restaurantId]`
+- [ ] This reduces polling dependency across all staff screens
 
-#### 5.1 — Table status model enhancement
-- [ ] Currently tables only have `is_active` boolean — status is derived from active sessions
-- [ ] **Schema:** Add `helper_blocked_by` (user_id, nullable) and `helper_blocked_at` (timestamp, nullable) to `restaurant_tables`
-- [ ] When `helper_blocked_by` is set and no active session exists → table shows as "Blocked" to other helpers
-- [ ] When a customer scans QR on a blocked table → auto-clear the block, create session normally
+### 4.2 — Customer push notification handling
+- [ ] **File:** `apps/mobile/app/order/[slug]/[table]/index.tsx`
+- [ ] Add an `onMessage` / `onNotificationOpenedApp` listener scoped to active customer sessions
+- [ ] When `ORDER_STATUS_CHANGED` with status `PREPARED` arrives (self-service mode) → show in-app alert: "Your order is ready for pickup!"
+- [ ] Auto-refresh the order list when any relevant push arrives
+- [ ] No listener required if group session token is expired/closed
 
-#### 5.2 — Helper soft-block endpoints
-- [ ] `POST /api/restaurants/:id/tables/:tableId/block` — Guard with `HELPER_BLOCK_TABLE`
-- [ ] `POST /api/restaurants/:id/tables/:tableId/unblock` — Guard with `HELPER_BLOCK_TABLE`
-- [ ] `GET /api/restaurants/:id/tables` — Include block status in table list response
-- [ ] Emit `TABLE_STATUS_CHANGED` event via SSE and FCM push on block/unblock so other helpers see instantly
-
-#### 5.3 — Table force release
-- [ ] `POST /api/restaurants/:id/tables/:tableId/force-release` — Guard with `TABLE_FORCE_RELEASE`
-- [ ] Requires `reason` in request body (mandatory per `rules.md` §5)
-- [ ] Force-close all active sessions on the table
-- [ ] Force-close all active group sessions within those sessions
-- [ ] Cancel any pending/in-progress orders (or mark as force-closed)
-- [ ] Audit log with reason
-- [ ] Emit `TABLE_CLOSED` + `GROUP_CLOSED` events via SSE and FCM push
-
----
-
-### Phase 6: Dynamic Workflow Engine
-
-> Goal: Replace hardcoded order status transitions with configurable per-restaurant workflows as specified in `plan.md` Phase 5.
-
-#### 6.1 — Workflow schema
-- [ ] **Schema:** Add `restaurant_workflows` table:
-  ```
-  id, restaurant_id, from_state (order_status enum), to_state (order_status enum),
-  required_permission, display_order, is_active, created_at
-  ```
-- [ ] Unique constraint on (restaurant_id, from_state, to_state)
-
-#### 6.2 — Workflow service
-- [ ] **File:** `apps/backend/src/services/workflow.service.ts`
-- [ ] `getWorkflows(restaurantId)` — fetch all active transitions
-- [ ] `validateTransition(restaurantId, fromState, toState, userPermissions)` — check if transition is allowed and user has required permission
-- [ ] `seedDefaultWorkflows(restaurantId)` — create standard transitions on restaurant creation:
-  ```
-  received → preparing (ORDER_PREPARE)
-  preparing → ready (ORDER_PREPARE)
-  ready → served (ORDER_DELIVER)
-  served → paid (CLOSE_BILL)
-  any → cancelled (MODIFY_ORDER)
-  ```
-
-#### 6.3 — Integrate into order service
-- [ ] Replace the hardcoded `validTransitions` map in `order.service.ts` with `workflow.validateTransition()`
-- [ ] Order status change endpoint checks the workflow + required permission dynamically
-
-#### 6.4 — Workflow admin API
-- [ ] `GET /api/restaurants/:id/workflows` — list transitions
-- [ ] `PUT /api/restaurants/:id/workflows` — update transitions (bulk)
-- [ ] Guard with `MANAGE_WORKFLOWS` permission
-- [ ] Validate no orphan states (every non-terminal state must have at least one outgoing transition)
+### 4.3 — SSE client integration (optional enhancement)
+- [ ] Install `react-native-sse` or equivalent package
+- [ ] Create `apps/mobile/lib/hooks/useSSE.ts` hook that connects to `GET /api/restaurants/:id/events/stream`
+- [ ] Replace the 5s polling in `useRealtimeOrders` with SSE subscription on always-on screens (kitchen, helper)
+- [ ] Fall back to polling if SSE connection drops or is unsupported on platform
 
 ---
 
-### Phase 7: Inventory & Stock Management
+## Priority Order
 
-> Goal: Implement stock tracking and 86ing from `Changes.md` Module 4 and `plan.md` Phase 8.
-
-#### 7.1 — Stock schema
-- [ ] Add columns to `menu_items`:
-  - `stock_count` (integer, nullable — null means unlimited)
-  - `is_sold_out` (boolean, default false)
-- [ ] Add columns to `menu_item_variants`:
-  - `stock_count` (integer, nullable)
-  - `is_sold_out` (boolean, default false)
-
-#### 7.2 — Stock service
-- [ ] **File:** `apps/backend/src/services/stock.service.ts`
-- [ ] `toggleSoldOut(itemId, isSoldOut)` — instant sold-out toggle, audit log
-- [ ] `setStockCount(itemId, count)` — set available quantity (86ing)
-- [ ] `decrementStock(itemId, quantity)` — called on order placement, atomic decrement
-- [ ] Auto-mark `is_sold_out = true` when `stock_count` reaches 0
-- [ ] Auto-hide sold-out items from public menu API
-
-#### 7.3 — Stock API
-- [ ] `PUT /api/restaurants/:id/menu/items/:itemId/stock` — Guard with `MANAGE_STOCK`
-- [ ] `PUT /api/restaurants/:id/menu/items/:itemId/sold-out` — Guard with `MANAGE_STOCK`
-- [ ] Emit stock change event via SSE and FCM push (for live menu updates)
-- [ ] Audit log stock changes
-
-#### 7.4 — Order placement stock validation
-- [ ] On order placement: check stock availability for every item
-- [ ] If stock insufficient → reject with `ITEM_NOT_AVAILABLE` error
-- [ ] Decrement stock atomically within the order transaction
-- [ ] If stock hits 0 → auto-trigger sold-out, emit event
-
----
-
-### Phase 8: Order Modifications & Billing
-
-> Goal: Implement order voiding and cashier billing features.
-
-#### 8.1 — Order voiding / cancellation
-- [ ] `POST /api/restaurants/:id/orders/:orderId/void` — Guard with `MODIFY_ORDER`
-- [ ] Requires `reason` in request body
-- [ ] Can only void orders in `received` or `preparing` status
-- [ ] Restore stock counts on void
-- [ ] Audit log with reason
-- [ ] Emit `ORDER_STATUS_CHANGED` event
-- [ ] Notify kitchen if order was in `preparing` state
-
-#### 8.2 — Order item modification
-- [ ] `PUT /api/restaurants/:id/orders/:orderId/items/:itemId` — Guard with `MODIFY_ORDER`
-- [ ] Allow quantity change or item removal before `ready` status
-- [ ] Recalculate order total
-- [ ] Audit log the modification
-
-#### 8.3 — Bill closing flow
-- [ ] Ensure `CLOSE_BILL` permission is enforced on session close
-- [ ] When cashier closes bill:
-  1. Verify all orders in session are in `served` or `cancelled` state
-  2. Calculate final total
-  3. Mark session as `closed`
-  4. Mark all group sessions as `CLOSED`
-  5. Invalidate session tokens
-  6. Free up table capacity
-  7. Audit log
-
-#### 8.4 — Bill splitting (Future / Low Priority)
-- [ ] Design bill splitting model (by person, by item, equal split)
-- [ ] Track individual payment status per split
-- [ ] This is cosmetic — system doesn't handle actual payments
-
-#### 8.5 — Discount application (Future / Low Priority)
-- [ ] `discounts` table: id, restaurant_id, name, type (percentage/flat), value, is_active
-- [ ] Apply discount to order or session total
-- [ ] Guard with cashier/manager permission
-- [ ] Audit log discount application
-
----
-
-### Phase 9: Super Admin & Platform Management
-
-> Goal: Build the platform-level super admin capabilities.
-
-#### 9.1 — Super admin middleware
-- [ ] Create proper `requireSuperAdmin()` middleware
-- [ ] Super admin can access any restaurant's data (override tenant isolation)
-- [ ] Super admin can view platform-wide analytics
-
-#### 9.2 — Platform admin APIs
-- [ ] `GET /api/admin/restaurants` — list all restaurants with stats
-- [ ] `PUT /api/admin/restaurants/:id/suspend` — suspend a restaurant
-- [ ] `PUT /api/admin/restaurants/:id/activate` — reactivate
-- [ ] `GET /api/admin/users` — list all users platform-wide
-- [ ] `PUT /api/admin/users/:id/ban` — ban user (already partially exists)
-
----
-
-### Phase 10: Mobile App Integration
-
-> Goal: Wire up frontend screens for the new backend features.
-
-#### 10.1 — Permission matrix screen (Admin)
-- [ ] Grid UI: roles as columns, permissions as rows
-- [ ] Toggle switches for each permission
-- [ ] Save updates via `PUT /roles/:id/permissions`
-- [ ] Owner role shown as read-only (all enabled)
-
-#### 10.2 — Kitchen display
-- [ ] Real-time order feed via WebSocket
-- [ ] Large cards with item names, quantities, table number
-- [ ] "Accept" → "Preparing" → "Ready" one-tap buttons
-- [ ] Color-coded status (green/yellow/red)
-- [ ] Sound notification on new order
-
-#### 10.3 — Waiter view
-- [ ] Notification popup for "Order Ready" (or new order in fast-service)
-- [ ] "Accept" button with conflict handling (show toast if already claimed)
-- [ ] Active deliveries list with one-tap status updates
-- [ ] Clock in / clock out toggle
-
-#### 10.4 — Helper table view
-- [ ] Table grid with color-coded status (Available / Occupied / Blocked)
-- [ ] One-tap "Block" / "Unblock" buttons
-- [ ] Real-time updates via WebSocket
-
-#### 10.5 — Cashier view
-- [ ] Session/table list with order totals
-- [ ] "Close Bill" button with confirmation
-- [ ] Discount application UI (when implemented)
-
-#### 10.6 — Customer notification handling
-- [ ] Register device token on session join (even without login)
-- [ ] Listen for "Order Ready" push notification
-- [ ] Show in-app notification banner
-
-#### 10.7 — Audit log viewer (Admin)
-- [ ] Filterable list of audit entries
-- [ ] Filter by: action type, actor, entity, date range
-- [ ] Detail view with old/new value diff
-
----
-
-### Phase 11: Training Mode & UX Polish
-
-> Goal: Implement demo mode and server-friendly UX as specified in `plan.md` Phase 10.
-
-#### 11.1 — Training / demo mode
-- [ ] **Config:** Add `is_demo_mode` flag to restaurant settings
-- [ ] In demo mode: orders are fake, no real notifications sent, data resets daily
-- [ ] Seed fake menu, fake tables, fake orders for practice
-- [ ] Visual indicator "TRAINING MODE" banner in the app
-
-#### 11.2 — Server simplicity UX (ongoing)
-- [ ] Icon-first action buttons (no text labels on primary actions)
-- [ ] Color-coded states everywhere: 🟢 Ready, 🟡 Preparing, 🔴 Pending
-- [ ] One-action-per-screen pattern for staff roles
-- [ ] Large tap targets (minimum 48×48dp)
-- [ ] Haptic feedback on critical actions
-- [ ] Confirmation dialogs on destructive actions only
-- [ ] Undo support where possible (e.g., undo status change within 5 seconds)
-
----
-
-
-| Priority | Phase | Reason |
-|----------|-------|--------|
-| 🔴 P0 | Phase 1 — Permission hardening | Foundation for everything else |
-| 🔴 P0 | Phase 2 — Audit logs | Required by rules.md before any force/override action |
-| 🔴 P0 | Phase 3 — FCM Push & SSE | Real-time is core to all notification workflows, but no WebSocket overhead |
-| 🟠 P1 | Phase 4 — Notification workflows | Core product differentiator (3 service modes) |
-| 🟠 P1 | Phase 5 — Helper & table management | Unique table flow features |
-| 🟡 P2 | Phase 6 — Workflow engine | Replaces hardcoded transitions with flexible config |
-| 🟡 P2 | Phase 7 — Inventory & stock | Important for operations but not blocking |
-| 🟡 P2 | Phase 8 — Order mods & billing | Completes the order lifecycle |
-| 🟢 P3 | Phase 9 — Super admin | Platform management, not user-facing |
-| 🟢 P3 | Phase 10 — Mobile integration | Parallel work as backend phases land |
-| 🟢 P3 | Phase 11 — Training & UX | Polish layer |
-
----
-
-## Dependencies Graph
-
-```
-
-Phase 1 (Permissions) ──┬──→ Phase 2 (Audit) ──→ Phase 5 (Helper/Tables)
-                        │                    ──→ Phase 8 (Order Mods)
-                        │
-                        ├──→ Phase 3 (FCM Push & SSE) ──→ Phase 4 (Notifications)
-                        │                              ──→ Phase 5 (Helper/Tables)
-                        │                              ──→ Phase 7 (Stock)
-                        │
-                        ├──→ Phase 6 (Workflows) ──→ Phase 4 (Notifications)
-                        │
-                        └──→ Phase 10 (Mobile) ← depends on all backend phases
-```
-
----
-
-## Notes
-
-- **Concurrency safety** is critical for waiter order claiming (Phase 4.6) and stock decrement (Phase 7.4) — use DB-level atomic operations, not application-level locks.
-- **Every force/override action** must require a `reason` field and create an audit log entry — no exceptions.
-- **WebSocket rooms** should mirror the permission model — staff only see events for their restaurant; customers only see events for their session.
-- **Customer device tokens** (Phase 4.5) need special handling since customers don't have user accounts — tokens are tied to device ID + session.
-- **All new tables must include `restaurant_id`** per the multi-tenant isolation rules in `rules.md` §6.
+| Priority | Task | Effort |
+|----------|------|--------|
+| 🔴 P0 | 1.1 — Add void, modify, claim, resend to `order.ts` | Small |
+| 🔴 P0 | 1.2 — Add `forceRelease` to `table.ts` | Small |
+| 🔴 P0 | 3.1 — Order void UI (dialog + reason) | Small |
+| 🔴 P0 | 3.3 — Table force-release UI (dialog + reason) | Small |
+| 🟠 P1 | 1.3 — Add `updateWorkflowMode` to `restaurant.ts` | Small |
+| 🟠 P1 | 1.4 — Add stock methods to `menu.ts` | Small |
+| 🟠 P1 | 2.1 — Workflow mode selector in edit screen | Small |
+| 🟠 P1 | 2.3 — Stock management screen | Medium |
+| 🟠 P1 | 4.1 — FCM push → cache invalidation | Medium |
+| 🟠 P1 | 4.2 — Customer push handling | Small |
+| 🟡 P2 | 1.5 — New `workflow.ts` API client | Small |
+| 🟡 P2 | 2.2 — Workflow configuration screen | Medium |
+| 🟡 P2 | 3.2 — Order item modification UI | Small |
+| 🟡 P2 | 3.4 — Resend notification button | Small |
+| 🟢 P3 | 1.6 — New `admin.ts` API client | Small |
+| 🟢 P3 | 2.4 — Super admin panel screen | Large |
+| 🟢 P3 | 4.3 — SSE client (replaces polling) | Medium |

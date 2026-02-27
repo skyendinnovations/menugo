@@ -32,6 +32,10 @@ export const auditActionEnum = pgEnum("audit_action", [
   "stock_updated",
   "workflow_changed",
   "override",
+  "restaurant_suspended",
+  "restaurant_activated",
+  "user_banned",
+  "user_unbanned",
 ]);
 
 export const auditEntityEnum = pgEnum("audit_entity", [
@@ -45,6 +49,7 @@ export const auditEntityEnum = pgEnum("audit_entity", [
   "menu_variant",
   "restaurant",
   "workflow",
+  "user",
 ]);
 
 export const auditLogs = pgTable(

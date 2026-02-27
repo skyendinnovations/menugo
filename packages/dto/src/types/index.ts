@@ -13,3 +13,4 @@ export * from "./audit";
 export * from "./realtime";
 export * from "./availability";
 export * from "./workflow";
+export * from "./admin";

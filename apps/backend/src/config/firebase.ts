@@ -8,7 +8,11 @@ import { logger } from "../utils/logger";
 
 let _app: app.App | null = null;
 
-export function getFirebaseApp(): app.App {
+export function getFirebaseApp(): app.App | null {
+    if (!FIREBASE_PROJECT_ID || !FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
+        logger.warn("Firebase credentials not configured — push notifications disabled");
+        return null;
+    }
     if (!_app) {
         try {
             _app = admin.initializeApp({
@@ -28,6 +32,8 @@ export function getFirebaseApp(): app.App {
     return _app;
 }
 
-export function getMessaging(): messaging.Messaging {
-    return getFirebaseApp().messaging();
+export function getMessaging(): messaging.Messaging | null {
+    const app = getFirebaseApp();
+    if (!app) return null;
+    return app.messaging();
 }

@@ -1,11 +1,15 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { orderAPI, type Order } from '@/lib/api';
 import { notificationAPI } from '@/lib/api/notification';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRealtimeOrders } from '@/lib/hooks/useRealtimeOrders';
+import { DemoModeBanner } from '@/components/DemoModeBanner';
+import { useDemoMode } from '@/lib/hooks/useDemoMode';
+import { hapticMedium, hapticSuccess } from '@/lib/utils/haptics';
 
 const COLUMNS = ['received', 'preparing', 'ready'] as const;
 
@@ -28,32 +32,35 @@ function getUrgencyColor(minutes: number): string {
 
 export default function KitchenView() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-
   const restaurantId = Number(id);
+  const { isDemoMode } = useDemoMode(restaurantId);
 
-  const fetchOrders = useCallback(async () => {
-    try {
-      const res = await orderAPI.getKitchenOrders(restaurantId);
-      setOrders(res.data || []);
-    } catch (error) {
-      console.error('Failed to fetch kitchen orders:', error);
-    } finally {
-      setLoading(false);
-    }
+  const fetchFn = useCallback(async () => {
+    const res = await orderAPI.getKitchenOrders(restaurantId);
+    return res.data || [];
   }, [restaurantId]);
 
+  const { orders, loading, hasNewOrders, refresh, dismissNewOrders } =
+    useRealtimeOrders({ fetchFn, interval: 5000, vibrateOnNew: true });
+
+  // Animated flash for new order alert
+  const flashAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 10000);
-    return () => clearInterval(interval);
-  }, [fetchOrders]);
+    if (hasNewOrders) {
+      Animated.sequence([
+        Animated.timing(flashAnim, { toValue: 1, duration: 200, useNativeDriver: false }),
+        Animated.timing(flashAnim, { toValue: 0, duration: 200, useNativeDriver: false }),
+        Animated.timing(flashAnim, { toValue: 1, duration: 200, useNativeDriver: false }),
+        Animated.timing(flashAnim, { toValue: 0, duration: 800, useNativeDriver: false }),
+      ]).start();
+    }
+  }, [hasNewOrders]);
 
   const handleAcceptOrder = async (orderId: number) => {
+    hapticMedium();
     try {
       await notificationAPI.acceptOrder(restaurantId, orderId);
-      fetchOrders();
+      refresh();
     } catch (error) {
       console.error('Accept order failed:', error);
     }
@@ -67,9 +74,10 @@ export default function KitchenView() {
     };
     const next = nextMap[currentStatus];
     if (!next) return;
+    hapticSuccess();
     try {
       await orderAPI.updateOrderStatus(restaurantId, orderId, next);
-      fetchOrders();
+      refresh();
     } catch (error) {
       console.error('Status update failed:', error);
     }
@@ -124,8 +132,9 @@ export default function KitchenView() {
                   handleAcceptOrder(order.id);
                 }}
                 activeOpacity={0.7}
-                className="mt-3 rounded-lg bg-green-600 py-2.5">
-                <Text className="text-center text-sm font-bold text-white">Accept Order</Text>
+                className="mt-3 flex-row items-center justify-center gap-2 rounded-lg bg-green-600 py-3">
+                <MaterialIcons name="check" size={20} color="#FFF" />
+                <Text className="text-sm font-bold text-white">Accept</Text>
               </TouchableOpacity>
             )}
 
@@ -138,9 +147,13 @@ export default function KitchenView() {
               </View>
             )}
 
-            <View className="mt-3 border-t border-slate-700 pt-3">
-              <Text className="text-center text-xs text-slate-500">Tap to advance status</Text>
-            </View>
+            <TouchableOpacity
+              onPress={() => handleAdvanceStatus(order.id, order.status)}
+              activeOpacity={0.7}
+              className="mt-3 flex-row items-center justify-center gap-2 rounded-lg border border-slate-600 py-3">
+              <MaterialIcons name="arrow-forward" size={18} color="#F97316" />
+              <Text className="text-xs font-bold text-brand">Advance Status</Text>
+            </TouchableOpacity>
           </CardContent>
         </Card>
       </TouchableOpacity>
@@ -166,10 +179,32 @@ export default function KitchenView() {
         }}
       />
       <View className="flex-1 bg-slate-900">
+        <DemoModeBanner visible={isDemoMode} />
+
+        {/* New order alert banner */}
+        {hasNewOrders && (
+          <Animated.View
+            style={{
+              backgroundColor: flashAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['rgba(34,197,94,0.0)', 'rgba(34,197,94,0.3)'],
+              }),
+            }}
+            className="flex-row items-center justify-center px-4 py-2.5">
+            <MaterialIcons name="notifications-active" size={18} color="#22C55E" />
+            <Text className="ml-2 text-sm font-bold text-green-400">
+              New order received!
+            </Text>
+            <TouchableOpacity onPress={dismissNewOrders} className="ml-3">
+              <MaterialIcons name="close" size={16} color="#64748B" />
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+
         <View className="flex-row items-center justify-between px-4 py-3">
           <Text className="text-xl font-bold text-white">Kitchen View</Text>
           <TouchableOpacity
-            onPress={fetchOrders}
+            onPress={refresh}
             className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
             <MaterialIcons name="refresh" size={22} color="#F97316" />
           </TouchableOpacity>

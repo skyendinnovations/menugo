@@ -105,6 +105,36 @@ class MenuAPI extends BaseAPI {
       `/api/restaurants/${restaurantId}/menu/variants/${variantId}`
     );
   }
+
+  // Stock management
+
+  async updateItemStock(restaurantId: number, itemId: number, stockCount: number | null) {
+    return this.put<{ success: boolean; data: MenuItem }>(
+      `/api/restaurants/${restaurantId}/menu/items/${itemId}/stock`,
+      { stockCount }
+    );
+  }
+
+  async toggleItemSoldOut(restaurantId: number, itemId: number, isSoldOut: boolean) {
+    return this.put<{ success: boolean; data: MenuItem }>(
+      `/api/restaurants/${restaurantId}/menu/items/${itemId}/sold-out`,
+      { isSoldOut }
+    );
+  }
+
+  async updateVariantStock(restaurantId: number, variantId: number, stockCount: number | null) {
+    return this.put<{ success: boolean; data: MenuItemVariant }>(
+      `/api/restaurants/${restaurantId}/menu/variants/${variantId}/stock`,
+      { stockCount }
+    );
+  }
+
+  async toggleVariantSoldOut(restaurantId: number, variantId: number, isSoldOut: boolean) {
+    return this.put<{ success: boolean; data: MenuItemVariant }>(
+      `/api/restaurants/${restaurantId}/menu/variants/${variantId}/sold-out`,
+      { isSoldOut }
+    );
+  }
 }
 
 export const menuAPI = new MenuAPI();

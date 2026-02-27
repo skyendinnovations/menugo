@@ -40,6 +40,9 @@ export const restaurants = pgTable("restaurants", {
     // Workflow mode: full_service | fast_service | self_service
     workflowMode: text("workflow_mode").default("full_service").notNull(),
 
+    // Training / demo mode – when true, notifications are suppressed and data can be reset
+    isDemoMode: boolean("is_demo_mode").default(false).notNull(),
+
     workflowSettings: jsonb("workflow_settings").notNull().default({
         hasKitchenView: true,
         orderFlow: ["received", "preparing", "ready", "served", "paid"],

@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Alert as RNAlert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
@@ -16,7 +17,10 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
+import { Switch } from '@/components/ui/Switch';
 import { ImageUpload } from '@/components/ui/ImageUpload';
+import { DemoModeBanner } from '@/components/DemoModeBanner';
+import { useDemoMode } from '@/lib/hooks/useDemoMode';
 import { SUPPORTED_CURRENCIES } from '@menugo/dto';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -37,6 +41,8 @@ export default function EditRestaurant() {
     email: '',
     currency: 'INR',
   });
+  const [demoLoading, setDemoLoading] = useState(false);
+  const { isDemoMode, toggleDemoMode, resetDemoData } = useDemoMode(Number(id));
 
   useEffect(() => {
     (async () => {
@@ -195,9 +201,68 @@ export default function EditRestaurant() {
               onPress={handleUpdate}
               disabled={loading}
               size="lg"
-              className="mb-8 mt-2"
+              className="mt-2"
             />
+
+            {/* ── Training / Demo Mode ── */}
+            <View className="mt-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
+              <View className="mb-3 flex-row items-center gap-2">
+                <MaterialIcons name="school" size={20} color="#F59E0B" />
+                <Text className="text-base font-bold text-white">Training Mode</Text>
+              </View>
+              <Text className="mb-4 text-sm text-slate-400">
+                Enable training mode to practise with fake data. Push notifications will be
+                suppressed and data can be reset at any time.
+              </Text>
+
+              <Switch
+                checked={isDemoMode}
+                onCheckedChange={async (checked) => {
+                  try {
+                    await toggleDemoMode(checked);
+                  } catch (err: any) {
+                    RNAlert.alert('Error', err?.message || 'Failed to toggle training mode');
+                  }
+                }}
+                label={isDemoMode ? 'Training mode is ON' : 'Training mode is OFF'}
+              />
+
+              {isDemoMode && (
+                <Button
+                  title={demoLoading ? 'Resetting…' : 'Reset Demo Data'}
+                  variant="danger"
+                  size="sm"
+                  disabled={demoLoading}
+                  onPress={async () => {
+                    RNAlert.alert(
+                      'Reset Demo Data',
+                      'This will clear all orders and sessions, and seed sample data for practice. Continue?',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Reset',
+                          style: 'destructive',
+                          onPress: async () => {
+                            setDemoLoading(true);
+                            try {
+                              await resetDemoData();
+                              RNAlert.alert('Done', 'Demo data has been reset.');
+                            } catch (err: any) {
+                              RNAlert.alert('Error', err?.message || 'Reset failed');
+                            } finally {
+                              setDemoLoading(false);
+                            }
+                          },
+                        },
+                      ],
+                    );
+                  }}
+                  className="mt-4"
+                />
+              )}
+            </View>
           </View>
+          <View className="h-12" />
         </ScrollView>
       </KeyboardAvoidingView>
     </>

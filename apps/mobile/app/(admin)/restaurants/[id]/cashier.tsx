@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Modal,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useState, useCallback, useEffect } from 'react';
@@ -16,6 +17,9 @@ import { Badge } from '@/components/ui/Badge';
 import { formatPrice } from '@menugo/dto';
 import { restaurantAPI } from '@/lib/api';
 import { MaterialIcons } from '@expo/vector-icons';
+import { DemoModeBanner } from '@/components/DemoModeBanner';
+import { useDemoMode } from '@/lib/hooks/useDemoMode';
+import { hapticMedium, hapticSuccess } from '@/lib/utils/haptics';
 
 export default function CashierView() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,6 +32,7 @@ export default function CashierView() {
   const [currency, setCurrency] = useState('INR');
 
   const restaurantId = Number(id);
+  const { isDemoMode } = useDemoMode(restaurantId);
 
   // Fetch restaurant currency
   useEffect(() => {
@@ -71,20 +76,36 @@ export default function CashierView() {
     }
   };
 
-  const handleCloseSession = async () => {
+  const handleCloseSession = () => {
     if (!selectedSession) return;
-    setClosing(true);
-    try {
-      const sessionData = selectedSession.session || selectedSession;
-      await orderAPI.closeSession(restaurantId, sessionData.id);
-      setShowBill(false);
-      setSelectedSession(null);
-      fetchSessions();
-    } catch (error) {
-      console.error('Failed to close session:', error);
-    } finally {
-      setClosing(false);
-    }
+    const sessionData = selectedSession.session || selectedSession;
+    const total = calculateTotal();
+    hapticMedium();
+    Alert.alert(
+      'Settle Bill',
+      `Close session for Table #${selectedSession.tableNumber}?\nTotal: ${formatPrice(total, currency)}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Settle & Close',
+          style: 'destructive',
+          onPress: async () => {
+            setClosing(true);
+            try {
+              await orderAPI.closeSession(restaurantId, sessionData.id);
+              hapticSuccess();
+              setShowBill(false);
+              setSelectedSession(null);
+              fetchSessions();
+            } catch (error) {
+              console.error('Failed to close session:', error);
+            } finally {
+              setClosing(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const calculateTotal = () => {
@@ -118,6 +139,7 @@ export default function CashierView() {
         }}
       />
       <View className="flex-1 bg-slate-900 px-5 pt-2">
+        <DemoModeBanner visible={isDemoMode} />
         <View className="mb-4 flex-row items-center justify-between">
           <Text className="text-xl font-bold text-white">Active Sessions</Text>
           <TouchableOpacity
@@ -228,14 +250,23 @@ export default function CashierView() {
                     {formatPrice(calculateTotal(), currency)}
                   </Text>
                 </View>
-                <Button
-                  title="Close Session & Settle Bill"
-                  loading={closing}
+                <TouchableOpacity
                   onPress={handleCloseSession}
                   disabled={closing}
-                  variant="success"
-                  size="lg"
-                />
+                  activeOpacity={0.7}
+                  className="flex-row items-center justify-center rounded-xl bg-green-600 py-4"
+                  style={{ opacity: closing ? 0.5 : 1, minHeight: 56 }}>
+                  {closing ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <MaterialIcons name="check-circle" size={22} color="#fff" />
+                      <Text className="ml-2 text-base font-bold text-white">
+                        Settle Bill & Close Session
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
               </View>
             </View>
           </View>

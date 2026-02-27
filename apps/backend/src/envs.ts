@@ -35,10 +35,10 @@ const EnvsSchema = z.object({
   OAUTH_CLIENT_ID: z.string().optional(),
   OAUTH_CLIENT_SECRET: z.string().optional(),
 
-  // Firebase Cloud Messaging
-  FIREBASE_PROJECT_ID: z.string(),
-  FIREBASE_CLIENT_EMAIL: z.string(),
-  FIREBASE_PRIVATE_KEY: z.string(),
+  // Firebase Cloud Messaging (optional for local development)
+  FIREBASE_PROJECT_ID: z.string().optional(),
+  FIREBASE_CLIENT_EMAIL: z.string().optional(),
+  FIREBASE_PRIVATE_KEY: z.string().optional(),
 
   // Firebase Web Client Config (public keys for service worker)
   FIREBASE_WEB_API_KEY: z.string().optional(),

@@ -21,6 +21,30 @@ class RestaurantAPI extends BaseAPI {
   async remove(id: number) {
     return this.delete<{ success: boolean }>(`/api/restaurants/${id}`);
   }
+
+  async toggleDemoMode(id: number, enabled: boolean) {
+    return this.put<{ success: boolean; data: Restaurant }>(
+      `/api/restaurants/${id}/demo-mode`,
+      { enabled }
+    );
+  }
+
+  async resetDemoData(id: number) {
+    return this.post<{ success: boolean; message: string }>(
+      `/api/restaurants/${id}/demo-reset`,
+      {}
+    );
+  }
+
+  async updateWorkflowMode(
+    id: number,
+    mode: 'full_service' | 'fast_service' | 'self_service'
+  ) {
+    return this.put<{ success: boolean; data: Restaurant }>(
+      `/api/restaurants/${id}/workflow-mode`,
+      { workflowMode: mode }
+    );
+  }
 }
 
 export const restaurantAPI = new RestaurantAPI();

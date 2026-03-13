@@ -39,10 +39,10 @@ export class SubscriptionService {
     }
 
     if (!SKYEND_URL || !SKYEND_API_KEY) {
-      // If Skyend is not configured, return inactive (free tier)
+      // If Skyend is not configured, unlock all features (dev / self-hosted)
       return {
-        active: false,
-        planSlug: null,
+        active: true,
+        planSlug: "enterprise",
         interval: null,
         expiresAt: null,
         subscriptionId: null,

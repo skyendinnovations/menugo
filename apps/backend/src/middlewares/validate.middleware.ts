@@ -24,8 +24,7 @@ export const validate = (schemas: ValidationSchemas) => {
       }
 
       if (schemas.query) {
-        const parsed = schemas.query.parse(req.query);
-        req.query = parsed as typeof req.query;
+        schemas.query.parse(req.query);
       }
 
       if (schemas.body) {

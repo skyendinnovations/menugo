@@ -1,7 +1,8 @@
 import type { FullMenuCategory } from '@menugo/dto';
+import { API_URL } from '@/lib/api-url';
 
 class PublicAPI {
-  private baseURL = process.env.EXPO_PUBLIC_API_URL;
+  private baseURL = API_URL;
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;

@@ -25,3 +25,13 @@ export class AppError extends Error {
     Object.setPrototypeOf(this, AppError.prototype);
   }
 }
+
+/**
+ * Contextual metadata passed from controllers into service methods for
+ * audit-log attribution.  All fields are optional so callers that don't
+ * have (or need) the context can simply omit it.
+ */
+export interface AuditContext {
+  actorUserId: string;
+  ipAddress?: string;
+}

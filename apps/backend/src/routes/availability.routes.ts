@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { availabilityController } from "../controllers/availability.controller";
 import { requirePermission } from "../middlewares/permission.middleware";
+import { requireMembership } from "../middlewares/permission.middleware";
 import { validate } from "../middlewares/validate.middleware";
 import { availabilityParams } from "../validations";
 
@@ -10,7 +11,7 @@ const router = Router({ mergeParams: true });
 router.post(
   "/clock-in",
   validate({ params: availabilityParams }),
-  requirePermission("view_orders"),
+  requireMembership,
   availabilityController.clockIn.bind(availabilityController),
 );
 
@@ -18,8 +19,16 @@ router.post(
 router.post(
   "/clock-out",
   validate({ params: availabilityParams }),
-  requirePermission("view_orders"),
+  requireMembership,
   availabilityController.clockOut.bind(availabilityController),
+);
+
+// GET /restaurants/:restaurantId/staff/my-status
+router.get(
+  "/my-status",
+  validate({ params: availabilityParams }),
+  requireMembership,
+  availabilityController.getMyStatus.bind(availabilityController),
 );
 
 // GET /restaurants/:restaurantId/staff/availability

@@ -1,21 +1,40 @@
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+import { refreshEmitter, eventToChannels } from './realtime';
 
-// Lazy-load expo-notifications only on native to avoid crash on web
+// Lazy-load expo-notifications only on native to avoid crash on web.
+// Push notification support was removed from Expo Go in SDK 53+;
+// the native module throws a fatal error, so we must skip the import entirely.
 let Notifications: typeof import('expo-notifications') | null = null;
 
-if (Platform.OS !== 'web') {
-  Notifications = require('expo-notifications');
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-  Notifications!.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  });
+if (Platform.OS !== 'web' && !isExpoGo) {
+  try {
+    Notifications = require('expo-notifications');
+
+    Notifications!.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  } catch (e) {
+    console.warn(
+      'expo-notifications is not available. ' +
+      'Use a development build for push notifications.',
+    );
+    Notifications = null;
+  }
+} else if (isExpoGo && Platform.OS !== 'web') {
+  console.warn(
+    'Push notifications are not supported in Expo Go (SDK 53+). ' +
+    'Use a development build instead.',
+  );
 }
 
 // ─── Web implementation using Firebase Cloud Messaging ───
@@ -74,7 +93,15 @@ async function registerForPushNotificationsNative(): Promise<string | null> {
     return null;
   }
 
-  const tokenData = await Notifications.getDevicePushTokenAsync();
+  const projectId =
+    Constants.expoConfig?.extra?.eas?.projectId ??
+    Constants.easConfig?.projectId;
+  if (!projectId) {
+    console.error('Expo project ID not found — cannot register for push');
+    return null;
+  }
+
+  const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
   const token = tokenData.data;
 
   if (Platform.OS === 'android') {
@@ -124,7 +151,12 @@ export function setupForegroundNotificationHandler() {
 
   const subscription = Notifications.addNotificationReceivedListener(
     (notification) => {
-      console.log('Foreground notification:', notification.request.content.title);
+      const data = notification.request.content.data;
+      // Emit refresh events based on push notification data
+      const eventType = data?.type as string | undefined;
+      if (eventType) {
+        eventToChannels(eventType).forEach((ch) => refreshEmitter.emit(ch));
+      }
     }
   );
   return subscription;
@@ -139,8 +171,18 @@ export function setupTokenRefreshHandler(
   }
   if (!Notifications) return undefined;
 
-  const subscription = Notifications.addPushTokenListener((tokenData) => {
-    onTokenRefresh(tokenData.data as string);
+  const subscription = Notifications.addPushTokenListener(async () => {
+    // Device push token changed — re-fetch the Expo push token
+    try {
+      const projectId =
+        Constants.expoConfig?.extra?.eas?.projectId ??
+        Constants.easConfig?.projectId;
+      if (!projectId) return;
+      const newTokenData = await Notifications!.getExpoPushTokenAsync({ projectId });
+      onTokenRefresh(newTokenData.data);
+    } catch (err) {
+      console.error('Failed to refresh Expo push token:', err);
+    }
   });
   return subscription;
 }
@@ -154,16 +196,32 @@ export async function setupWebForegroundHandler() {
     const messaging = getWebMessaging();
 
     const unsubscribe = onMessage(messaging, (payload) => {
+      // Emit refresh events based on push notification data
+      const eventType = payload.data?.type as string | undefined;
+      if (eventType) {
+        eventToChannels(eventType).forEach((ch) => refreshEmitter.emit(ch));
+      }
+
       const notification = payload.notification;
       if (!notification) return;
 
       // Show browser notification for foreground messages
       if (Notification.permission === 'granted') {
-        new Notification(notification.title || 'MenuGo', {
+        const n = new Notification(notification.title || 'MenuGo', {
           body: notification.body || '',
           icon: '/favicon.png',
           data: payload.data,
         });
+        n.onclick = () => {
+          window.focus();
+          const d = payload.data;
+          if (d?.restaurantId) {
+            router.push(
+              `/(admin)/restaurants/${d.restaurantId}/orders` as any
+            );
+          }
+          n.close();
+        };
       }
     });
 

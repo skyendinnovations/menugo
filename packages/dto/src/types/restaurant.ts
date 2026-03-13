@@ -12,6 +12,7 @@ export interface Restaurant {
     tableCountRange?: string;
     workersCount?: number;
     seatingCapacity?: number;
+    workflowMode?: string;
     workflowSettings: any;
     operatingHours?: any;
     isDemoMode?: boolean;

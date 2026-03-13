@@ -118,6 +118,13 @@ router.post(
   memberController.rejectInvitation.bind(memberController),
 );
 
+// User membership status (authenticated, not restaurant-scoped)
+router.get(
+  "/me/membership-status",
+  authenticate,
+  memberController.getMembershipStatus.bind(memberController),
+);
+
 // Subscription management (has own auth handling per route)
 router.use("/subscription", subscriptionRoutes);
 

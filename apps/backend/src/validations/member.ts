@@ -12,10 +12,23 @@ export const memberIdParams = z
   })
   .passthrough();
 
+export const memberUserIdParams = z
+  .object({
+    restaurantId: numericId,
+    userId: z.string().min(1, "User ID is required"),
+  })
+  .passthrough();
+
 // ─── Bodies ─────────────────────────────────────────────────────────
 
 export const inviteMemberBody = z.object({
   email: z.string().email("Invalid email address"),
+  roleIds: z
+    .array(z.number().int().positive())
+    .min(1, "At least one role is required"),
+});
+
+export const updateMemberRolesBody = z.object({
   roleIds: z
     .array(z.number().int().positive())
     .min(1, "At least one role is required"),

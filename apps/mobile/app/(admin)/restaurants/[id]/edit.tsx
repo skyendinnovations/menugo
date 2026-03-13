@@ -18,10 +18,12 @@ import { Alert } from '@/components/ui/Alert';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { Switch } from '@/components/ui/Switch';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/RadioGroup';
 import { ImageUpload } from '@/components/ui/ImageUpload';
 import { DemoModeBanner } from '@/components/DemoModeBanner';
 import { useDemoMode } from '@/lib/hooks/useDemoMode';
-import { SUPPORTED_CURRENCIES } from '@menugo/dto';
+import { SUPPORTED_CURRENCIES, WORKFLOW_MODES, WORKFLOW_MODE_LABELS } from '@menugo/dto';
+import type { WorkflowMode } from '@menugo/dto';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function EditRestaurant() {
@@ -42,6 +44,8 @@ export default function EditRestaurant() {
     currency: 'INR',
   });
   const [demoLoading, setDemoLoading] = useState(false);
+  const [workflowMode, setWorkflowMode] = useState<WorkflowMode>('full_service');
+  const [workflowLoading, setWorkflowLoading] = useState(false);
   const { isDemoMode, toggleDemoMode, resetDemoData } = useDemoMode(Number(id));
 
   useEffect(() => {
@@ -59,6 +63,9 @@ export default function EditRestaurant() {
         });
         if (r.logo) {
           setSavedLogoUrl(r.logo.startsWith('http') ? r.logo : fileAPI.getFullUrl(r.logo));
+        }
+        if (r.workflowMode) {
+          setWorkflowMode(r.workflowMode as WorkflowMode);
         }
       } catch (err) {
         setError('Failed to load restaurant');
@@ -195,6 +202,49 @@ export default function EditRestaurant() {
                 placeholder="Select currency"
               />
             </View>
+
+            {/* ── Workflow Mode ── */}
+            <View className="mt-2 rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
+              <View className="mb-3 flex-row items-center gap-2">
+                <MaterialIcons name="account-tree" size={20} color="#3B82F6" />
+                <Text className="text-base font-bold text-white">Workflow Mode</Text>
+              </View>
+              <Text className="mb-4 text-sm text-slate-400">
+                Controls how orders flow from kitchen to customer.
+              </Text>
+
+              <RadioGroup
+                value={workflowMode}
+                onValueChange={async (value) => {
+                  const newMode = value as WorkflowMode;
+                  const previous = workflowMode;
+                  setWorkflowMode(newMode);
+                  setWorkflowLoading(true);
+                  try {
+                    await restaurantAPI.updateWorkflowMode(Number(id), newMode);
+                  } catch (err: any) {
+                    setWorkflowMode(previous);
+                    RNAlert.alert('Error', err?.message || 'Failed to update workflow mode');
+                  } finally {
+                    setWorkflowLoading(false);
+                  }
+                }}>
+                {WORKFLOW_MODES.map((mode) => (
+                  <View key={mode} className="rounded-xl bg-slate-800 p-3">
+                    <RadioGroupItem
+                      value={mode}
+                      label={WORKFLOW_MODE_LABELS[mode]}
+                      disabled={workflowLoading}
+                    />
+                  </View>
+                ))}
+              </RadioGroup>
+
+              {workflowLoading && (
+                <Text className="mt-2 text-xs text-slate-500">Saving…</Text>
+              )}
+            </View>
+
             <Button
               title="Update Restaurant"
               loading={loading}

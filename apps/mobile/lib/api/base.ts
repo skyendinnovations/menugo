@@ -1,8 +1,22 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { sessionManager } from '@/lib/auth-client';
+import { API_URL } from '@/lib/api-url';
+
+/**
+ * Thrown by BaseAPI when the server returns HTTP 403.
+ * Callers can use `instanceof PermissionError` to show a specific
+ * "no permission" message instead of a generic error alert.
+ */
+export class PermissionError extends Error {
+  constructor(message = 'You do not have permission to perform this action.') {
+    super(message);
+    this.name = 'PermissionError';
+  }
+}
 
 class BaseAPI {
-  protected baseURL = process.env.EXPO_PUBLIC_API_URL;
+  protected baseURL = API_URL;
 
   protected async getAuthToken(): Promise<string | null> {
     try {
@@ -57,6 +71,7 @@ class BaseAPI {
     const config: RequestInit = {
       ...options,
       headers,
+      credentials: 'include',
     };
 
     try {
@@ -64,14 +79,31 @@ class BaseAPI {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
-        );
+
+        // On 401, clear the stale session so the app redirects to sign-in
+        if (response.status === 401) {
+          sessionManager.clearSession();
+        }
+
+        const message =
+          errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        // 7.5 — 403 → typed PermissionError so callers can show a specific message.
+        if (response.status === 403) {
+          throw new PermissionError(message);
+        }
+
+        throw new Error(message);
       }
 
       return await response.json();
     } catch (error) {
-      console.error(`API request failed for ${endpoint}:`, error);
+      // AbortError = intentional cancellation by useRealtimeOrders — not a real failure.
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw error;
+      }
+      if (endpoint !== '/api/auth/get-session') {
+        console.error(`API request failed for ${endpoint}:`, error);
+      }
       throw error;
     }
   }
@@ -123,13 +155,23 @@ class BaseAPI {
         method: 'POST',
         headers,
         body: formData,
+        credentials: 'include',
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`
-        );
+
+        if (response.status === 401) {
+          sessionManager.clearSession();
+        }
+
+        const uploadMessage =
+          errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        if (response.status === 403) {
+          throw new PermissionError(uploadMessage);
+        }
+
+        throw new Error(uploadMessage);
       }
 
       return await response.json();

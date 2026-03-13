@@ -163,18 +163,31 @@ export function createMobileAuthClient(config: MobileAuthClientConfig) {
     };
 
     const getSession = async () => {
-        const result = await authClient.getSession();
-        if (result.data?.user) {
+        try {
+            const result = await authClient.getSession();
+            if (result.data?.user) {
+                // Server confirmed session is valid — keep stored data in sync
+                sessionManager.saveSession({
+                    user: result.data.user,
+                    token: (result.data as any).token,
+                });
+                return result;
+            }
+            // Server explicitly returned no session — clear stale stored data
+            sessionManager.clearSession();
             return result;
+        } catch (error) {
+            // Network error — fall back to stored session so the app
+            // can work offline with a previously-validated session.
+            const stored = sessionManager.getStoredSession();
+            if (stored) {
+                return {
+                    data: { user: stored.user, session: stored },
+                    error: null,
+                };
+            }
+            return { data: null, error };
         }
-        const stored = sessionManager.getStoredSession();
-        if (stored) {
-            return {
-                data: { user: stored.user, session: stored },
-                error: null,
-            };
-        }
-        return result;
     };
 
     const { useSession, $Infer } = authClient;

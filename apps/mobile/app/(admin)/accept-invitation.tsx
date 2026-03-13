@@ -1,14 +1,21 @@
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { memberAPI, type MyInvitation } from '@/lib/api';
-import { Button } from '@/components/ui/Button';
-import { Alert } from '@/components/ui/Alert';
 import { InvitationCard } from '@/components/InvitationCard';
 import { useInvitationActions } from '@/lib/hooks/useInvitationActions';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { ROUTES } from '@/lib/routes';
+
+const RED = '#DC2626';
+const RED_LIGHT = '#FEF2F2';
+const GRAY_900 = '#111827';
+const GRAY_500 = '#6B7280';
+const GRAY_400 = '#9CA3AF';
+const GRAY_200 = '#E5E7EB';
+const GRAY_50 = '#F9FAFB';
+const WHITE = '#FFFFFF';
 
 export default function AcceptInvitationScreen() {
   const router = useRouter();
@@ -50,41 +57,112 @@ export default function AcceptInvitationScreen() {
   );
 
   const renderEmpty = () => (
-    <View className="flex-1 items-center justify-center px-8">
-      <View className="mb-6 h-24 w-24 items-center justify-center rounded-full bg-slate-800">
-        <MaterialIcons name="mail-outline" size={48} color="#64748B" />
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+      <View
+        style={{
+          width: 96,
+          height: 96,
+          borderRadius: 24,
+          backgroundColor: GRAY_50,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 24,
+        }}>
+        <Ionicons name="mail-open-outline" size={48} color={GRAY_400} />
       </View>
-      <Text className="text-center text-xl font-bold text-white">No Invitations</Text>
-      <Text className="mt-2 text-center text-sm text-slate-400">
-        You don&apos;t have any pending invitations. Ask a restaurant owner to invite you, or create
+      <Text style={{ fontSize: 22, fontWeight: '700', color: GRAY_900, textAlign: 'center' }}>
+        No Invitations
+      </Text>
+      <Text
+        style={{
+          fontSize: 15,
+          color: GRAY_500,
+          textAlign: 'center',
+          marginTop: 10,
+          lineHeight: 22,
+        }}>
+        You don't have any pending invitations. Ask a restaurant owner to invite you, or create
         your own restaurant.
       </Text>
-      <Button
-        title="Create Restaurant"
-        size="lg"
+      <TouchableOpacity
         onPress={() => router.push(ROUTES.ADMIN.RESTAURANTS.CREATE as any)}
-        className="mt-6 w-full"
-      />
+        activeOpacity={0.85}
+        style={{
+          backgroundColor: RED,
+          borderRadius: 12,
+          paddingVertical: 14,
+          paddingHorizontal: 28,
+          marginTop: 24,
+          alignItems: 'center',
+          flexDirection: 'row',
+          gap: 8,
+          ...Platform.select({
+            ios: { shadowColor: RED, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8 },
+            android: { elevation: 6 },
+            default: { boxShadow: '0 4px 14px rgba(220,38,38,0.3)' } as any,
+          }),
+        }}>
+        <Ionicons name="add" size={20} color={WHITE} />
+        <Text style={{ color: WHITE, fontSize: 16, fontWeight: '600' }}>Create Restaurant</Text>
+      </TouchableOpacity>
     </View>
   );
 
   return (
-    <View className="flex-1 bg-slate-900 px-5 pt-2">
-      <View className="mb-5 flex-row items-center justify-between">
-        <Text className="text-2xl font-bold text-white">My Invitations</Text>
-        <Button
-          title="+ Restaurant"
-          size="sm"
-          variant="ghost"
+    <View style={{ flex: 1, backgroundColor: WHITE }}>
+      {/* Header */}
+      <View
+        style={{
+          paddingHorizontal: 20,
+          paddingTop: 8,
+          paddingBottom: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+        <Text style={{ fontSize: 24, fontWeight: '700', color: GRAY_900 }}>My Invitations</Text>
+        <TouchableOpacity
           onPress={() => router.push(ROUTES.ADMIN.RESTAURANTS.CREATE as any)}
-        />
+          activeOpacity={0.7}
+          style={{
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: 10,
+            borderWidth: 1.5,
+            borderColor: GRAY_200,
+            backgroundColor: WHITE,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+          }}>
+          <Ionicons name="add" size={16} color={GRAY_500} />
+          <Text style={{ fontSize: 13, fontWeight: '600', color: GRAY_500 }}>Restaurant</Text>
+        </TouchableOpacity>
       </View>
 
-      {error ? <Alert variant="destructive" description={error} className="mb-4" /> : null}
+      {/* Error */}
+      {error ? (
+        <View
+          style={{
+            marginHorizontal: 20,
+            backgroundColor: RED_LIGHT,
+            borderWidth: 1,
+            borderColor: '#FECACA',
+            borderRadius: 12,
+            padding: 14,
+            marginBottom: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+          }}>
+          <Ionicons name="alert-circle" size={20} color={RED} />
+          <Text style={{ color: '#991B1B', fontSize: 14, flex: 1 }}>{error}</Text>
+        </View>
+      ) : null}
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#F97316" />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={RED} />
         </View>
       ) : (
         <FlatList
@@ -92,9 +170,13 @@ export default function AcceptInvitationScreen() {
           renderItem={renderInvitation}
           keyExtractor={(item) => String(item.id)}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={
-            invitations.length === 0 ? { flexGrow: 1 } : { paddingBottom: 100 }
-          }
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            maxWidth: 600,
+            width: '100%',
+            alignSelf: 'center' as any,
+            ...(invitations.length === 0 ? { flexGrow: 1 } : { paddingBottom: 100 }),
+          }}
           ListEmptyComponent={renderEmpty}
         />
       )}

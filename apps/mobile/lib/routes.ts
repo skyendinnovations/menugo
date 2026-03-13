@@ -8,6 +8,7 @@ export const ROUTES = {
     ACCEPT_INVITATION: '/(admin)/accept-invitation' as const,
     ONBOARDING: '/(admin)/onboarding' as const,
     PROFILE: '/(admin)/profile' as const,
+    SUPER_ADMIN: '/(admin)/super-admin' as const,
     RESTAURANTS: {
       CREATE: '/(admin)/restaurants/create' as const,
       detail: (id: number | string) => `/(admin)/restaurants/${id}` as const,

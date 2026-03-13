@@ -6,7 +6,9 @@ import { validate } from "../middlewares/validate.middleware";
 import {
   memberParams,
   memberIdParams,
+  memberUserIdParams,
   inviteMemberBody,
+  updateMemberRolesBody,
 } from "../validations";
 
 const router = Router({ mergeParams: true });
@@ -40,6 +42,14 @@ router.delete(
   requireSubscription("professional"),
   requirePermission("manage_members"),
   memberController.removeMember.bind(memberController),
+);
+
+router.put(
+  "/:userId/roles",
+  validate({ params: memberUserIdParams, body: updateMemberRolesBody }),
+  requireSubscription("professional"),
+  requirePermission("manage_members"),
+  memberController.updateMemberRoles.bind(memberController),
 );
 
 router.get(

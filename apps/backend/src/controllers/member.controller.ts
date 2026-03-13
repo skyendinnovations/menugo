@@ -179,6 +179,48 @@ class MemberController {
       next(error);
     }
   }
+
+  async getMembershipStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user!.id;
+      const allMemberships = await memberRepository.findAllByUser(userId);
+
+      const isOwner = allMemberships.some((m) => m.isOwner);
+      const isStaff = allMemberships.some((m) => !m.isOwner);
+      const staffRestaurantId = allMemberships.find((m) => !m.isOwner)?.restaurantId ?? null;
+
+      return res.json({
+        success: true,
+        data: {
+          isOwner,
+          isStaff,
+          staffRestaurantId,
+          totalMemberships: allMemberships.length,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateMemberRoles(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const userId = req.params.userId;
+      const { roleIds } = req.body;
+
+      const roles = await memberService.updateMemberRoles(
+        restaurantId,
+        userId,
+        roleIds,
+        auditCtx(req),
+      );
+
+      return res.json({ success: true, data: roles });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const memberController = new MemberController();

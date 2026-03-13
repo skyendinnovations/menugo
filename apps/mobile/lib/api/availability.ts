@@ -13,16 +13,33 @@ class AvailabilityAPI extends BaseAPI {
     );
   }
 
+  async getMyStatus(restaurantId: number) {
+    return this.get<{
+      success: boolean;
+      data: {
+        isClockedIn: boolean;
+        clockedInAt: string | null;
+        clockedOutAt: string | null;
+      };
+    }>(`/api/restaurants/${restaurantId}/staff/my-status`);
+  }
+
   async getAvailability(restaurantId: number) {
     return this.get<{
       success: boolean;
-      data: Array<{
-        userId: string;
-        userName: string;
-        isClockedIn: boolean;
-        lastClockIn: string | null;
-        lastClockOut: string | null;
-      }>;
+      data: {
+        available: Array<{
+          userId: string;
+          userName: string;
+          status: string;
+        }>;
+        unavailable: Array<{
+          userId: string;
+          userName: string;
+          status: string;
+        }>;
+        total: number;
+      };
     }>(`/api/restaurants/${restaurantId}/staff/availability`);
   }
 }

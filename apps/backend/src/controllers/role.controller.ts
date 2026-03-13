@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { roleService } from "../services/role.service";
+import { DEFAULT_ROLE_TEMPLATES } from "@menugo/dto";
 
 /** Extract audit context from Express request. */
 function auditCtx(req: Request) {
@@ -10,6 +11,23 @@ function auditCtx(req: Request) {
 }
 
 class RoleController {
+  /**
+   * Return the built-in role templates (Kitchen, Waiter, Cashier, etc.).
+   * These are static constants — no DB query, no restaurant scope.
+   * The client uses them to pre-fill the create-role form.
+   */
+  async getTemplates(_req: Request, res: Response, next: NextFunction) {
+    try {
+      // Exclude "owner" — it's an internal system role, not a user-facing template.
+      const templates = DEFAULT_ROLE_TEMPLATES.filter(
+        (t) => t.name !== "owner",
+      );
+      return res.json({ success: true, data: templates });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getRoles(req: Request, res: Response, next: NextFunction) {
     try {
       const restaurantId = Number(req.params.restaurantId);

@@ -18,3 +18,4 @@ export * from "./staff-availability.schema";
 export * from "./notification-log.schema";
 export * from "./customer-device-token.schema";
 export * from "./workflow.schema";
+export * from "./shift-log.schema";

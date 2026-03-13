@@ -24,6 +24,17 @@ class AvailabilityController {
     }
   }
 
+  async getMyStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const userId = req.user!.id;
+      const result = await availabilityService.getMyStatus(userId, restaurantId);
+      return res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getAvailability(req: Request, res: Response, next: NextFunction) {
     try {
       const restaurantId = Number(req.params.restaurantId);

@@ -6,19 +6,32 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { restaurantAPI, type Restaurant, memberAPI, type MyInvitation } from '@/lib/api';
+import { restaurantAPI, type Restaurant, memberAPI, type MyInvitation, adminAPI } from '@/lib/api';
 import { fileAPI } from '@/lib/api/file';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { InvitationCard } from '@/components/InvitationCard';
 import { useInvitationActions } from '@/lib/hooks/useInvitationActions';
-import { MaterialIcons } from '@expo/vector-icons';
+import { useMembershipStatus } from '@/lib/hooks/useMembershipStatus';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { ROUTES } from '@/lib/routes';
+
+/* ── Theme tokens ─────────────────────────────────────────────── */
+const RED = '#DC2626';
+const RED_LIGHT = '#FEF2F2';
+const RED_MUTED = '#FCA5A5';
+const GRAY_900 = '#111827';
+const GRAY_700 = '#374151';
+const GRAY_500 = '#6B7280';
+const GRAY_400 = '#9CA3AF';
+const GRAY_200 = '#E5E7EB';
+const GRAY_50 = '#F9FAFB';
+const WHITE = '#FFFFFF';
+const GREEN = '#16A34A';
+const GREEN_LIGHT = '#F0FDF4';
 
 export default function HomePage() {
   const router = useRouter();
@@ -26,6 +39,8 @@ export default function HomePage() {
   const [invitations, setInvitations] = useState<MyInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const { canCreateRestaurant, isStaff, loading: statusLoading } = useMembershipStatus();
 
   const fetchData = useCallback(async () => {
     try {
@@ -35,13 +50,23 @@ export default function HomePage() {
       ]);
       setRestaurants(restaurantRes.data || []);
       setInvitations(invitationRes.data || []);
+
+      // Check super admin access (non-blocking, only for non-staff)
+      if (!isStaff) {
+        try {
+          await adminAPI.getStats();
+          setIsSuperAdmin(true);
+        } catch {
+          setIsSuperAdmin(false);
+        }
+      }
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [isStaff]);
 
   useFocusEffect(
     useCallback(() => {
@@ -61,8 +86,8 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-900">
-        <ActivityIndicator size="large" color="#F97316" />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: WHITE }}>
+        <ActivityIndicator size="large" color={RED} />
       </View>
     );
   }
@@ -73,39 +98,105 @@ export default function HomePage() {
 
   return (
     <ScrollView
-      className="flex-1 bg-slate-900"
+      style={{ flex: 1, backgroundColor: WHITE }}
       contentContainerStyle={{ paddingBottom: 40 }}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F97316" />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={RED} />
       }>
-      <View className="px-5 pt-4">
-        {/* Header — always visible */}
-        <View className="mb-5 flex-row items-center justify-end">
-          <Button
-            title="+ Restaurant"
-            size="sm"
-            onPress={() => router.push(ROUTES.ADMIN.RESTAURANTS.CREATE as any)}
-          />
-        </View>
+      <View style={{ width: '100%', maxWidth: 600, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 16 }}>
+        {/* Header — only show create button for owners / new users */}
+        {canCreateRestaurant && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 16 }}>
+            <TouchableOpacity
+              onPress={() => router.push(ROUTES.ADMIN.RESTAURANTS.CREATE as any)}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: RED,
+                borderRadius: 10,
+                paddingVertical: 10,
+                paddingHorizontal: 18,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                ...Platform.select({
+                  ios: { shadowColor: RED, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6 },
+                  android: { elevation: 4 },
+                  default: { boxShadow: '0 3px 10px rgba(220,38,38,0.2)' } as any,
+                }),
+              }}>
+              <Ionicons name="add" size={18} color={WHITE} />
+              <Text style={{ color: WHITE, fontSize: 14, fontWeight: '600' }}>Restaurant</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Super Admin link */}
+        {isSuperAdmin && (
+          <TouchableOpacity
+            onPress={() => router.push('/(admin)/super-admin' as any)}
+            activeOpacity={0.7}
+            style={{
+              backgroundColor: WHITE,
+              borderWidth: 1.5,
+              borderColor: GRAY_200,
+              borderRadius: 14,
+              padding: 16,
+              marginBottom: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  backgroundColor: RED_LIGHT,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                <MaterialIcons name="admin-panel-settings" size={22} color={RED} />
+              </View>
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: GRAY_900 }}>Super Admin Panel</Text>
+                <Text style={{ fontSize: 12, color: GRAY_500 }}>Manage platform restaurants & users</Text>
+              </View>
+            </View>
+            <MaterialIcons name="chevron-right" size={22} color={GRAY_400} />
+          </TouchableOpacity>
+        )}
 
         {/* Empty state */}
         {isEmpty && (
-          <View className="items-center justify-center px-8 py-12">
-            <View className="mb-6 h-24 w-24 items-center justify-center rounded-full bg-brand/15">
-              <MaterialIcons name="restaurant" size={48} color="#F97316" />
+          <View style={{ alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 48 }}>
+            <View
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: 24,
+                backgroundColor: RED_LIGHT,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 24,
+              }}>
+              <Ionicons name="restaurant" size={48} color={RED} />
             </View>
-            <Text className="text-center text-xl font-bold text-white">Welcome to MenuGo!</Text>
-            <Text className="mt-2 text-center text-sm leading-5 text-slate-400">
-              You don&apos;t have any restaurants yet. Create one or ask a restaurant admin to invite
-              you.
+            <Text style={{ fontSize: 22, fontWeight: '700', color: GRAY_900, textAlign: 'center' }}>
+              Welcome to MenuGo!
+            </Text>
+            <Text style={{ fontSize: 15, color: GRAY_500, textAlign: 'center', marginTop: 10, lineHeight: 22 }}>
+              You don't have any restaurants yet. Create one or ask a restaurant admin to invite you.
             </Text>
           </View>
         )}
 
-        {/* Invitations section */}
-        {hasInvitations && (
-          <View className="mb-6">
-            <Text className="mb-3 text-lg font-bold text-white">Pending Invitations</Text>
+        {/* Invitations section — hidden for staff members */}
+        {hasInvitations && !isStaff && (
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: GRAY_900, marginBottom: 12 }}>
+              Pending Invitations
+            </Text>
             {invitations.map((item) => (
               <InvitationCard
                 key={item.id}
@@ -122,56 +213,83 @@ export default function HomePage() {
 
         {/* Restaurants section */}
         {hasRestaurants && (
-          <View className="mb-6">
-            <Text className="mb-3 text-lg font-bold text-white">My Restaurants</Text>
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: GRAY_900, marginBottom: 12 }}>
+              My Restaurants
+            </Text>
             {restaurants.map((item) => (
               <TouchableOpacity
                 key={item.id}
                 onPress={() => router.push(ROUTES.ADMIN.RESTAURANTS.detail(item.id) as any)}
                 activeOpacity={0.7}
-                className="mb-3">
-                <Card>
-                  <CardContent>
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1 flex-row items-center gap-4">
-                        {item.logo ? (
-                          <Image
-                            source={{
-                              uri: item.logo.startsWith('http')
-                                ? item.logo
-                                : fileAPI.getFullUrl(item.logo),
-                            }}
-                            className="h-12 w-12 rounded-xl"
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <View className="h-12 w-12 items-center justify-center rounded-xl bg-brand/15">
-                            <MaterialIcons name="restaurant" size={24} color="#F97316" />
-                          </View>
-                        )}
-                        <View className="flex-1">
-                          <Text className="text-base font-bold text-white">{item.name}</Text>
-                          {item.description && (
-                            <Text className="mt-0.5 text-sm text-slate-400" numberOfLines={1}>
-                              {item.description}
-                            </Text>
-                          )}
-                          {item.address && (
-                            <Text className="mt-0.5 text-xs text-slate-500" numberOfLines={1}>
-                              {item.address}
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                      <View className="flex-row items-center gap-3">
-                        <Badge variant={item.isActive ? 'success' : 'destructive'}>
-                          {item.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                        <MaterialIcons name="chevron-right" size={22} color="#64748B" />
-                      </View>
+                style={{
+                  backgroundColor: WHITE,
+                  borderWidth: 1.5,
+                  borderColor: GRAY_200,
+                  borderRadius: 14,
+                  padding: 16,
+                  marginBottom: 12,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  {item.logo ? (
+                    <Image
+                      source={{
+                        uri: item.logo.startsWith('http')
+                          ? item.logo
+                          : fileAPI.getFullUrl(item.logo),
+                      }}
+                      style={{ width: 48, height: 48, borderRadius: 14 }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 14,
+                        backgroundColor: RED_LIGHT,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                      <MaterialIcons name="restaurant" size={24} color={RED} />
                     </View>
-                  </CardContent>
-                </Card>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '700', color: GRAY_900 }}>{item.name}</Text>
+                    {item.description ? (
+                      <Text style={{ fontSize: 13, color: GRAY_500, marginTop: 2 }} numberOfLines={1}>
+                        {item.description}
+                      </Text>
+                    ) : null}
+                    {item.address ? (
+                      <Text style={{ fontSize: 12, color: GRAY_400, marginTop: 2 }} numberOfLines={1}>
+                        {item.address}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 8,
+                      backgroundColor: item.isActive ? GREEN_LIGHT : RED_LIGHT,
+                    }}>
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: '600',
+                        color: item.isActive ? GREEN : RED,
+                      }}>
+                      {item.isActive ? 'Active' : 'Inactive'}
+                    </Text>
+                  </View>
+                  <MaterialIcons name="chevron-right" size={22} color={GRAY_400} />
+                </View>
               </TouchableOpacity>
             ))}
           </View>

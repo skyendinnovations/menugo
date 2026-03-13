@@ -1,6 +1,8 @@
 import { restaurantRepository } from "../repositories/restaurant.repository";
 import { roleRepository } from "../repositories/role.repository";
 import { workflowRepository } from "../repositories/workflow.repository";
+import { notificationSettingsRepository } from "../repositories/notification-settings.repository";
+import { memberRepository } from "../repositories/member.repository";
 import { db } from "@menugo/data";
 import { restaurants, restaurantMembers } from "@menugo/data/schemas";
 import { eq } from "drizzle-orm";
@@ -9,9 +11,20 @@ import type {
   CreateRestaurantDTO,
 } from "../types/restaurant.types";
 import { generateUniqueRestaurantSlug } from "../utils/helpers";
+import { AppError } from "../types";
 
 class RestaurantService {
   async createRestaurant(userId: string, payload: CreateRestaurantDTO) {
+    // Staff members (non-owner) cannot create restaurants
+    const existingMemberships = await memberRepository.findAllByUser(userId);
+    const isStaffSomewhere = existingMemberships.some((m) => !m.isOwner);
+    if (isStaffSomewhere) {
+      throw new AppError(
+        403,
+        "Staff members cannot create restaurants. You must be removed from your current restaurant first.",
+      );
+    }
+
     const slug = await generateUniqueRestaurantSlug(payload.name);
     const dbInput: CreateRestaurantDBInput = { ...payload, slug };
 
@@ -29,9 +42,12 @@ class RestaurantService {
 
     try {
       // Seed all default roles for the restaurant
-      await roleRepository.seedDefaultRoles(createdRestaurant.id);
-      // Seed default workflow transitions for the restaurant
-      await workflowRepository.seedDefaults(createdRestaurant.id);
+      const seededRoles = await roleRepository.seedDefaultRoles(createdRestaurant.id);
+      // Build workflow transitions based on the seeded roles
+      const roleNames = seededRoles.map((r: any) => r.name);
+      await workflowRepository.rebuildForRoles(createdRestaurant.id, roleNames);
+      // Seed default notification settings so roles receive order alerts
+      await notificationSettingsRepository.seedDefaults(createdRestaurant.id);
       // Delegate owner insertion to repository helper
       await restaurantRepository.addRestaurantOwner(
         createdRestaurant.id,

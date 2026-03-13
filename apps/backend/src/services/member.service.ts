@@ -105,13 +105,24 @@ class MemberService {
   async acceptInvitation(token: string, userId: string) {
     const invitation = await this.validateInvitation(token, userId);
 
-    // Check if user is already a member
+    // Check if user is already a member of THIS restaurant
     const existingMember = await memberRepository.findByUserAndRestaurant(
       userId,
       invitation.restaurantId,
     );
     if (existingMember) {
       throw new AppError(409, "You are already a member of this restaurant");
+    }
+
+    // Staff can only work for one restaurant at a time.
+    // If user already has a non-owner membership elsewhere, block.
+    const allMemberships = await memberRepository.findAllByUser(userId);
+    const staffMembership = allMemberships.find((m) => !m.isOwner);
+    if (staffMembership) {
+      throw new AppError(
+        409,
+        "You are already a staff member of another restaurant. You must be removed from your current restaurant before joining a new one.",
+      );
     }
 
     // Create member
@@ -272,6 +283,59 @@ class MemberService {
       .from(userTable)
       .where(eq(userTable.id, userId));
     return u || null;
+  }
+
+  async updateMemberRoles(
+    restaurantId: number,
+    userId: string,
+    roleIds: number[],
+    ctx?: AuditContext,
+  ) {
+    // Verify membership exists
+    const member = await memberRepository.findByUserAndRestaurant(
+      userId,
+      restaurantId,
+    );
+    if (!member) {
+      throw new AppError(404, "Member not found");
+    }
+
+    // Cannot change owner roles
+    if (member.isOwner) {
+      throw new AppError(400, "Cannot change the owner's roles");
+    }
+
+    // Get old roles for audit
+    const oldRoles = await memberRepository.getMemberRoles(
+      userId,
+      restaurantId,
+    );
+
+    // Atomically replace roles
+    await memberRepository.updateUserRoles(userId, restaurantId, roleIds);
+
+    // Get updated roles
+    const newRoles = await memberRepository.getMemberRoles(
+      userId,
+      restaurantId,
+    );
+
+    if (ctx) {
+      auditService
+        .log({
+          restaurantId,
+          actorUserId: ctx.actorUserId,
+          action: "member_roles_updated",
+          entityType: "member",
+          entityId: member.id,
+          oldValue: { roles: oldRoles.map((r) => r.roleName) },
+          newValue: { roles: newRoles.map((r) => r.roleName) },
+          ipAddress: ctx.ipAddress,
+        })
+        .catch(() => {});
+    }
+
+    return newRoles;
   }
 }
 

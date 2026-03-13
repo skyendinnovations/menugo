@@ -10,20 +10,6 @@ function auditCtx(req: Request) {
 }
 
 class OrderController {
-  async getOrders(req: Request, res: Response, next: NextFunction) {
-    try {
-      const restaurantId = Number(req.params.restaurantId);
-      const { status } = req.query;
-      const orders = await orderService.getOrdersByRestaurant(
-        restaurantId,
-        status as string | undefined,
-      );
-      return res.json({ success: true, data: orders });
-    } catch (error) {
-      next(error);
-    }
-  }
-
   async getOrder(req: Request, res: Response, next: NextFunction) {
     try {
       const id = Number(req.params.orderId);
@@ -32,7 +18,8 @@ class OrderController {
           .status(400)
           .json({ success: false, message: "Invalid order ID" });
       }
-      const order = await orderService.getOrderById(id);
+      const restaurantId = Number(req.params.restaurantId);
+      const order = await orderService.getOrderById(id, restaurantId);
       return res.json({ success: true, data: order });
     } catch (error) {
       next(error);
@@ -49,10 +36,37 @@ class OrderController {
     }
   }
 
-  async getWaiterOrders(req: Request, res: Response, next: NextFunction) {
+  /** Delivery list — workflow-driven statuses that feed "served". */
+  async getDeliveryOrders(req: Request, res: Response, next: NextFunction) {
     try {
       const restaurantId = Number(req.params.restaurantId);
-      const orders = await orderService.getWaiterOrders(restaurantId);
+      const orders = await orderService.getDeliveryOrders(restaurantId);
+      return res.json({ success: true, data: orders });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /** Cashier view — sessions with non-cancelled orders for the bill modal. */
+  async getCashierOrders(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const sessions = await orderService.getCashierOrders(restaurantId);
+      return res.json({ success: true, data: sessions });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /** Overview — minimal fields, no items array. */
+  async getOrdersOverview(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const { status } = req.query;
+      const orders = await orderService.getOrdersOverview(
+        restaurantId,
+        status as string | undefined,
+      );
       return res.json({ success: true, data: orders });
     } catch (error) {
       next(error);

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { sessionController } from "../controllers/session.controller";
-import { requirePermission } from "../middlewares/permission.middleware";
+import { requirePermission, requireAnyPermission } from "../middlewares/permission.middleware";
 import { validate } from "../middlewares/validate.middleware";
 import {
   sessionParams,
@@ -13,14 +13,14 @@ const router = Router({ mergeParams: true });
 router.get(
   "/",
   validate({ params: sessionParams, query: getSessionsQuery }),
-  requirePermission("view_orders"),
+  requireAnyPermission("view_orders", "close_sessions", "helper_block_table", "table_force_release"),
   sessionController.getSessions.bind(sessionController),
 );
 
 router.get(
   "/:sessionId",
   validate({ params: sessionIdParams }),
-  requirePermission("view_orders"),
+  requireAnyPermission("view_orders", "close_sessions"),
   sessionController.getSession.bind(sessionController),
 );
 

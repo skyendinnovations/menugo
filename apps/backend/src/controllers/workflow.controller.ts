@@ -34,6 +34,58 @@ class WorkflowController {
       next(error);
     }
   }
+
+  async getOrderFlow(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const flow = await workflowService.getOrderFlow(restaurantId);
+      return res.json({ success: true, data: flow });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Mobile-facing endpoint: returns the same `{ statuses, transitions }` shape
+   * as `getOrderFlow` but is guarded by `requireMembership` rather than a
+   * specific permission, so any authenticated staff member can fetch it.
+   *
+   * Used by the `useWorkflow` hook (Part 5).
+   */
+  async getFlow(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const flow = await workflowService.getOrderFlow(restaurantId);
+      return res.json({ success: true, data: flow });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getFlowConfig(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const config = await workflowService.getFlowConfig(restaurantId);
+      return res.json({ success: true, data: config });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async saveFlowConfig(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const { steps } = req.body;
+      const config = await workflowService.saveFlowConfig(
+        restaurantId,
+        steps,
+        auditCtx(req),
+      );
+      return res.json({ success: true, data: config });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const workflowController = new WorkflowController();

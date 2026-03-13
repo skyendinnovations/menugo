@@ -50,6 +50,20 @@
       "when": 1771652929420,
       "tag": "0006_hesitant_hawkeye",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1772173168334,
+      "tag": "0007_silly_mephistopheles",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1772534249765,
+      "tag": "0008_needy_silver_centurion",
+      "breakpoints": true
     }
   ]
 }

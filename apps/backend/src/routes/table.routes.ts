@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { tableController } from "../controllers/table.controller";
-import { requirePermission } from "../middlewares/permission.middleware";
+import { requirePermission, requireAnyPermission } from "../middlewares/permission.middleware";
 import { validate } from "../middlewares/validate.middleware";
 import {
   tableParams,
@@ -16,7 +16,7 @@ const router = Router({ mergeParams: true });
 router.get(
   "/",
   validate({ params: tableParams }),
-  requirePermission("manage_tables"),
+  requireAnyPermission("manage_tables", "helper_block_table", "table_force_release"),
   tableController.getTables.bind(tableController),
 );
 

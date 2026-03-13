@@ -58,6 +58,17 @@ export const orders = pgTable(
         claimedAt: timestamp("claimed_at"),
 
         notes: text("notes"),
+
+        /**
+         * The notification trigger event that was last dispatched for this
+         * order (e.g. "order_placed", "status_preparing_to_ready").
+         *
+         * Stored here so `resendNotification` can replay the exact event
+         * without reverse-engineering the workflow transition graph.
+         * Populated on order creation and updated on every status change.
+         */
+        lastTriggerEvent: text("last_trigger_event"),
+
         createdAt: timestamp("created_at").defaultNow(),
         updatedAt: timestamp("updated_at").defaultNow(),
     },

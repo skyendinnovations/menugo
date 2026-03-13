@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Modal,
   Image,
+  Vibration,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect, useCallback } from 'react';
@@ -241,6 +243,7 @@ function OrderScreenContent() {
   const [showOrders, setShowOrders] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [orderReady, setOrderReady] = useState(false);
 
   // ── Load data ──
   useEffect(() => {
@@ -292,6 +295,52 @@ function OrderScreenContent() {
       console.error('Failed to refresh orders:', err);
     }
   }, [session?.id]);
+
+  // ── Auto-refresh orders every 15 s ──
+  useEffect(() => {
+    if (!session?.id) return;
+    const timer = setInterval(refreshOrders, 15_000);
+    return () => clearInterval(timer);
+  }, [session?.id, refreshOrders]);
+
+  // ── Handle foreground push notifications for order status updates ──
+  useEffect(() => {
+    if (!session?.id) return;
+
+    if (Platform.OS === 'web') {
+      // Web: listen for browser push messages via BroadcastChannel (service worker)
+      // The service worker already shows browser notifications; auto-refresh is enough.
+      return;
+    }
+
+    // Native: use expo-notifications foreground listener
+    let sub: { remove(): void } | undefined;
+    try {
+      const Notif = require('expo-notifications') as typeof import('expo-notifications');
+      sub = Notif.addNotificationReceivedListener((notification) => {
+        const data = notification.request.content.data;
+        if (!data) return;
+
+        // Auto-refresh orders on any order-related notification
+        refreshOrders();
+
+        // Show "ready for pickup" banner when order status becomes ready
+        const eventType = (data.type || '') as string;
+        if (
+          eventType === 'status_preparing_to_ready' ||
+          eventType === 'order_status_changed'
+        ) {
+          setOrderReady(true);
+          Vibration.vibrate([0, 300, 100, 300]);
+          setTimeout(() => setOrderReady(false), 10_000);
+        }
+      });
+    } catch {
+      // expo-notifications not available — ignore
+    }
+
+    return () => sub?.remove();
+  }, [session?.id, refreshOrders]);
 
   // ── Place order ──
   const handlePlaceOrder = async () => {
@@ -409,6 +458,19 @@ function OrderScreenContent() {
         </View>
       )}
 
+      {/* ─── Order Ready Banner ─── */}
+      {orderReady && (
+        <View className="flex-row items-center gap-3 border-b border-emerald-500/30 bg-emerald-500/15 px-5 py-3">
+          <MaterialIcons name="notifications-active" size={20} color="#10B981" />
+          <Text className="flex-1 text-sm font-semibold text-emerald-400">
+            🎉 Your order is ready for pickup!
+          </Text>
+          <TouchableOpacity onPress={() => setOrderReady(false)}>
+            <MaterialIcons name="close" size={18} color="#10B981" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* ─── Inline error banner ─── */}
       {error && menu.length > 0 && (
         <View className="flex-row items-center gap-3 border-b border-red-500/30 bg-red-500/10 px-5 py-3">
@@ -450,10 +512,7 @@ function OrderScreenContent() {
           className="absolute bottom-6 left-4 right-4 flex-row items-center justify-between rounded-2xl bg-brand px-5 py-4"
           style={{
             elevation: 8,
-            shadowColor: '#F97316',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
+            boxShadow: '0 4px 8px rgba(249, 115, 22, 0.3)',
           }}>
           <View className="flex-row items-center gap-3">
             <View className="h-8 w-8 items-center justify-center rounded-full bg-white/20">

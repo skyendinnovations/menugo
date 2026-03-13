@@ -3,26 +3,18 @@ import { sessionRepository } from "../repositories/session.repository";
 import { participantRepository } from "../repositories/participant.repository";
 import { menuRepository } from "../repositories/menu.repository";
 import { tableRepository } from "../repositories/table.repository";
-import { workflowNotificationService } from "./workflow-notification.service";
+import { notificationOrchestrator } from "./notification-orchestrator.service";
 import { workflowService } from "./workflow.service";
-import { stockService } from "./stock.service";
 import { availabilityService } from "./availability.service";
-import { auditService } from "./audit.service";
-import { eventBus } from "./event-bus.service";
+import { stockAdjustmentService } from "./stock-adjustment.service";
+import { orderAuditService } from "./order-audit.service";
 import { AppError } from "../types";
+import type { AuditContext } from "../types";
 import type {
   CreateOrderDTO,
   OrderStatusUpdate,
-  NotificationTriggerEvent,
 } from "@menugo/dto";
 import { generateOrderNumber } from "../utils/order-number";
-import { logger } from "../utils/logger";
-
-/** Contextual info passed from the controller for audit logging. */
-interface AuditContext {
-  actorUserId: string;
-  ipAddress?: string;
-}
 
 class OrderService {
   async createOrder(restaurantId: number, dto: CreateOrderDTO) {
@@ -64,19 +56,17 @@ class OrderService {
       }
 
       // Check stock availability (null = unlimited)
-      if (menuItem.stockCount !== null) {
-        if (menuItem.stockCount < item.quantity) {
-          throw new AppError(
-            400,
-            `Insufficient stock for '${menuItem.name}': ${menuItem.stockCount} available, ${item.quantity} requested`,
-          );
-        }
+      if (menuItem.stockCount !== null && menuItem.stockCount < item.quantity) {
+        throw new AppError(
+          400,
+          `Insufficient stock for '${menuItem.name}': ${menuItem.stockCount} available, ${item.quantity} requested`,
+        );
       }
 
       let price = menuItem.price;
       const variantName = item.variantName;
 
-      // If variant is specified, use variant price
+      // If variant is specified, validate and use variant price
       if (variantName) {
         const variants = await menuRepository.findVariantsByItem(
           item.menuItemId,
@@ -122,69 +112,41 @@ class OrderService {
       createdByDeviceId: dto.deviceId,
       orderNumber,
       notes: dto.notes,
+      lastTriggerEvent: "order_placed",
     });
 
     if (!order) throw new AppError(500, "Failed to create order");
 
     const items = await orderRepository.createItems(order.id, orderItemsData);
 
-    // Decrement stock for all items with tracked inventory
-    for (const item of dto.items) {
-      const menuItem = await menuRepository.findItemById(item.menuItemId);
-      if (menuItem && menuItem.stockCount !== null) {
-        stockService
-          .decrementItemStock(item.menuItemId, restaurantId, item.quantity)
-          .catch((err) =>
-            logger.error("Failed to decrement item stock", err),
-          );
-      }
+    // Decrement stock asynchronously — failures are logged but do not block
+    // the order response.
+    stockAdjustmentService
+      .decrementForOrder(dto.items, restaurantId)
+      .catch(() => {});
 
-      // Decrement variant stock if applicable
-      if (item.variantName) {
-        const variants = await menuRepository.findVariantsByItem(
-          item.menuItemId,
-        );
-        const variant = variants.find(
-          (v) => v.name === item.variantName && v.isActive,
-        );
-        if (variant && variant.stockCount !== null) {
-          stockService
-            .decrementVariantStock(
-              variant.id,
-              restaurantId,
-              item.quantity,
-              menuItem?.name ?? "",
-            )
-            .catch((err) =>
-              logger.error("Failed to decrement variant stock", err),
-            );
-        }
-      }
-    }
-
-    // Send notification asynchronously (workflow-aware routing)
-    workflowNotificationService
-      .dispatch(restaurantId, "order_placed", {
-        type: "order_placed",
-        orderId: order.id,
-        orderNumber: order.orderNumber,
-        restaurantId,
-      })
-      .catch((err) =>
-        logger.error("Failed to send order placed notification", err)
-      );
-
-    // Emit real-time event for SSE / polling clients
+    // Dispatch push notifications + SSE asynchronously
     const table = session.tableId
       ? await tableRepository.findById(session.tableId)
       : null;
-    eventBus.emit(restaurantId, "order_placed", {
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      tableNumber: table?.tableNumber,
-      sessionId: dto.sessionId,
-      itemCount: items.length,
-    });
+    notificationOrchestrator
+      .dispatch(
+        restaurantId,
+        "order_placed",
+        {
+          type: "order_placed",
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          restaurantId,
+          tableNumber: table?.tableNumber ?? undefined,
+        },
+        {
+          sessionId: dto.sessionId,
+          itemCount: items.length,
+          tableNumber: table?.tableNumber ?? undefined,
+        },
+      )
+      .catch(() => {});
 
     return { ...order, items };
   }
@@ -199,68 +161,65 @@ class OrderService {
 
     const currentStatus = order.status || "received";
 
-    // Dynamic workflow validation (replaces hardcoded transition map)
+    // Enforce accept-before-advance (except for cancellation).
+    if (status !== "cancelled" && !order.acceptedBy) {
+      throw new AppError(
+        400,
+        "Order must be accepted before updating its status",
+      );
+    }
+
+    // Validate the transition against the restaurant's configured workflow.
+    // No userId is passed — permission enforcement is the middleware's job.
     await workflowService.validateTransition(
       order.restaurantId,
       currentStatus,
       status,
-      ctx?.actorUserId,
     );
 
-    const updated = await orderRepository.updateStatus(id, status);
-
-    // Audit log the status transition
-    if (ctx) {
-      auditService
-        .log({
-          restaurantId: order.restaurantId,
-          actorUserId: ctx.actorUserId,
-          action: "order_status_changed",
-          entityType: "order",
-          entityId: id,
-          oldValue: { status: currentStatus },
-          newValue: { status },
-          ipAddress: ctx.ipAddress,
-        })
-        .catch(() => {});
-    }
-
-    // Send notification asynchronously
     const triggerEvent =
       status === "cancelled"
         ? "order_cancelled"
-        : (`status_${currentStatus}_to_${status}` as NotificationTriggerEvent);
+        : `status_${currentStatus}_to_${status}`;
 
-    // Send notification asynchronously (workflow-aware routing)
-    workflowNotificationService
-      .dispatch(order.restaurantId, triggerEvent, {
-        type: "order_status_changed",
+    // Persist status + trigger event atomically
+    const updated = await orderRepository.updateStatusAndTrigger(
+      id,
+      status,
+      triggerEvent,
+    );
+
+    // Fire-and-forget side effects
+    orderAuditService.logStatusChange(
+      {
         orderId: id,
-        orderNumber: order.orderNumber,
         restaurantId: order.restaurantId,
         fromStatus: currentStatus,
         toStatus: status,
-      })
-      .catch((err) =>
-        logger.error("Failed to send status change notification", err)
-      );
+      },
+      ctx,
+    );
 
-    // Emit real-time event for SSE / polling clients
-    if (status === "cancelled") {
-      eventBus.emit(order.restaurantId, "order_cancelled", {
-        orderId: id,
-        orderNumber: order.orderNumber,
-      });
-    } else {
-      eventBus.emit(order.restaurantId, "order_status_changed", {
-        orderId: id,
-        orderNumber: order.orderNumber,
-        fromStatus: currentStatus,
-        toStatus: status,
-      });
-    }
+    // Use the canonical trigger event for both push routing and SSE.
+    // order_cancelled is a special case: the SSE event name differs from the
+    // status-transition trigger, so we pass triggerEvent as-is and let the
+    // orchestrator map it to the right SSE event.
+    notificationOrchestrator
+      .dispatch(
+        order.restaurantId,
+        triggerEvent,
+        {
+          type: "order_status_changed",
+          orderId: id,
+          orderNumber: order.orderNumber,
+          restaurantId: order.restaurantId,
+          fromStatus: currentStatus,
+          toStatus: status,
+        },
+      )
+      .catch(() => {});
 
-    // Decrement active order count when a claimed order is served
+    // Release the waiter's active order slot when delivery is complete
     if (status === "served" && order.claimedBy) {
       availabilityService
         .decrementActiveOrders(order.claimedBy, order.restaurantId)
@@ -282,12 +241,19 @@ class OrderService {
       throw new AppError(400, "Order has already been accepted");
     }
 
-    // Emit real-time event for SSE / polling clients
-    eventBus.emit(order.restaurantId, "order_accepted", {
-      orderId,
-      orderNumber: order.orderNumber,
-      acceptedBy: userId,
-    });
+    notificationOrchestrator
+      .dispatch(
+        order.restaurantId,
+        "order_accepted",
+        {
+          type: "order_status_changed",
+          orderId,
+          orderNumber: order.orderNumber,
+          restaurantId: order.restaurantId,
+        },
+        { acceptedBy: userId },
+      )
+      .catch(() => {});
 
     return updated;
   }
@@ -308,9 +274,34 @@ class OrderService {
     return orderRepository.getWaiterOrders(restaurantId);
   }
 
-  async getOrderById(id: number) {
+  /** Delivery view: workflow-driven statuses feeding into "served". */
+  async getDeliveryOrders(restaurantId: number) {
+    return orderRepository.findDeliveryOrders(restaurantId);
+  }
+
+  /** Cashier view: active sessions with non-cancelled orders for the bill modal. */
+  async getCashierOrders(restaurantId: number) {
+    return orderRepository.findCashierOrders(restaurantId);
+  }
+
+  /**
+   * Overview: minimal order fields (no items array) for manager/owner views.
+   * Accepts an optional status filter; excludes terminal states by default.
+   */
+  async getOrdersOverview(restaurantId: number, status?: string) {
+    return orderRepository.findOrdersOverview(restaurantId, status);
+  }
+
+  /**
+   * Fetch an order with its items, enforcing restaurant ownership to prevent
+   * cross-tenant data leaks.
+   */
+  async getOrderById(id: number, restaurantId: number) {
     const order = await orderRepository.findWithItems(id);
     if (!order) throw new AppError(404, "Order not found");
+    if (order.restaurantId !== restaurantId) {
+      throw new AppError(403, "Order does not belong to this restaurant");
+    }
     return order;
   }
 
@@ -330,53 +321,43 @@ class OrderService {
       throw new AppError(403, "Order does not belong to this restaurant");
     }
     if (order.status !== "ready") {
-      throw new AppError(
-        400,
-        "Only orders with 'ready' status can be claimed",
-      );
+      throw new AppError(400, "Only orders with 'ready' status can be claimed");
     }
 
     const claimed = await orderRepository.claimOrder(orderId, userId);
     if (!claimed) {
-      throw new AppError(
-        409,
-        "Order has already been claimed by another waiter",
-      );
+      throw new AppError(409, "Order has already been claimed by another waiter");
     }
 
-    // Increment waiter's active order count
     availabilityService
       .incrementActiveOrders(userId, restaurantId)
       .catch(() => {});
 
-    // Audit log
-    if (ctx) {
-      auditService
-        .log({
-          restaurantId,
-          actorUserId: ctx.actorUserId,
-          action: "order_claimed",
-          entityType: "order",
-          entityId: orderId,
-          newValue: { claimedBy: userId },
-          ipAddress: ctx.ipAddress,
-        })
-        .catch(() => {});
-    }
+    orderAuditService.logClaim(
+      { orderId, restaurantId, claimedByUserId: userId },
+      ctx,
+    );
 
-    // Emit real-time event
-    eventBus.emit(restaurantId, "order_claimed", {
-      orderId,
-      orderNumber: order.orderNumber,
-      claimedBy: userId,
-    });
+    notificationOrchestrator
+      .dispatch(
+        restaurantId,
+        "order_claimed",
+        {
+          type: "order_status_changed",
+          orderId,
+          orderNumber: order.orderNumber,
+          restaurantId,
+        },
+        { claimedBy: userId },
+      )
+      .catch(() => {});
 
     return claimed;
   }
 
   /**
    * Void an order (only when status is received or preparing).
-   * Restores stock and records audit log with reason.
+   * Restores stock and records an audit log entry with the reason.
    */
   async voidOrder(
     orderId: number,
@@ -408,76 +389,39 @@ class OrderService {
 
     await orderRepository.cancelItemsByOrder(orderId);
 
-    // Restore stock for each item
-    for (const item of items) {
-      const menuItem = await menuRepository.findItemById(item.menuItemId);
-      if (!menuItem) continue;
+    // Restore stock — delegated entirely to StockAdjustmentService
+    await stockAdjustmentService.restoreForItems(
+      items.map((i) => ({
+        menuItemId: i.menuItemId,
+        variantName: i.variantName,
+        quantity: i.quantity ?? 1,
+      })),
+      restaurantId,
+    );
 
-      if (item.variantName) {
-        const variants = await menuRepository.findVariantsByItem(item.menuItemId);
-        const variant = variants.find((v) => v.name === item.variantName);
-        if (variant && variant.stockCount !== null) {
-          await stockService.incrementVariantStock(
-            variant.id,
-            restaurantId,
-            item.quantity ?? 1,
-            menuItem.name,
-            variant.name,
-          );
-          continue;
-        }
-      }
+    orderAuditService.logVoid(
+      { orderId, restaurantId, fromStatus: currentStatus, reason },
+      ctx,
+    );
 
-      if (menuItem.stockCount !== null) {
-        await stockService.incrementItemStock(
-          menuItem.id,
-          restaurantId,
-          item.quantity ?? 1,
-          menuItem.name,
-        );
-      }
-    }
-
-    // Audit log the void
-    if (ctx) {
-      auditService
-        .log({
-          restaurantId,
-          actorUserId: ctx.actorUserId,
-          action: "order_voided",
-          entityType: "order",
-          entityId: orderId,
-          oldValue: { status: currentStatus },
-          newValue: { status: "cancelled" },
-          reason,
-          ipAddress: ctx.ipAddress,
-        })
-        .catch(() => {});
-    }
-
-    // Emit real-time event
-    eventBus.emit(restaurantId, "order_status_changed", {
-      orderId,
-      orderNumber: order.orderNumber,
-      fromStatus: currentStatus,
-      toStatus: "cancelled",
-    });
-
-    // Notify kitchen if order was preparing
-    if (currentStatus === "preparing") {
-      workflowNotificationService
-        .dispatch(restaurantId, "order_cancelled", {
+    // Always emit SSE; only dispatch push when the order was being prepared
+    // (kitchen needs to know it was voided mid-cook).
+    const voidTrigger =
+      currentStatus === "preparing" ? "order_cancelled" : "order_status_changed";
+    notificationOrchestrator
+      .dispatch(
+        restaurantId,
+        voidTrigger,
+        {
           type: "order_status_changed",
           orderId,
           orderNumber: order.orderNumber,
           restaurantId,
           fromStatus: currentStatus,
           toStatus: "cancelled",
-        })
-        .catch((err) =>
-          logger.error("Failed to send order void notification", err),
-        );
-    }
+        },
+      )
+      .catch(() => {});
 
     return updated;
   }
@@ -508,50 +452,32 @@ class OrderService {
       throw new AppError(404, "Order item not found");
     }
 
-    const menuItem = await menuRepository.findItemById(orderItem.menuItemId);
-    if (!menuItem) throw new AppError(404, "Menu item not found");
-
     const originalQty = orderItem.quantity ?? 1;
 
     if (input.remove || (input.quantity !== undefined && input.quantity <= 0)) {
       await orderRepository.deleteOrderItem(orderItemId);
 
-      // Restore stock for removed quantity
-      if (orderItem.variantName) {
-        const variants = await menuRepository.findVariantsByItem(orderItem.menuItemId);
-        const variant = variants.find((v) => v.name === orderItem.variantName);
-        if (variant && variant.stockCount !== null) {
-          await stockService.incrementVariantStock(
-            variant.id,
-            restaurantId,
-            originalQty,
-            menuItem.name,
-            variant.name,
-          );
-        }
-      } else if (menuItem.stockCount !== null) {
-        await stockService.incrementItemStock(
-          menuItem.id,
-          restaurantId,
-          originalQty,
-          menuItem.name,
-        );
-      }
+      await stockAdjustmentService.restoreForItems(
+        [
+          {
+            menuItemId: orderItem.menuItemId,
+            variantName: orderItem.variantName,
+            quantity: originalQty,
+          },
+        ],
+        restaurantId,
+      );
 
-      if (ctx) {
-        auditService
-          .log({
-            restaurantId,
-            actorUserId: ctx.actorUserId,
-            action: "override",
-            entityType: "order",
-            entityId: orderId,
-            oldValue: { itemId: orderItemId, quantity: originalQty },
-            newValue: { itemId: orderItemId, removed: true },
-            ipAddress: ctx.ipAddress,
-          })
-          .catch(() => {});
-      }
+      orderAuditService.logItemEdit(
+        {
+          orderId,
+          restaurantId,
+          orderItemId,
+          oldQuantity: originalQty,
+          newQuantity: null,
+        },
+        ctx,
+      );
 
       return { removed: true };
     }
@@ -561,65 +487,20 @@ class OrderService {
     }
 
     const newQty = input.quantity;
-    if (newQty < 1) {
-      throw new AppError(400, "Quantity must be at least 1");
-    }
+    if (newQty < 1) throw new AppError(400, "Quantity must be at least 1");
 
-    const diff = newQty - originalQty;
-    if (diff === 0) {
-      return orderItem;
-    }
-
-    // Handle stock adjustments based on quantity change
-    if (diff > 0) {
-      if (orderItem.variantName) {
-        const variants = await menuRepository.findVariantsByItem(orderItem.menuItemId);
-        const variant = variants.find((v) => v.name === orderItem.variantName);
-        if (variant && variant.stockCount !== null) {
-          if (variant.stockCount < diff) {
-            throw new AppError(
-              400,
-              `Insufficient stock for variant '${variant.name}': ${variant.stockCount} available, ${diff} requested`,
-            );
-          }
-          await stockService.decrementVariantStock(
-            variant.id,
-            restaurantId,
-            diff,
-            menuItem.name,
-          );
-        }
-      } else if (menuItem.stockCount !== null) {
-        if (menuItem.stockCount < diff) {
-          throw new AppError(
-            400,
-            `Insufficient stock for '${menuItem.name}': ${menuItem.stockCount} available, ${diff} requested`,
-          );
-        }
-        await stockService.decrementItemStock(menuItem.id, restaurantId, diff);
-      }
-    } else if (diff < 0) {
-      const restoreQty = Math.abs(diff);
-      if (orderItem.variantName) {
-        const variants = await menuRepository.findVariantsByItem(orderItem.menuItemId);
-        const variant = variants.find((v) => v.name === orderItem.variantName);
-        if (variant && variant.stockCount !== null) {
-          await stockService.incrementVariantStock(
-            variant.id,
-            restaurantId,
-            restoreQty,
-            menuItem.name,
-            variant.name,
-          );
-        }
-      } else if (menuItem.stockCount !== null) {
-        await stockService.incrementItemStock(
-          menuItem.id,
-          restaurantId,
-          restoreQty,
-          menuItem.name,
-        );
-      }
+    if (newQty !== originalQty) {
+      // Throws AppError if insufficient stock for an increase
+      await stockAdjustmentService.adjustForQuantityChange(
+        {
+          menuItemId: orderItem.menuItemId,
+          variantName: orderItem.variantName,
+          quantity: originalQty, // kept for interface compat
+          oldQuantity: originalQty,
+          newQuantity: newQty,
+        },
+        restaurantId,
+      );
     }
 
     const updatedItem = await orderRepository.updateItemQuantity(
@@ -627,27 +508,26 @@ class OrderService {
       newQty,
     );
 
-    if (ctx) {
-      auditService
-        .log({
-          restaurantId,
-          actorUserId: ctx.actorUserId,
-          action: "override",
-          entityType: "order",
-          entityId: orderId,
-          oldValue: { itemId: orderItemId, quantity: originalQty },
-          newValue: { itemId: orderItemId, quantity: newQty },
-          ipAddress: ctx.ipAddress,
-        })
-        .catch(() => {});
-    }
+    orderAuditService.logItemEdit(
+      {
+        orderId,
+        restaurantId,
+        orderItemId,
+        oldQuantity: originalQty,
+        newQuantity: newQty,
+      },
+      ctx,
+    );
 
     return updatedItem;
   }
 
   /**
-   * Re-send the notification for an order based on its current status.
-   * Guarded by the `resend_notification` permission.
+   * Re-send the push notification for an order based on its stored trigger event.
+   *
+   * Reads `lastTriggerEvent` directly from the order row — no workflow
+   * reverse-lookup required.  Falls back to status-derived events for
+   * existing orders that pre-date the column.
    */
   async resendNotification(
     orderId: number,
@@ -660,25 +540,19 @@ class OrderService {
       throw new AppError(403, "Order does not belong to this restaurant");
     }
 
-    const STATUS_TO_TRIGGER: Record<string, NotificationTriggerEvent> = {
-      received: "order_placed",
-      preparing: "status_received_to_preparing",
-      ready: "status_preparing_to_ready",
-      served: "status_ready_to_served",
-      paid: "status_served_to_paid",
-      cancelled: "order_cancelled",
-    };
-
     const currentStatus = order.status || "received";
-    const triggerEvent = STATUS_TO_TRIGGER[currentStatus];
-    if (!triggerEvent) {
-      throw new AppError(
-        400,
-        "Cannot resend notification for this order status",
-      );
-    }
 
-    await workflowNotificationService.dispatch(restaurantId, triggerEvent, {
+    // Prefer the stored trigger event (set by createOrder / updateOrderStatus).
+    // Fall back to a deterministic derivation for legacy rows.
+    const triggerEvent =
+      order.lastTriggerEvent ??
+      (currentStatus === "received"
+        ? "order_placed"
+        : currentStatus === "cancelled"
+          ? "order_cancelled"
+          : `status_received_to_${currentStatus}`);
+
+    await notificationOrchestrator.dispatch(restaurantId, triggerEvent, {
       type:
         currentStatus === "received" ? "order_placed" : "order_status_changed",
       orderId: order.id,
@@ -686,20 +560,10 @@ class OrderService {
       restaurantId,
     });
 
-    // Audit log the resend
-    if (ctx) {
-      auditService
-        .log({
-          restaurantId,
-          actorUserId: ctx.actorUserId,
-          action: "notification_resent",
-          entityType: "order",
-          entityId: orderId,
-          newValue: { triggerEvent, status: currentStatus },
-          ipAddress: ctx.ipAddress,
-        })
-        .catch(() => {});
-    }
+    orderAuditService.logResend(
+      { orderId, restaurantId, triggerEvent, status: currentStatus },
+      ctx,
+    );
   }
 }
 

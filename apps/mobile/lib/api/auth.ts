@@ -3,6 +3,7 @@ import { signIn, signUp, signOut, useSession as _useSession } from '../auth-clie
 import type { SignInData, SignUpData, User } from '@menugo/dto';
 import { ROUTES } from '@/lib/routes';
 import { Platform } from 'react-native';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { nativeGoogleSignIn, isNativeGoogleSignInAvailable } from '../google-signin';
 
 export { _useSession as useSession };
@@ -70,7 +71,18 @@ class AuthAPI extends BaseAPI {
         return result;
       }
 
-      // Fallback: browser-based OAuth redirect (web platform)
+      // In Expo Go on native, the native Google Sign-In module isn't available
+      // and browser-based OAuth won't work (Google rejects private IP redirect URIs
+      // and the device can't reach localhost). Show a helpful error.
+      const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+      if (Platform.OS !== 'web' && isExpoGo) {
+        throw new Error(
+          'Google Sign-In is not available in Expo Go. ' +
+          'Please use email/password to sign in, or create a development build for Google Sign-In support.'
+        );
+      }
+
+      // Web platform: browser-based OAuth redirect
       const defaultCallback =
         Platform.OS === 'web'
           ? typeof window !== 'undefined'

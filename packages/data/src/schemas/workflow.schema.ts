@@ -15,6 +15,15 @@ export const restaurantWorkflows = pgTable(
         requiredPermission: text("required_permission"),
         displayOrder: integer("display_order").default(0).notNull(),
         isActive: boolean("is_active").default(true).notNull(),
+        /**
+         * When true, this transition's arrival status is the point at which
+         * the customer should be notified (e.g. order is ready for pickup).
+         *
+         * Defaults to true for any transition whose toState is "ready"
+         * (handled in the seed / migration).
+         * Custom workflows can set a different step as the customer-notify point.
+         */
+        isCustomerNotifyStep: boolean("is_customer_notify_step").default(false).notNull(),
         createdAt: timestamp("created_at").defaultNow(),
     },
     (t) => ({

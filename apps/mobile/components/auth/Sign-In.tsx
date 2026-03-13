@@ -1,147 +1,351 @@
-import { View, Text, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
 import { Stack, Link, useRouter, useLocalSearchParams } from 'expo-router';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
 import { authAPI } from '@/lib/api';
-import { Alert } from '@/components/ui/Alert';
-import { PasswordInput } from '@/components/ui/PasswordInput';
-import { MaterialIcons, AntDesign } from '@expo/vector-icons';
-import { ROUTES } from '@/lib/routes';
 import { useSession } from '@/lib/api/auth';
+import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { ROUTES } from '@/lib/routes';
+
+/* ── Theme tokens ─────────────────────────────────────────────── */
+const RED = '#DC2626';
+const RED_LIGHT = '#FEF2F2';
+const RED_MUTED = '#FCA5A5';
+const GRAY_900 = '#111827';
+const GRAY_700 = '#374151';
+const GRAY_500 = '#6B7280';
+const GRAY_400 = '#9CA3AF';
+const GRAY_200 = '#E5E7EB';
+const GRAY_50 = '#F9FAFB';
+const WHITE = '#FFFFFF';
 
 export function SignInForm() {
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string; redirect?: string }>();
   const { refetch } = useSession();
+  const passwordRef = useRef<TextInput>(null);
+
   const [email, setEmail] = useState(params.email ?? '');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
+  const isSubmitDisabled = loading || googleLoading || !email.trim() || !password;
+
+  /* ── Email / password sign-in ───────────────────────────────── */
   async function onSubmit() {
+    if (isSubmitDisabled) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await authAPI.signIn({ email, password });
-      if (result.data?.user) {
-        if (params.redirect === 'invitations') {
-          router.replace(ROUTES.ADMIN.ACCEPT_INVITATION);
-        } else {
-          router.replace(ROUTES.ADMIN.HOME);
-        }
-      } else {
-        setError('Sign in failed');
+      const result = await authAPI.signIn({ email: email.trim(), password });
+      if (result?.error) {
+        setError(result.error.message || 'Invalid email or password');
+        return;
       }
+      if (!result?.data?.user) {
+        setError('Invalid email or password');
+        return;
+      }
+      await refetch();
+      router.replace(
+        params.redirect === 'invitations'
+          ? ROUTES.ADMIN.ACCEPT_INVITATION
+          : ROUTES.ADMIN.HOME,
+      );
     } catch (e: any) {
-      setError(e?.message ?? 'Failed to sign in');
+      setError(e?.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   }
 
+  /* ── Google sign-in ─────────────────────────────────────────── */
   async function onGoogleSignIn() {
+    if (loading || googleLoading) return;
     setGoogleLoading(true);
     setError(null);
     try {
       const result = await authAPI.signInWithGoogle();
-
-      if (!result?.data) {
-        return; // User cancelled
-      }
-
+      if (!result?.data) return; // User cancelled
       await refetch();
       if ('user' in result.data && result.data.user) {
-        if (params.redirect === 'invitations') {
-          router.replace(ROUTES.ADMIN.ACCEPT_INVITATION);
-        } else {
-          router.replace(ROUTES.ADMIN.HOME);
-        }
+        router.replace(
+          params.redirect === 'invitations'
+            ? ROUTES.ADMIN.ACCEPT_INVITATION
+            : ROUTES.ADMIN.HOME,
+        );
       }
-      // If no user data (web redirect), the _layout will handle navigation
-      // after session is detected via the auth redirect callback
+      // Web redirect flow – the root _layout handles navigation after callback
     } catch (e: any) {
-      setError(e?.message ?? 'Google sign in failed');
+      setError(e?.message || 'Google sign in failed. Please try again.');
     } finally {
       setGoogleLoading(false);
     }
   }
 
+  /* ── Shared input-row style builder ─────────────────────────── */
+  const inputRow = (focused: boolean) => ({
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    borderWidth: 1.5,
+    borderColor: focused ? RED : GRAY_200,
+    borderRadius: 12,
+    backgroundColor: GRAY_50,
+    paddingHorizontal: 14,
+  });
+
+  const fieldText = {
+    flex: 1,
+    paddingVertical: Platform.OS === 'web' ? 14 : 16,
+    paddingHorizontal: 10,
+    fontSize: 16,
+    color: GRAY_900,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  };
+
+  /* ── UI ─────────────────────────────────────────────────────── */
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-slate-900">
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1, backgroundColor: WHITE }}>
       <Stack.Screen options={{ title: 'Sign In', headerShown: false }} />
+
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
-        keyboardShouldPersistTaps="handled">
-        <View className="mb-10 items-center">
-          <View className="mb-5 h-20 w-20 items-center justify-center rounded-full bg-brand/15">
-            <MaterialIcons name="restaurant-menu" size={40} color="#F97316" />
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: 'center',
+          paddingHorizontal: 24,
+          paddingVertical: 48,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
+        <View style={{ width: '100%', maxWidth: 420, alignSelf: 'center' }}>
+          {/* ── Logo ────────────────────────────────────────────── */}
+          <View style={{ alignItems: 'center', marginBottom: 48 }}>
+            <View
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 20,
+                backgroundColor: RED_LIGHT,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}>
+              <Ionicons name="restaurant" size={36} color={RED} />
+            </View>
+            <Text style={{ fontSize: 36, fontWeight: '800', letterSpacing: -0.5 }}>
+              <Text style={{ color: GRAY_900 }}>Menu</Text>
+              <Text style={{ color: RED }}>Go</Text>
+            </Text>
           </View>
-          <Text className="text-3xl font-bold text-white">Welcome back</Text>
-          <Text className="mt-2 text-base text-slate-400">Sign in to your account</Text>
-        </View>
 
-        {error ? <Alert variant="destructive" description={error} className="mb-6" /> : null}
-
-        <View className="gap-5">
-          <View>
-            <Label nativeID="email" required>
-              Email
-            </Label>
-            <Input
-              id="email"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
+          {/* ── Heading ─────────────────────────────────────────── */}
+          <View style={{ marginBottom: 28 }}>
+            <Text style={{ fontSize: 26, fontWeight: '700', color: GRAY_900 }}>
+              Welcome back
+            </Text>
+            <Text style={{ fontSize: 15, color: GRAY_500, marginTop: 6 }}>
+              Sign in to your account to continue
+            </Text>
           </View>
-          <View>
-            <Label nativeID="password" required>
+
+          {/* ── Error banner ────────────────────────────────────── */}
+          {error ? (
+            <View
+              style={{
+                backgroundColor: RED_LIGHT,
+                borderWidth: 1,
+                borderColor: '#FECACA',
+                borderRadius: 12,
+                padding: 14,
+                marginBottom: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+              }}>
+              <Ionicons name="alert-circle" size={20} color={RED} />
+              <Text style={{ color: '#991B1B', fontSize: 14, flex: 1 }}>{error}</Text>
+            </View>
+          ) : null}
+
+          {/* ── Email field ─────────────────────────────────────── */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: '500', color: GRAY_700, marginBottom: 8 }}>
+              Email address
+            </Text>
+            <View style={inputRow(emailFocused)}>
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color={emailFocused ? RED : GRAY_400}
+              />
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                placeholder="you@example.com"
+                placeholderTextColor={GRAY_400}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
+                textContentType="emailAddress"
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
+                style={fieldText}
+              />
+            </View>
+          </View>
+
+          {/* ── Password field ──────────────────────────────────── */}
+          <View style={{ marginBottom: 28 }}>
+            <Text style={{ fontSize: 14, fontWeight: '500', color: GRAY_700, marginBottom: 8 }}>
               Password
-            </Label>
-            <PasswordInput
-              id="password"
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Enter your password"
-            />
+            </Text>
+            <View style={inputRow(passwordFocused)}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={passwordFocused ? RED : GRAY_400}
+              />
+              <TextInput
+                ref={passwordRef}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Enter your password"
+                placeholderTextColor={GRAY_400}
+                secureTextEntry={!showPassword}
+                autoComplete="current-password"
+                textContentType="password"
+                returnKeyType="done"
+                onSubmitEditing={onSubmit}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                style={fieldText}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword((v) => !v)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                accessibilityRole="button">
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={22}
+                  color={GRAY_400}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <Button
-            title="Sign In"
-            loading={loading}
+          {/* ── Sign In button ──────────────────────────────────── */}
+          <TouchableOpacity
             onPress={onSubmit}
-            disabled={loading || googleLoading || !email || !password}
-            size="lg"
-            className="mt-4"
-          />
+            disabled={isSubmitDisabled}
+            activeOpacity={0.85}
+            style={{
+              backgroundColor: isSubmitDisabled ? RED_MUTED : RED,
+              borderRadius: 12,
+              paddingVertical: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'row',
+              gap: 8,
+              ...Platform.select({
+                ios: {
+                  shadowColor: RED,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: isSubmitDisabled ? 0 : 0.25,
+                  shadowRadius: 8,
+                },
+                android: { elevation: isSubmitDisabled ? 0 : 6 },
+                default: {
+                  boxShadow: isSubmitDisabled
+                    ? 'none'
+                    : '0 4px 14px rgba(220,38,38,0.3)',
+                } as any,
+              }),
+            }}>
+            {loading ? <ActivityIndicator color={WHITE} size="small" /> : null}
+            <Text style={{ color: WHITE, fontSize: 17, fontWeight: '600' }}>
+              {loading ? 'Signing in…' : 'Sign In'}
+            </Text>
+          </TouchableOpacity>
 
-          <View className="my-2 flex-row items-center gap-3">
-            <View className="h-px flex-1 bg-slate-700" />
-            <Text className="text-sm text-slate-500">or</Text>
-            <View className="h-px flex-1 bg-slate-700" />
+          {/* ── Divider ─────────────────────────────────────────── */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginVertical: 24,
+              gap: 12,
+            }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: GRAY_200 }} />
+            <Text style={{ fontSize: 13, color: GRAY_400, fontWeight: '500' }}>
+              or continue with
+            </Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: GRAY_200 }} />
           </View>
 
-          <Button
-            title="Continue with Google"
-            variant="ghost"
-            loading={googleLoading}
+          {/* ── Google button ───────────────────────────────────── */}
+          <TouchableOpacity
             onPress={onGoogleSignIn}
             disabled={loading || googleLoading}
-            size="lg"
-            icon={!googleLoading ? <AntDesign name="google" size={20} color="#fff" /> : undefined}
-          />
+            activeOpacity={0.7}
+            style={{
+              borderWidth: 1.5,
+              borderColor: GRAY_200,
+              borderRadius: 12,
+              paddingVertical: 14,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              backgroundColor: WHITE,
+              opacity: loading || googleLoading ? 0.5 : 1,
+            }}>
+            {googleLoading ? (
+              <ActivityIndicator color={RED} size="small" />
+            ) : (
+              <AntDesign name="google" size={20} color="#EA4335" />
+            )}
+            <Text style={{ fontSize: 16, fontWeight: '500', color: GRAY_900 }}>
+              {googleLoading ? 'Connecting…' : 'Continue with Google'}
+            </Text>
+          </TouchableOpacity>
 
-          <Link href={ROUTES.AUTH.SIGN_UP} asChild>
-            <Button title="Create an account" variant="ghost" size="lg" />
-          </Link>
+          {/* ── Sign Up link ────────────────────────────────────── */}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: 32,
+              gap: 4,
+            }}>
+            <Text style={{ fontSize: 15, color: GRAY_500 }}>
+              {"Don't have an account?"}
+            </Text>
+            <Link href={ROUTES.AUTH.SIGN_UP} asChild>
+              <TouchableOpacity activeOpacity={0.7}>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: RED }}>Sign Up</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

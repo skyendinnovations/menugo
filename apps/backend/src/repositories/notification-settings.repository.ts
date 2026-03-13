@@ -1,7 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "@menugo/data";
-import { notificationSettings, roles } from "@menugo/data/schemas";
-import type { NotificationTriggerEvent } from "@menugo/dto";
+import { notificationSettings, roles, restaurantWorkflows, userRoles, staffAvailability } from "@menugo/data/schemas";
+
 
 class NotificationSettingsRepository {
     async findByRestaurant(restaurantId: number) {
@@ -111,13 +111,38 @@ class NotificationSettingsRepository {
         const manager = findRole("manager");
         const cashier = findRole("cashier");
 
+        // Get the active workflow transitions so we only seed notifications
+        // for trigger events that actually exist in the configured flow.
+        const activeWorkflows = await db
+            .select({
+                fromState: restaurantWorkflows.fromState,
+                toState: restaurantWorkflows.toState,
+            })
+            .from(restaurantWorkflows)
+            .where(
+                and(
+                    eq(restaurantWorkflows.restaurantId, restaurantId),
+                    eq(restaurantWorkflows.isActive, true),
+                )
+            );
+
+        // Build a set of trigger events that match the active transitions
+        const activeTriggers = new Set<string>();
+        activeTriggers.add("order_placed"); // always present
+        activeTriggers.add("order_cancelled"); // always present
+        for (const w of activeWorkflows) {
+            if (w.toState !== "cancelled") {
+                activeTriggers.add(`status_${w.fromState}_to_${w.toState}`);
+            }
+        }
+
         const defaults: Array<{
-            triggerEvent: NotificationTriggerEvent;
+            triggerEvent: string;
             roleId: number;
             enabled: boolean;
         }> = [];
 
-        // Order placed: notify kitchen, waiter, owner, manager
+        // Order placed: notify available roles
         const orderPlacedRoles = [kitchen, waiter, owner, manager].filter(Boolean);
         for (const role of orderPlacedRoles) {
             defaults.push({
@@ -127,27 +152,41 @@ class NotificationSettingsRepository {
             });
         }
 
-        // Preparing to ready: notify waiter, owner
-        const readyRoles = [waiter, owner].filter(Boolean);
-        for (const role of readyRoles) {
-            defaults.push({
-                triggerEvent: "status_preparing_to_ready",
-                roleId: role!.id,
-                enabled: true,
-            });
+        // Status transition notifications — only for transitions in the active flow
+        for (const trigger of activeTriggers) {
+            if (trigger === "order_placed" || trigger === "order_cancelled") continue;
+
+            // Determine which roles should be notified for this transition
+            const notifyRoles: Array<typeof owner> = [];
+
+            if (trigger.includes("_to_ready")) {
+                // Food is ready — notify waiter + owner
+                notifyRoles.push(waiter, owner);
+            } else if (trigger.includes("_to_served")) {
+                // Served — notify cashier (if exists), owner
+                notifyRoles.push(cashier, owner);
+            } else if (trigger.includes("_to_paid")) {
+                // Paid — notify owner, manager
+                notifyRoles.push(owner, manager);
+            } else if (trigger.includes("_to_preparing")) {
+                // Started preparing — notify waiter, owner
+                notifyRoles.push(waiter, owner);
+            } else {
+                // Any other transition — notify owner
+                notifyRoles.push(owner);
+            }
+
+            for (const role of notifyRoles.filter(Boolean)) {
+                defaults.push({
+                    triggerEvent: trigger,
+                    roleId: role!.id,
+                    enabled: true,
+                });
+            }
         }
 
-        // Ready to served: notify cashier
-        if (cashier) {
-            defaults.push({
-                triggerEvent: "status_ready_to_served",
-                roleId: cashier.id,
-                enabled: true,
-            });
-        }
-
-        // Order cancelled: notify kitchen, owner, manager
-        const cancelledRoles = [kitchen, owner, manager].filter(Boolean);
+        // Order cancelled: notify relevant roles
+        const cancelledRoles = [kitchen, waiter, owner, manager].filter(Boolean);
         for (const role of cancelledRoles) {
             defaults.push({
                 triggerEvent: "order_cancelled",
@@ -157,6 +196,46 @@ class NotificationSettingsRepository {
         }
 
         return this.bulkUpsert(restaurantId, defaults);
+    }
+
+    /**
+     * Single-query recipient lookup for notification dispatch.
+     *
+     * JOINs notification_settings → user_roles → staff_availability
+     * and returns the distinct user IDs of all clocked-in staff members
+     * whose role has push notifications enabled for the given trigger event.
+     */
+    async findRecipientsForEvent(
+        restaurantId: number,
+        triggerEvent: string,
+    ): Promise<string[]> {
+        const rows = await db
+            .selectDistinct({ userId: userRoles.userId })
+            .from(notificationSettings)
+            .innerJoin(
+                userRoles,
+                and(
+                    eq(userRoles.roleId, notificationSettings.roleId),
+                    eq(userRoles.restaurantId, restaurantId),
+                ),
+            )
+            .innerJoin(
+                staffAvailability,
+                and(
+                    eq(staffAvailability.userId, userRoles.userId),
+                    eq(staffAvailability.restaurantId, restaurantId),
+                    eq(staffAvailability.status, "clocked_in"),
+                ),
+            )
+            .where(
+                and(
+                    eq(notificationSettings.restaurantId, restaurantId),
+                    eq(notificationSettings.triggerEvent, triggerEvent),
+                    eq(notificationSettings.enabled, true),
+                ),
+            );
+
+        return rows.map((r) => r.userId);
     }
 }
 

@@ -1,5 +1,6 @@
 // UI Components - Red & Black Theme
 export { Alert } from './Alert';
+export { ErrorBanner } from './ErrorBanner';
 export { Avatar } from './Avatar';
 export { Badge } from './Badge';
 export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './Card';

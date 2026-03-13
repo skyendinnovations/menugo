@@ -2,17 +2,19 @@ import { getMessaging } from "../config/firebase";
 import { deviceTokenRepository } from "../repositories/device-token.repository";
 import { notificationSettingsRepository } from "../repositories/notification-settings.repository";
 import { notificationLogRepository } from "../repositories/notification-log.repository";
+import { availabilityRepository } from "../repositories/availability.repository";
 import { logger } from "../utils/logger";
+import { sendExpoPush } from "../utils/expo-push";
 import { eq, inArray, and } from "drizzle-orm";
 import { db } from "@menugo/data";
 import { userRoles, roles, restaurantMembers } from "@menugo/data/schemas";
 import { restaurants } from "@menugo/data/schemas";
 import type {
-    NotificationTriggerEvent,
     OrderNotificationPayload,
     NotificationSettingsMatrix,
 } from "@menugo/dto";
-import { ALL_TRIGGER_EVENTS, TRIGGER_EVENT_LABELS } from "@menugo/dto";
+import { TRIGGER_EVENT_LABELS, getTriggerEventLabel } from "@menugo/dto";
+import { restaurantWorkflows } from "@menugo/data/schemas";
 
 class NotificationService {
     async registerToken(
@@ -41,10 +43,32 @@ class NotificationService {
         const settings =
             await notificationSettingsRepository.findByRestaurant(restaurantId);
 
+        // Derive trigger events from active workflows
+        const activeWorkflows = await db
+            .select({
+                fromState: restaurantWorkflows.fromState,
+                toState: restaurantWorkflows.toState,
+            })
+            .from(restaurantWorkflows)
+            .where(
+                and(
+                    eq(restaurantWorkflows.restaurantId, restaurantId),
+                    eq(restaurantWorkflows.isActive, true),
+                )
+            );
+
+        const triggerEvents: string[] = ["order_placed"];
+        for (const w of activeWorkflows) {
+            if (w.toState !== "cancelled") {
+                triggerEvents.push(`status_${w.fromState}_to_${w.toState}`);
+            }
+        }
+        triggerEvents.push("order_cancelled");
+
         // Build matrix
-        return ALL_TRIGGER_EVENTS.map((event) => ({
+        return triggerEvents.map((event) => ({
             triggerEvent: event,
-            label: TRIGGER_EVENT_LABELS[event],
+            label: getTriggerEventLabel(event),
             roles: restaurantRoles.map((role) => {
                 const setting = settings.find(
                     (s) =>
@@ -80,7 +104,7 @@ class NotificationService {
 
     async sendOrderNotification(
         restaurantId: number,
-        triggerEvent: NotificationTriggerEvent,
+        triggerEvent: string,
         payload: OrderNotificationPayload
     ) {
         try {
@@ -140,10 +164,27 @@ class NotificationService {
                 (r) => r.roleName.toLowerCase() === "owner"
             );
 
+            const ownerUserIds = ownerRole
+                ? owners.map((o) => o.userId)
+                : [];
+
+            // Get clocked-in staff to filter non-owner recipients
+            const clockedIn =
+                await availabilityRepository.findClockedIn(restaurantId);
+            const clockedInUserIds = new Set(
+                clockedIn.map((s) => s.userId)
+            );
+
+            // Staff must be clocked in to receive notifications;
+            // owners are always included when their role is enabled.
+            const staffUserIds = usersWithRoles
+                .map((u) => u.userId)
+                .filter((uid) => clockedInUserIds.has(uid));
+
             const userIds = [
                 ...new Set([
-                    ...usersWithRoles.map((u) => u.userId),
-                    ...(ownerRole ? owners.map((o) => o.userId) : []),
+                    ...staffUserIds,
+                    ...ownerUserIds,
                 ]),
             ];
 
@@ -169,9 +210,7 @@ class NotificationService {
                 triggerEvent,
                 payload
             );
-            const fcmTokens = tokens.map((t) => t.token);
-
-            await this.sendMulticast(fcmTokens, title, body, {
+            const data = {
                 type: payload.type,
                 orderId: String(payload.orderId),
                 orderNumber: payload.orderNumber,
@@ -179,7 +218,26 @@ class NotificationService {
                 tableNumber: payload.tableNumber
                     ? String(payload.tableNumber)
                     : "",
-            });
+            };
+
+            // Split tokens: web → FCM, native (iOS/Android) → Expo Push API
+            const webTokens = tokens
+                .filter((t) => t.deviceType === "web")
+                .map((t) => t.token);
+            const nativeTokens = tokens
+                .filter((t) => t.deviceType !== "web")
+                .map((t) => t.token);
+
+            await Promise.all([
+                webTokens.length > 0
+                    ? this.sendMulticast(webTokens, title, body, data)
+                    : null,
+                nativeTokens.length > 0
+                    ? sendExpoPush(nativeTokens, title, body, data)
+                    : null,
+            ]);
+
+            const totalDevices = webTokens.length + nativeTokens.length;
 
             // Log notification dispatch for history / audit
             notificationLogRepository
@@ -189,14 +247,14 @@ class NotificationService {
                     eventType: triggerEvent,
                     recipientRoleIds: roleIds,
                     recipientUserIds: userIds,
-                    fcmSuccessCount: fcmTokens.length,
+                    fcmSuccessCount: totalDevices,
                     fcmFailureCount: 0,
                     payload: payload as unknown as Record<string, unknown>,
                 })
                 .catch(() => {});
 
             logger.info(
-                `Sent ${triggerEvent} notification to ${fcmTokens.length} devices for order #${payload.orderNumber}`
+                `Sent ${triggerEvent} notification to ${totalDevices} devices for order #${payload.orderNumber}`
             );
         } catch (error) {
             logger.error("Failed to send order notification", error);
@@ -271,7 +329,7 @@ class NotificationService {
     }
 
     private buildNotificationContent(
-        triggerEvent: NotificationTriggerEvent,
+        triggerEvent: string,
         payload: OrderNotificationPayload
     ): { title: string; body: string } {
         const orderRef = `#${payload.orderNumber}`;
@@ -287,34 +345,6 @@ class NotificationService {
                         ? `${tableRef} - New order received`
                         : "New order received",
                 };
-            case "status_received_to_preparing":
-                return {
-                    title: `Order ${orderRef} Being Prepared`,
-                    body: tableRef
-                        ? `${tableRef} - Kitchen started preparing`
-                        : "Kitchen started preparing",
-                };
-            case "status_preparing_to_ready":
-                return {
-                    title: `Order ${orderRef} Ready`,
-                    body: tableRef
-                        ? `${tableRef} - Ready for pickup`
-                        : "Ready for pickup",
-                };
-            case "status_ready_to_served":
-                return {
-                    title: `Order ${orderRef} Served`,
-                    body: tableRef
-                        ? `${tableRef} - Order has been served`
-                        : "Order has been served",
-                };
-            case "status_served_to_paid":
-                return {
-                    title: `Order ${orderRef} Paid`,
-                    body: tableRef
-                        ? `${tableRef} - Payment received`
-                        : "Payment received",
-                };
             case "order_cancelled":
                 return {
                     title: `Order ${orderRef} Cancelled`,
@@ -322,11 +352,16 @@ class NotificationService {
                         ? `${tableRef} - Order was cancelled`
                         : "Order was cancelled",
                 };
-            default:
+            default: {
+                // Dynamic trigger: status_<from>_to_<to>
+                const label = getTriggerEventLabel(triggerEvent);
                 return {
-                    title: `Order ${orderRef} Updated`,
-                    body: "Order status has changed",
+                    title: `${label} ${orderRef}`,
+                    body: tableRef
+                        ? `${tableRef} - ${label}`
+                        : label,
                 };
+            }
         }
     }
 }

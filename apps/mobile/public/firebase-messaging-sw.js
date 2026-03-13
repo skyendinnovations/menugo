@@ -46,8 +46,26 @@ self.addEventListener('notificationclick', function (event) {
   event.notification.close();
 
   const data = event.notification.data;
-  if (data && data.restaurantId) {
-    const url = '/(admin)/restaurants/' + data.restaurantId;
-    event.waitUntil(clients.openWindow(url));
-  }
+  const targetPath = data && data.restaurantId
+    ? '/(admin)/restaurants/' + data.restaurantId + '/orders'
+    : '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windowClients) {
+      // Focus an existing window if one is open
+      for (var i = 0; i < windowClients.length; i++) {
+        var client = windowClients[i];
+        if ('focus' in client) {
+          return client.focus().then(function (focusedClient) {
+            if (focusedClient.url !== new URL(targetPath, self.location.origin).href) {
+              focusedClient.navigate(targetPath);
+            }
+            return focusedClient;
+          });
+        }
+      }
+      // No existing window — open a new one
+      return clients.openWindow(targetPath);
+    })
+  );
 });

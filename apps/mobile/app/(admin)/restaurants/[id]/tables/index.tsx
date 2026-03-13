@@ -1,12 +1,23 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { tableAPI, type Table } from '@/lib/api';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { ROUTES } from '@/lib/routes';
+
+/* ── Theme tokens ─────────────────────────────────────────────── */
+const RED = '#DC2626';
+const RED_LIGHT = '#FEF2F2';
+const GRAY_900 = '#111827';
+const GRAY_700 = '#374151';
+const GRAY_500 = '#6B7280';
+const GRAY_400 = '#9CA3AF';
+const GRAY_200 = '#E5E7EB';
+const GRAY_50 = '#F9FAFB';
+const WHITE = '#FFFFFF';
+const GREEN = '#16A34A';
+const GREEN_LIGHT = '#F0FDF4';
 
 export default function TablesScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,50 +47,106 @@ export default function TablesScreen() {
     <TouchableOpacity
       onPress={() => router.push(ROUTES.ADMIN.TABLES.detail(id!, item.id) as any)}
       activeOpacity={0.7}
-      className="m-[1%] w-[31%]">
-      <Card>
-        <CardContent className="items-center py-5">
-          <View
-            className="mb-2 h-11 w-11 items-center justify-center rounded-xl"
-            style={{
-              backgroundColor: item.isActive ? 'rgba(34,197,94,0.12)' : 'rgba(100,116,139,0.12)',
-            }}>
-            <MaterialIcons
-              name="table-restaurant"
-              size={24}
-              color={item.isActive ? '#22C55E' : '#64748B'}
-            />
-          </View>
-          <Text className="font-bold text-white">#{item.tableNumber}</Text>
-          <Text className="mt-0.5 text-xs text-slate-500">Cap: {item.capacity}</Text>
-        </CardContent>
-      </Card>
+      style={{
+        width: '31%',
+        margin: '1%',
+        backgroundColor: WHITE,
+        borderWidth: 1.5,
+        borderColor: item.isActive ? '#BBF7D0' : GRAY_200,
+        borderRadius: 16,
+        paddingVertical: 20,
+        alignItems: 'center',
+        ...Platform.select({
+          ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3 },
+          android: { elevation: 1 },
+          default: { boxShadow: '0 1px 3px rgba(0,0,0,0.04)' } as any,
+        }),
+      }}>
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 14,
+          backgroundColor: item.isActive ? GREEN_LIGHT : GRAY_50,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 8,
+        }}>
+        <MaterialIcons
+          name="table-restaurant"
+          size={24}
+          color={item.isActive ? GREEN : GRAY_400}
+        />
+      </View>
+      <Text style={{ fontSize: 15, fontWeight: '700', color: GRAY_900 }}>#{item.tableNumber}</Text>
+      <Text style={{ fontSize: 12, color: GRAY_500, marginTop: 2 }}>Cap: {item.capacity}</Text>
     </TouchableOpacity>
   );
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-slate-900 px-4 pt-4">
-        <View className="mb-5 flex-row items-center justify-between">
-          <View className="flex-row items-center gap-4">
+      <View style={{ flex: 1, backgroundColor: WHITE }}>
+        {/* Header */}
+        <View
+          style={{
+            paddingHorizontal: 20,
+            paddingTop: 16,
+            paddingBottom: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: GRAY_200,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <TouchableOpacity
               onPress={() => router.back()}
-              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-              <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
+              activeOpacity={0.7}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                borderWidth: 1.5,
+                borderColor: GRAY_200,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: WHITE,
+              }}>
+              <Ionicons name="arrow-back" size={20} color={GRAY_700} />
             </TouchableOpacity>
-            <Text className="text-xl font-bold text-white">Tables</Text>
+            <View>
+              <Text style={{ fontSize: 22, fontWeight: '700', color: GRAY_900 }}>Tables</Text>
+              <Text style={{ fontSize: 13, color: GRAY_500 }}>
+                {tables.length} table{tables.length !== 1 ? 's' : ''}
+              </Text>
+            </View>
           </View>
-          <Button
-            title="+ Add"
-            size="sm"
+          <TouchableOpacity
             onPress={() => router.push(ROUTES.ADMIN.TABLES.create(id!) as any)}
-          />
+            activeOpacity={0.85}
+            style={{
+              backgroundColor: RED,
+              borderRadius: 10,
+              paddingVertical: 10,
+              paddingHorizontal: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              ...Platform.select({
+                ios: { shadowColor: RED, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6 },
+                android: { elevation: 4 },
+                default: { boxShadow: '0 3px 10px rgba(220,38,38,0.2)' } as any,
+              }),
+            }}>
+            <Ionicons name="add" size={18} color={WHITE} />
+            <Text style={{ color: WHITE, fontSize: 14, fontWeight: '600' }}>Add</Text>
+          </TouchableOpacity>
         </View>
 
         {loading ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#F97316" />
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="large" color={RED} />
           </View>
         ) : (
           <FlatList
@@ -88,7 +155,32 @@ export default function TablesScreen() {
             keyExtractor={(item) => String(item.id)}
             numColumns={3}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={{
+              paddingHorizontal: 8,
+              paddingTop: 12,
+              paddingBottom: 40,
+              maxWidth: 600,
+              width: '100%',
+              alignSelf: 'center' as any,
+            }}
+            ListEmptyComponent={
+              <View style={{ alignItems: 'center', paddingVertical: 48 }}>
+                <View
+                  style={{
+                    width: 72,
+                    height: 72,
+                    borderRadius: 20,
+                    backgroundColor: GRAY_50,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 16,
+                  }}>
+                  <MaterialIcons name="table-restaurant" size={36} color={GRAY_400} />
+                </View>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: GRAY_500 }}>No tables yet</Text>
+                <Text style={{ fontSize: 14, color: GRAY_400, marginTop: 4 }}>Add tables to get started</Text>
+              </View>
+            }
           />
         )}
       </View>

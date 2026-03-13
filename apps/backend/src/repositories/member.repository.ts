@@ -24,6 +24,19 @@ class MemberRepository {
       .where(eq(restaurantMembers.restaurantId, restaurantId));
   }
 
+  /** Return all memberships for a user across all restaurants. */
+  async findAllByUser(userId: string) {
+    return db
+      .select({
+        id: restaurantMembers.id,
+        restaurantId: restaurantMembers.restaurantId,
+        isOwner: restaurantMembers.isOwner,
+        isActive: restaurantMembers.isActive,
+      })
+      .from(restaurantMembers)
+      .where(eq(restaurantMembers.userId, userId));
+  }
+
   async findByUserAndRestaurant(userId: string, restaurantId: number) {
     const [member] = await db
       .select()
@@ -85,6 +98,18 @@ class MemberRepository {
           eq(userRoles.restaurantId, restaurantId),
         ),
       );
+  }
+
+  async updateUserRoles(
+    userId: string,
+    restaurantId: number,
+    roleIds: number[],
+  ) {
+    // Remove existing roles then assign new ones
+    await this.removeUserRoles(userId, restaurantId);
+    if (roleIds.length > 0) {
+      await this.addUserRoles(userId, restaurantId, roleIds);
+    }
   }
 }
 

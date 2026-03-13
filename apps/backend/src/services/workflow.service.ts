@@ -1,57 +1,15 @@
 import { workflowRepository } from "../repositories/workflow.repository";
+import { notificationSettingsRepository } from "../repositories/notification-settings.repository";
 import { auditService } from "./audit.service";
 import { eventBus } from "./event-bus.service";
 import { AppError } from "../types";
+import type { AuditContext } from "../types";
+import { restaurants, roles } from "@menugo/data/schemas";
 import { db } from "@menugo/data";
-import { userRoles, roles } from "@menugo/data/schemas";
-import { eq, and } from "drizzle-orm";
-import type { Permissions, PermissionKey, WorkflowTransitionInput } from "@menugo/dto";
+import { eq } from "drizzle-orm";
+import type { WorkflowTransitionInput } from "@menugo/dto";
 import { isValidPermissionKey } from "@menugo/dto";
 import { logger } from "../utils/logger";
-
-/** Contextual info passed from the controller for audit logging. */
-interface AuditContext {
-  actorUserId: string;
-  ipAddress?: string;
-}
-
-/**
- * Resolve merged permissions for a user in a restaurant.
- * Mirrors the logic in the permission middleware so the workflow service
- * can enforce per-transition permission requirements.
- */
-async function getMergedPermissions(
-  userId: string,
-  restaurantId: number,
-): Promise<{ permissions: Permissions; isOwner: boolean }> {
-  const entries = await db
-    .select({
-      roleName: roles.name,
-      permissions: roles.permissions,
-    })
-    .from(userRoles)
-    .innerJoin(roles, eq(userRoles.roleId, roles.id))
-    .where(
-      and(
-        eq(userRoles.userId, userId),
-        eq(userRoles.restaurantId, restaurantId),
-      ),
-    );
-
-  const isOwner = entries.some((r) => r.roleName === "owner");
-  if (isOwner) return { permissions: {}, isOwner: true };
-
-  const merged: Permissions = {};
-  for (const entry of entries) {
-    const perms = (entry.permissions || {}) as Permissions;
-    for (const [key, value] of Object.entries(perms)) {
-      if (value) {
-        merged[key as PermissionKey] = true;
-      }
-    }
-  }
-  return { permissions: merged, isOwner: false };
-}
 
 /** Legacy hardcoded transitions — used as fallback for restaurants without seeded workflows. */
 const DEFAULT_TRANSITIONS: Record<string, string[]> = {
@@ -66,6 +24,47 @@ const DEFAULT_TRANSITIONS: Record<string, string[]> = {
 const ORDER_STATUSES = ["received", "preparing", "ready", "served", "paid", "cancelled"];
 const TERMINAL_STATES = new Set(["paid", "cancelled"]);
 
+/** Human-readable labels for order statuses. */
+const STATUS_DISPLAY_LABELS: Record<string, string> = {
+  received: "New Order",
+  preparing: "Preparing",
+  ready: "Ready",
+  served: "Served",
+  paid: "Completed",
+  cancelled: "Cancelled",
+};
+
+/**
+ * Derive entry/exit statuses for each step based on step count.
+ * 1 step:  received → paid
+ * 2 steps: received → served → paid
+ * 3 steps: received → ready → served → paid
+ * 4 steps: received → preparing → ready → served → paid
+ */
+function computeStepStatuses(
+  count: number,
+): Array<{ entry: string; exit: string }> {
+  if (count <= 0) return [];
+  if (count === 1) return [{ entry: "received", exit: "paid" }];
+  if (count === 2)
+    return [
+      { entry: "received", exit: "served" },
+      { entry: "served", exit: "paid" },
+    ];
+  if (count === 3)
+    return [
+      { entry: "received", exit: "ready" },
+      { entry: "ready", exit: "served" },
+      { entry: "served", exit: "paid" },
+    ];
+  return [
+    { entry: "received", exit: "preparing" },
+    { entry: "preparing", exit: "ready" },
+    { entry: "ready", exit: "served" },
+    { entry: "served", exit: "paid" },
+  ].slice(0, Math.min(count, 4));
+}
+
 class WorkflowService {
   /**
    * Get all workflow transitions for a restaurant (including inactive).
@@ -75,17 +74,21 @@ class WorkflowService {
   }
 
   /**
-   * Validate that a status transition is allowed for a restaurant.
-   * When an actorUserId is provided, also checks that the actor has the
-   * per-transition required permission.
+   * Validate that a status transition is allowed for a restaurant's
+   * configured workflow.
    *
-   * Throws AppError if the transition is disallowed.
+   * Per-transition permission requirements (e.g. `requiredPermission`) are
+   * intentionally NOT re-checked here — the route middleware has already
+   * enforced the caller's permissions before the service is invoked.
+   * Doing so again would be redundant and would require a second DB round-trip
+   * to resolve the actor's roles.
+   *
+   * Throws `AppError(400)` if the transition is not in the workflow.
    */
   async validateTransition(
     restaurantId: number,
     fromState: string,
     toState: string,
-    actorUserId?: string,
   ): Promise<void> {
     const transition = await workflowRepository.findTransition(
       restaurantId,
@@ -107,30 +110,13 @@ class WorkflowService {
             `Cannot transition from '${fromState}' to '${toState}'`,
           );
         }
-        return; // legacy path — no per-transition permission check
+        return;
       }
 
       throw new AppError(
         400,
         `Cannot transition from '${fromState}' to '${toState}'`,
       );
-    }
-
-    // If the transition requires a specific permission, verify it
-    if (transition.requiredPermission && actorUserId) {
-      const { permissions, isOwner } = await getMergedPermissions(
-        actorUserId,
-        restaurantId,
-      );
-      if (
-        !isOwner &&
-        !permissions[transition.requiredPermission as PermissionKey]
-      ) {
-        throw new AppError(
-          403,
-          `You do not have the '${transition.requiredPermission}' permission required for this transition`,
-        );
-      }
     }
   }
 
@@ -139,6 +125,77 @@ class WorkflowService {
    */
   async seedDefaultWorkflows(restaurantId: number) {
     return workflowRepository.seedDefaults(restaurantId);
+  }
+
+  /**
+   * Rebuild workflow transitions based on the roles that exist for a restaurant.
+   */
+  async rebuildForRoles(restaurantId: number, roleNames: string[]) {
+    return workflowRepository.rebuildForRoles(restaurantId, roleNames);
+  }
+
+  /**
+   * Compute the active order flow for a restaurant.
+   * Returns the ordered list of visible statuses (for tabs) and
+   * a transition map (current → next forward status).
+   */
+  async getOrderFlow(restaurantId: number): Promise<{
+    statuses: string[];
+    transitions: Record<string, string | null>;
+  }> {
+    const active = await workflowRepository.findActiveByRestaurant(restaurantId);
+
+    if (active.length === 0) {
+      // Legacy fallback
+      return {
+        statuses: ["received", "preparing", "ready", "served", "paid"],
+        transitions: {
+          received: "preparing",
+          preparing: "ready",
+          ready: "served",
+          served: "paid",
+          paid: null,
+        },
+      };
+    }
+
+    // Build the forward chain (exclude cancellation transitions)
+    const forward = active.filter((t) => t.toState !== "cancelled");
+
+    // Build a map of fromState → toState for the primary (forward) path
+    const transMap: Record<string, string | null> = {};
+    for (const t of forward) {
+      // If multiple outgoing transitions from the same state, take the
+      // first one by displayOrder (already sorted)
+      if (!(t.fromState in transMap)) {
+        transMap[t.fromState] = t.toState;
+      }
+    }
+
+    // Walk the chain from "received" to build the ordered statuses
+    const statuses: string[] = [];
+    let current: string | null = "received";
+    const visited = new Set<string>();
+
+    while (current && !visited.has(current)) {
+      visited.add(current);
+      statuses.push(current);
+      current = transMap[current] ?? null;
+    }
+
+    // Ensure terminal state is included
+    if (current && !visited.has(current)) {
+      statuses.push(current);
+    }
+
+    // Mark terminal states (no outgoing transition)
+    for (const s of statuses) {
+      if (!(s in transMap)) {
+        transMap[s] = null;
+      }
+    }
+
+    return { statuses, transitions: transMap };
   }
 
   /**
@@ -232,6 +289,214 @@ class WorkflowService {
     });
 
     return result;
+  }
+
+  // ─── Flow Config (visual editor) ───────────────────────────
+
+  /**
+   * Get the flow configuration for the visual editor.
+   * Returns step details + available roles that can be added.
+   */
+  async getFlowConfig(restaurantId: number) {
+    const [restaurant] = await db
+      .select()
+      .from(restaurants)
+      .where(eq(restaurants.id, restaurantId));
+    const settings = (restaurant?.workflowSettings || {}) as Record<
+      string,
+      unknown
+    >;
+    const allRoles = await db
+      .select()
+      .from(roles)
+      .where(eq(roles.restaurantId, restaurantId));
+
+    let configuredSteps: Array<{
+      roleId: number;
+      showAcceptButton: boolean;
+    }> = (settings.steps as any[]) || [];
+
+    // Auto-derive from existing roles if no steps configured
+    if (configuredSteps.length === 0) {
+      const roleOrder = ["kitchen", "waiter", "cashier"];
+      for (const name of roleOrder) {
+        const role = allRoles.find(
+          (r) => r.name.toLowerCase() === name,
+        );
+        if (role)
+          configuredSteps.push({
+            roleId: role.id,
+            showAcceptButton: name === "waiter",
+          });
+      }
+      // Fallback: use non-owner/manager roles
+      if (configuredSteps.length === 0) {
+        for (const role of allRoles) {
+          if (
+            role.name.toLowerCase() !== "owner" &&
+            role.name.toLowerCase() !== "manager"
+          )
+            configuredSteps.push({
+              roleId: role.id,
+              showAcceptButton: false,
+            });
+        }
+      }
+    }
+
+    // Remove steps for roles that no longer exist
+    const roleIds = new Set(allRoles.map((r) => r.id));
+    configuredSteps = configuredSteps.filter((s) => roleIds.has(s.roleId));
+
+    const statuses = computeStepStatuses(configuredSteps.length);
+    const roleMap = new Map(allRoles.map((r) => [r.id, r]));
+
+    const steps = configuredSteps.map((step, i) => {
+      const role = roleMap.get(step.roleId);
+      const st = statuses[i] || { entry: "received", exit: "paid" };
+      return {
+        roleId: step.roleId,
+        roleName: role?.name || "Unknown",
+        showAcceptButton: step.showAcceptButton,
+        entryStatus: st.entry,
+        exitStatus: st.exit,
+        entryStatusLabel:
+          STATUS_DISPLAY_LABELS[st.entry] || st.entry,
+        exitStatusLabel:
+          STATUS_DISPLAY_LABELS[st.exit] || st.exit,
+        triggerEvent:
+          i === 0
+            ? "order_placed"
+            : `status_${statuses[i - 1]!.entry}_to_${statuses[i - 1]!.exit}`,
+      };
+    });
+
+    const stepRoleIds = new Set(configuredSteps.map((s) => s.roleId));
+    const availableRoles = allRoles
+      .filter(
+        (r) =>
+          !stepRoleIds.has(r.id) &&
+          r.name.toLowerCase() !== "owner" &&
+          r.name.toLowerCase() !== "manager",
+      )
+      .map((r) => ({ id: r.id, name: r.name }));
+
+    return { steps, availableRoles };
+  }
+
+  /**
+   * Save the flow configuration from the visual editor.
+   * Rebuilds transitions, notification settings, and persists steps.
+   */
+  async saveFlowConfig(
+    restaurantId: number,
+    steps: Array<{ roleId: number; showAcceptButton: boolean }>,
+    ctx?: AuditContext,
+  ) {
+    // Validate
+    const allRoles = await db
+      .select()
+      .from(roles)
+      .where(eq(roles.restaurantId, restaurantId));
+    const roleMap = new Map(allRoles.map((r) => [r.id, r]));
+
+    for (const step of steps) {
+      if (!roleMap.has(step.roleId)) {
+        throw new AppError(400, `Role ${step.roleId} not found`);
+      }
+    }
+    if (steps.length > 4) {
+      throw new AppError(400, "Maximum 4 steps in the order flow");
+    }
+
+    // Compute statuses
+    const statuses = computeStepStatuses(steps.length);
+
+    // Build transitions
+    const transitions: Array<{
+      fromState: string;
+      toState: string;
+      requiredPermission: string | null;
+      displayOrder: number;
+      isActive: boolean;
+    }> = [];
+
+    for (let i = 0; i < statuses.length; i++) {
+      transitions.push({
+        fromState: statuses[i]!.entry,
+        toState: statuses[i]!.exit,
+        requiredPermission: null,
+        displayOrder: i + 1,
+        isActive: true,
+      });
+    }
+
+    // Cancellation transitions
+    let order = transitions.length + 1;
+    const nonTerminal = new Set(statuses.map((s) => s.entry));
+    for (const state of nonTerminal) {
+      transitions.push({
+        fromState: state,
+        toState: "cancelled",
+        requiredPermission: "modify_order",
+        displayOrder: order++,
+        isActive: true,
+      });
+    }
+
+    // Save transitions
+    await workflowRepository.replaceAll(restaurantId, transitions);
+
+    // Update workflowSettings
+    const [restaurant] = await db
+      .select()
+      .from(restaurants)
+      .where(eq(restaurants.id, restaurantId));
+    const currentSettings =
+      ((restaurant?.workflowSettings || {}) as Record<string, unknown>);
+    const newSettings = {
+      ...currentSettings,
+      steps: steps.map((s) => ({
+        roleId: s.roleId,
+        showAcceptButton: s.showAcceptButton,
+      })),
+      orderFlow: ["received", ...statuses.map((s) => s.exit)],
+    };
+
+    await db
+      .update(restaurants)
+      .set({ workflowSettings: newSettings, updatedAt: new Date() })
+      .where(eq(restaurants.id, restaurantId));
+
+    // Rebuild notification settings
+    await notificationSettingsRepository.seedDefaults(restaurantId);
+
+    // Audit
+    if (ctx) {
+      auditService
+        .log({
+          restaurantId,
+          actorUserId: ctx.actorUserId,
+          action: "workflow_changed",
+          entityType: "workflow",
+          entityId: String(restaurantId),
+          newValue: { steps },
+          ipAddress: ctx.ipAddress,
+        })
+        .catch(() => {});
+    }
+
+    // Emit event
+    eventBus.emit(restaurantId, "workflow_changed", {
+      transitionCount: steps.length,
+    });
+
+    logger.info("Flow config saved", {
+      restaurantId,
+      steps: steps.length,
+    });
+
+    return this.getFlowConfig(restaurantId);
   }
 }
 

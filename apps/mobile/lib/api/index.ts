@@ -1,5 +1,6 @@
 export { authAPI } from './auth';
 export type { UpdateRoleData } from './auth';
+export { PermissionError } from './base';
 export { restaurantAPI } from './restaurant';
 export { tableAPI } from './table';
 export { menuAPI } from './menu';

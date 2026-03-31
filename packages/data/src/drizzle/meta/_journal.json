@@ -50,6 +50,13 @@
       "when": 1771652929420,
       "tag": "0006_hesitant_hawkeye",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1774970818297,
+      "tag": "0007_illegal_shadowcat",
+      "breakpoints": true
     }
   ]
 }

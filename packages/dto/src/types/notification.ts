@@ -1,5 +1,9 @@
 export type NotificationTriggerEvent =
     | "order_placed"
+    | "item_accepted_kitchen"
+    | "item_status_preparing"
+    | "item_status_ready"
+    | "item_status_served"
     | "status_received_to_preparing"
     | "status_preparing_to_ready"
     | "status_ready_to_served"
@@ -8,6 +12,10 @@ export type NotificationTriggerEvent =
 
 export const ALL_TRIGGER_EVENTS: NotificationTriggerEvent[] = [
     "order_placed",
+    "item_accepted_kitchen",
+    "item_status_preparing",
+    "item_status_ready",
+    "item_status_served",
     "status_received_to_preparing",
     "status_preparing_to_ready",
     "status_ready_to_served",
@@ -17,6 +25,10 @@ export const ALL_TRIGGER_EVENTS: NotificationTriggerEvent[] = [
 
 export const TRIGGER_EVENT_LABELS: Record<NotificationTriggerEvent, string> = {
     order_placed: "New Order Placed",
+    item_accepted_kitchen: "Item Accepted by Kitchen",
+    item_status_preparing: "Item Being Prepared",
+    item_status_ready: "Item Ready for Pickup",
+    item_status_served: "Item Served",
     status_received_to_preparing: "Order Started Preparing",
     status_preparing_to_ready: "Order Ready",
     status_ready_to_served: "Order Served",
@@ -59,7 +71,7 @@ export interface DeviceToken {
 }
 
 export interface OrderNotificationPayload {
-    type: "order_placed" | "order_status_changed" | "order_accepted";
+    type: "order_placed" | "order_status_changed" | "order_accepted" | "item_status_changed" | "item_accepted";
     orderId: number;
     orderNumber: string;
     restaurantId: number;
@@ -68,4 +80,20 @@ export interface OrderNotificationPayload {
     fromStatus?: string;
     toStatus?: string;
     acceptedByName?: string;
+    // Item-level fields
+    itemId?: number;
+    itemName?: string;
+    itemStatus?: string;
+    acceptedByRole?: "kitchen" | "waiter";
+}
+
+export interface CustomerNotificationPayload {
+    type: "item_status_changed" | "order_cancelled";
+    orderId: number;
+    orderNumber: string;
+    tableNumber?: number;
+    itemId?: number;
+    itemName?: string;
+    itemStatus?: string;
+    message: string;
 }

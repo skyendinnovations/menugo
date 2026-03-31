@@ -24,6 +24,12 @@ export interface OrderItem {
     quantity: number;
     notes?: string;
     status?: string;
+    acceptedByKitchen?: string;
+    acceptedByWaiter?: string;
+    acceptedByKitchenName?: string;
+    acceptedByWaiterName?: string;
+    acceptedByKitchenAt?: string;
+    acceptedByWaiterAt?: string;
 }
 
 export interface CreateOrderDTO {
@@ -47,3 +53,7 @@ export type OrderStatusUpdate =
     | "served"
     | "paid"
     | "cancelled";
+
+export type ItemStatusUpdate = "received" | "preparing" | "ready" | "served" | "cancelled";
+
+export type StaffAcceptRole = "kitchen" | "waiter";

@@ -53,6 +53,14 @@ class NotificationAPI extends BaseAPI {
       `/api/restaurants/${restaurantId}/orders/${orderId}/accept`
     );
   }
+
+  // Customer FCM token registration (anonymous)
+  async registerCustomerDevice(sessionId: number, deviceId: string, token: string, deviceType: string) {
+    return this.post<{ success: boolean }>(
+      `/api/public/session/${sessionId}/register-device`,
+      { token, deviceType, deviceId }
+    );
+  }
 }
 
 export const notificationAPI = new NotificationAPI();

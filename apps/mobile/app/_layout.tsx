@@ -34,43 +34,57 @@ export default function Layout() {
     if (isAuthenticated && !inAdminGroup && !inPublicGroup) {
       // Authenticated user not in admin group (e.g. on root index or auth pages).
       // Re-verify session then redirect to admin home.
-      getSession().then(async (session) => {
-        if (session.data?.user) {
-          // Check for stored invitation params before default redirect
-          const invitationParams = await getInvitationParams();
-          if (invitationParams) {
-            await clearInvitationParams();
-            router.replace(ROUTES.ADMIN.ACCEPT_INVITATION);
-            return;
-          }
+      getSession()
+        .then(async (session) => {
+          if (session.data?.user) {
+            // Check for stored invitation params before default redirect
+            const invitationParams = await getInvitationParams();
+            if (invitationParams) {
+              await clearInvitationParams();
+              router.replace(ROUTES.ADMIN.ACCEPT_INVITATION);
+              return;
+            }
 
-          router.replace(ROUTES.ADMIN.HOME);
-        } else {
+            router.replace(ROUTES.ADMIN.HOME);
+          } else {
+            setManualSession(null);
+            refetch();
+          }
+        })
+        .catch(() => {
           setManualSession(null);
-          refetch();
-        }
-      });
+          router.replace(ROUTES.AUTH.SIGN_IN);
+        });
     } else if (!isAuthenticated && !inAuthGroup && !inPublicGroup && !inInviteRoute) {
       // Re-verify the session before redirecting to sign-in.
       // This prevents a race condition where router.replace from sign-in
       // arrives before useSession has updated with the new auth state.
-      getSession().then((session) => {
-        if (session.data?.user) {
-          setManualSession(session.data);
-          refetch();
-        } else {
+      getSession()
+        .then((session) => {
+          if (session.data?.user) {
+            setManualSession(session.data);
+            refetch();
+          } else {
+            router.replace(ROUTES.AUTH.SIGN_IN);
+          }
+        })
+        .catch(() => {
           router.replace(ROUTES.AUTH.SIGN_IN);
-        }
-      });
+        });
     }
   }, [isAuthenticated, isReady, segments]);
 
   useEffect(() => {
     const checkSession = async () => {
-      const session = await getSession();
-      setManualSession(session.data);
-      setSessionChecked(true);
-      refetch();
+      try {
+        const session = await getSession();
+        setManualSession(session.data);
+        refetch();
+      } catch {
+        setManualSession(null);
+      } finally {
+        setSessionChecked(true);
+      }
     };
 
     checkSession();

@@ -5,6 +5,7 @@ export const PERMISSION_KEYS = [
     "manage_roles",
     "view_orders",
     "update_orders",
+    "create_orders",
     "close_sessions",
     "view_reports",
     "manage_restaurant",
@@ -29,6 +30,7 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
             manage_roles: true,
             view_orders: true,
             update_orders: true,
+            create_orders: true,
             close_sessions: true,
             view_reports: true,
             manage_restaurant: true,
@@ -42,6 +44,7 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
             manage_members: true,
             view_orders: true,
             update_orders: true,
+            create_orders: true,
             close_sessions: true,
             view_reports: true,
         },
@@ -58,6 +61,7 @@ export const DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
         permissions: {
             view_orders: true,
             update_orders: true,
+            create_orders: true,
         },
     },
     {

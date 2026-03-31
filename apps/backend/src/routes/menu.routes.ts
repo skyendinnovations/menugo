@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { menuController } from "../controllers/menu.controller";
-import { requirePermission } from "../middlewares/permission.middleware";
+import { requirePermission, requireAnyPermission } from "../middlewares/permission.middleware";
 
 const router = Router({ mergeParams: true });
 
 // --- Categories ---
 router.get(
   "/categories",
-  requirePermission("manage_menu"),
+  requireAnyPermission("manage_menu", "create_orders", "view_orders"),
   menuController.getCategories.bind(menuController),
 );
 
@@ -32,13 +32,13 @@ router.delete(
 // --- Items ---
 router.get(
   "/categories/:categoryId/items",
-  requirePermission("manage_menu"),
+  requireAnyPermission("manage_menu", "create_orders", "view_orders"),
   menuController.getItems.bind(menuController),
 );
 
 router.get(
   "/items/:itemId",
-  requirePermission("manage_menu"),
+  requireAnyPermission("manage_menu", "create_orders", "view_orders"),
   menuController.getItem.bind(menuController),
 );
 

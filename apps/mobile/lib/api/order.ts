@@ -23,6 +23,12 @@ class OrderAPI extends BaseAPI {
   }
 
   // Orders
+  async createStaffOrder(restaurantId: number, orderData: { sessionId: number; notes?: string; items: any[] }) {
+    return this.post<{ success: boolean; data: Order }>(
+      `/api/restaurants/${restaurantId}/orders`,
+      orderData
+    );
+  }
   async getOrders(restaurantId: number, status?: string) {
     const query = status ? `?status=${status}` : '';
     return this.get<{ success: boolean; data: Order[] }>(

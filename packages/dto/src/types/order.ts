@@ -39,6 +39,12 @@ export interface CreateOrderDTO {
     items: CreateOrderItemDTO[];
 }
 
+export interface CreateStaffOrderDTO {
+    sessionId: number;
+    notes?: string;
+    items: CreateOrderItemDTO[];
+}
+
 export interface CreateOrderItemDTO {
     menuItemId: number;
     variantName?: string;

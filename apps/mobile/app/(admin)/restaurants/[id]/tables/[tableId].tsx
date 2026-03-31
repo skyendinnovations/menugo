@@ -1,7 +1,11 @@
 import { View, Text, ActivityIndicator, Image, Share } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
-import { useState, useEffect } from 'react';
+import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { tableAPI, type Table, type QRData } from '@/lib/api';
+import { orderAPI } from '@/lib/api/order';
+import { publicAPI } from '@/lib/api/public';
+import { usePermissions } from '@/lib/hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -11,28 +15,52 @@ export default function TableDetail() {
   const { id, tableId } = useLocalSearchParams<{ id: string; tableId: string }>();
   const [table, setTable] = useState<Table | null>(null);
   const [qrData, setQrData] = useState<QRData | null>(null);
+  const [activeSession, setActiveSession] = useState<any | null>(null);
+  const [sessionOrders, setSessionOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { hasPermission } = usePermissions(Number(id));
 
   const restaurantId = Number(id);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const [tablesRes, qrRes] = await Promise.all([
-          tableAPI.getAll(restaurantId),
-          tableAPI.getQR(restaurantId, Number(tableId)),
-        ]);
-        const t = (tablesRes.data || []).find((t: Table) => t.id === Number(tableId));
-        setTable(t || null);
-        setQrData(qrRes.data);
-      } catch (error) {
-        console.error('Failed to fetch table details:', error);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [restaurantId, tableId]);
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      (async () => {
+        try {
+          setLoading(true);
+          const [tablesRes, qrRes, sessionsRes] = await Promise.all([
+            tableAPI.getAll(restaurantId),
+            tableAPI.getQR(restaurantId, Number(tableId)),
+            orderAPI.getSessions(restaurantId, true)
+          ]);
+          if (!isActive) return;
+          const t = (tablesRes.data || []).find((t: Table) => t.id === Number(tableId));
+          setTable(t || null);
+          setQrData(qrRes.data);
+          
+          const sessionMatch = (sessionsRes.data || []).find(
+            (s: any) => (s.session?.tableId || s.tableId) === Number(tableId)
+          );
+          const session = sessionMatch?.session || sessionMatch || null;
+          setActiveSession(session);
+
+          // Fetch recent orders for this session!
+          if (session) {
+            const ordersRes = await publicAPI.getSessionOrders(session.id);
+            if (isActive) setSessionOrders(ordersRes.data || []);
+          } else {
+            if (isActive) setSessionOrders([]);
+          }
+        } catch (error) {
+          console.error('Failed to fetch table details:', error);
+        } finally {
+          if (isActive) setLoading(false);
+        }
+      })();
+      return () => { isActive = false; };
+    }, [restaurantId, tableId])
+  );
 
   const handleShare = async () => {
     if (!qrData) return;
@@ -70,6 +98,47 @@ export default function TableDetail() {
                   {table.isActive ? 'Active' : 'Inactive'}
                 </Badge>
               </View>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Active Session Info */}
+        {activeSession && (
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle>Active Session</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Text className="text-slate-400 mb-2">Customers: {activeSession.personsCount}</Text>
+              
+              {/* {sessionOrders.length > 0 && (
+                <View className="mt-2 pt-3 border-t border-slate-700">
+                  <Text className="font-bold text-white mb-2 text-base">Current Orders</Text>
+                  {sessionOrders.map((order, idx) => (
+                    <View key={order.id || idx} className="mb-3 bg-slate-800 p-3 rounded-lg border border-slate-700 shadow-sm">
+                      <View className="flex-row justify-between items-center border-b border-slate-700 pb-2 mb-2">
+                        <Text className="font-bold text-slate-300">Order #{order.orderNumber}</Text>
+                        <Badge variant={order.status === 'delivered' ? 'success' : 'default'}>{order.status}</Badge>
+                      </View>
+                      {(order.items || []).map((item: any, i: number) => (
+                        <View key={item.id || i} className="flex-row justify-between mb-1 items-center">
+                          <Text className="text-white flex-1">{item.quantity}× {item.itemName}</Text>
+                          <Text className="text-slate-400 text-xs uppercase" numberOfLines={1}>{item.status}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                </View>
+              )} */}
+
+              {hasPermission('create_orders') && (
+                <Button
+                  title="Create Order for Table"
+                  onPress={() => router.push(`/restaurants/${id}/tables/${tableId}/add-order?sessionId=${activeSession.id}` as any)}
+                  className="mt-4"
+                  icon={<MaterialIcons name="add-shopping-cart" size={18} color="#fff" />}
+                />
+              )}
             </CardContent>
           </Card>
         )}

@@ -2,6 +2,17 @@ import type { Request, Response, NextFunction } from "express";
 import { orderService } from "../services/order.service";
 
 class OrderController {
+  async createOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const restaurantId = Number(req.params.restaurantId);
+      const userId = req.user!.id; // Authenticated staff
+      const order = await orderService.createStaffOrder(restaurantId, userId, req.body);
+      return res.status(201).json({ success: true, data: order });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getOrders(req: Request, res: Response, next: NextFunction) {
     try {
       const restaurantId = Number(req.params.restaurantId);

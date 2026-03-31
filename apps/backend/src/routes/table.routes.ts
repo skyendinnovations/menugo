@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { tableController } from "../controllers/table.controller";
-import { requirePermission } from "../middlewares/permission.middleware";
+import { requirePermission, requireAnyPermission } from "../middlewares/permission.middleware";
 
 const router = Router({ mergeParams: true });
 
 router.get(
   "/",
-  requirePermission("manage_tables"),
+  requireAnyPermission("manage_tables", "view_orders", "create_orders", "close_sessions"),
   tableController.getTables.bind(tableController),
 );
 
@@ -36,7 +36,7 @@ router.delete(
 
 router.get(
   "/:tableId/qr",
-  requirePermission("manage_tables"),
+  requireAnyPermission("manage_tables", "view_orders", "create_orders", "close_sessions"),
   tableController.getTableQR.bind(tableController),
 );
 

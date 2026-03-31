@@ -75,6 +75,68 @@ export const requirePermission = (...permissions: PermissionKey[]) => {
   };
 };
 
+export const requireAnyPermission = (...permissions: PermissionKey[]) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) {
+        return next(new AppError(401, "Not authenticated"));
+      }
+
+      const restaurantId = Number(req.params.restaurantId);
+      if (!restaurantId || isNaN(restaurantId)) {
+        return next(new AppError(400, "Invalid restaurant ID"));
+      }
+
+      const userRoleEntries = await db
+        .select({
+          roleId: userRoles.roleId,
+          roleName: roles.name,
+          permissions: roles.permissions,
+        })
+        .from(userRoles)
+        .innerJoin(roles, eq(userRoles.roleId, roles.id))
+        .where(
+          and(
+            eq(userRoles.userId, req.user.id),
+            eq(userRoles.restaurantId, restaurantId),
+          ),
+        );
+
+      if (userRoleEntries.length === 0) {
+        return next(new AppError(403, "You are not a member of this restaurant"));
+      }
+
+      const isOwner = userRoleEntries.some((r) => r.roleName === "owner");
+      if (isOwner) {
+        return next();
+      }
+
+      const mergedPermissions: Permissions = {};
+      for (const entry of userRoleEntries) {
+        const perms = (entry.permissions || {}) as Permissions;
+        for (const [key, value] of Object.entries(perms)) {
+          if (value) {
+            mergedPermissions[key as PermissionKey] = true;
+          }
+        }
+      }
+
+      const hasAny = permissions.some((p) => mergedPermissions[p] === true);
+      if (!hasAny) {
+        return next(new AppError(403, "Insufficient permissions for this action"));
+      }
+
+      next();
+    } catch (error) {
+      next(
+        error instanceof AppError
+          ? error
+          : new AppError(500, "Permission check failed"),
+      );
+    }
+  };
+};
+
 // Middleware that only requires the user to be a member of the restaurant (any role)
 export const requireMembership = async (
   req: Request,

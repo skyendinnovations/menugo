@@ -6,6 +6,7 @@ import { notificationService } from "./notification.service";
 import { AppError } from "../types";
 import type {
   CreateOrderDTO,
+  CreateStaffOrderDTO,
   OrderStatusUpdate,
   ItemStatusUpdate,
   StaffAcceptRole,
@@ -91,6 +92,78 @@ class OrderService {
       restaurantId,
       tableSessionId: dto.sessionId,
       createdByDeviceId: dto.deviceId,
+      orderNumber,
+      notes: dto.notes,
+    });
+
+    if (!order) throw new AppError(500, "Failed to create order");
+
+    const items = await orderRepository.createItems(order.id, orderItemsData);
+
+    // Notify all enabled kitchen + waiter staff
+    notificationService
+      .sendOrderNotification(restaurantId, "order_placed", {
+        type: "order_placed",
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        restaurantId,
+      })
+      .catch((err) => logger.error("Failed to send order placed notification", err));
+
+    return { ...order, items };
+  }
+
+  async createStaffOrder(restaurantId: number, staffUserId: string, dto: CreateStaffOrderDTO) {
+    // Validate session
+    const session = await sessionRepository.findById(dto.sessionId);
+    if (!session) throw new AppError(404, "Session not found");
+    if (session.status !== "active") {
+      throw new AppError(400, "Session is not active");
+    }
+    if (session.restaurantId !== restaurantId) {
+      throw new AppError(400, "Session does not belong to this restaurant");
+    }
+
+    if (dto.items.length === 0) {
+      throw new AppError(400, "Order must have at least one item");
+    }
+
+    // Validate items and snapshot prices
+    const orderItemsData = [];
+    for (const item of dto.items) {
+      const menuItem = await menuRepository.findItemById(item.menuItemId);
+      if (!menuItem) {
+        throw new AppError(404, `Menu item ${item.menuItemId} not found`);
+      }
+      if (!menuItem.isAvailable || !menuItem.isActive) {
+        throw new AppError(400, `${menuItem.name} is not available`);
+      }
+
+      let price = menuItem.price;
+      const variantName = item.variantName;
+
+      if (variantName) {
+        const variants = await menuRepository.findVariantsByItem(item.menuItemId);
+        const variant = variants.find((v) => v.name === variantName && v.isActive);
+        if (variant) price = variant.price;
+      }
+
+      orderItemsData.push({
+        menuItemId: item.menuItemId,
+        itemName: menuItem.name,
+        variantName: variantName || undefined,
+        priceAtOrder: price,
+        quantity: item.quantity,
+        notes: item.notes,
+      });
+    }
+
+    const orderNumber = await generateOrderNumber(restaurantId);
+
+    const order = await orderRepository.create({
+      restaurantId,
+      tableSessionId: dto.sessionId,
+      createdBy: staffUserId,
       orderNumber,
       notes: dto.notes,
     });

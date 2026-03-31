@@ -4,6 +4,7 @@ import { requirePermission } from "../middlewares/permission.middleware";
 
 const router = Router({ mergeParams: true });
 
+router.post("/", requirePermission("create_orders"), orderController.createOrder.bind(orderController));
 router.get("/", requirePermission("view_orders"), orderController.getOrders.bind(orderController));
 router.get("/kitchen", requirePermission("view_orders"), orderController.getKitchenOrders.bind(orderController));
 router.get("/waiter", requirePermission("view_orders"), orderController.getWaiterOrders.bind(orderController));

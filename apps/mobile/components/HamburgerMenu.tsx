@@ -34,6 +34,7 @@ interface MenuRoute {
   topRoute?: string; // top-level route (no restaurant id)
   color: string;
   permission?: string;
+  altPermission?: string; // accessible if EITHER permission is granted
   dividerBefore?: boolean;
 }
 
@@ -77,7 +78,9 @@ const RESTAURANT_ROUTES: MenuRoute[] = [
     icon: 'table-restaurant',
     route: 'tables',
     color: '#3B82F6',
+    // Accessible to table managers AND to waiters who can create orders
     permission: 'manage_tables',
+    altPermission: 'create_orders',
   },
   {
     key: 'menu',
@@ -200,7 +203,9 @@ export function HamburgerMenu({
   const canAccess = (route: MenuRoute) => {
     if (!route.permission) return true;
     if (isOwner) return true;
-    return permissions[route.permission] === true;
+    if (permissions[route.permission] === true) return true;
+    if (route.altPermission && permissions[route.altPermission] === true) return true;
+    return false;
   };
 
   const navigateTo = (route: MenuRoute) => {

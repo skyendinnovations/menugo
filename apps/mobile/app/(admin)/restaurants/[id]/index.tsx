@@ -17,6 +17,7 @@ interface DashboardCard {
   color: string;
   bg: string;
   permission?: string;
+  altPermission?: string;
 }
 
 const ALL_CARDS: DashboardCard[] = [
@@ -59,6 +60,7 @@ const ALL_CARDS: DashboardCard[] = [
     color: '#3B82F6',
     bg: 'rgba(59,130,246,0.12)',
     permission: 'manage_tables',
+    altPermission: 'create_orders',
   },
   {
     title: 'Menu',
@@ -150,7 +152,14 @@ export default function RestaurantDashboard() {
   );
 
   const cards = useMemo(
-    () => ALL_CARDS.filter((card) => !card.permission || isOwner || hasPermission(card.permission)),
+    () =>
+      ALL_CARDS.filter(
+        (card) =>
+          !card.permission ||
+          isOwner ||
+          hasPermission(card.permission) ||
+          (card.altPermission && hasPermission(card.altPermission))
+      ),
     [isOwner, hasPermission]
   );
 

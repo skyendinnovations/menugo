@@ -51,11 +51,22 @@ class OrderAPI extends BaseAPI {
   async updateOrderStatus(restaurantId: number, orderId: number, status: string) {
     return this.request<{ success: boolean; data: Order }>(
       `/api/restaurants/${restaurantId}/orders/${orderId}/status`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-        headers: { 'Content-Type': 'application/json' },
-      }
+      { method: 'PATCH', body: JSON.stringify({ status }), headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Per-item operations
+  async updateItemStatus(restaurantId: number, orderId: number, itemId: number, status: string) {
+    return this.request<{ success: boolean; data: any }>(
+      `/api/restaurants/${restaurantId}/orders/${orderId}/items/${itemId}/status`,
+      { method: 'PATCH', body: JSON.stringify({ status }), headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  async acceptOrderItem(restaurantId: number, orderId: number, itemId: number, role: 'kitchen' | 'waiter') {
+    return this.post<{ success: boolean; data: any }>(
+      `/api/restaurants/${restaurantId}/orders/${orderId}/items/${itemId}/accept`,
+      { role }
     );
   }
 }

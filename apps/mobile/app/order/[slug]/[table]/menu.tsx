@@ -9,8 +9,9 @@ import {
   Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { publicAPI, type FullMenuCategory, type MenuItem, type MenuItemVariant } from '@/lib/api';
+import { notificationAPI } from '@/lib/api/notification';
 import { fileAPI } from '@/lib/api/file';
 import { getDeviceId } from '@/lib/utils/device-id';
 import { CartProvider, useCart } from '@/lib/context/CartContext';
@@ -18,6 +19,8 @@ import { Button } from '@/components/ui/Button';
 import { formatPrice } from '@menugo/dto';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ROUTES } from '@/lib/routes';
+import { registerForPushNotifications } from '@/lib/notifications';
+import { Platform } from 'react-native';
 
 // ─── Types ───────────────────────────────────────────────
 type MenuItemWithVariants = MenuItem & { variants: MenuItemVariant[] };
@@ -200,21 +203,70 @@ function MenuItemCard({ item, currency }: { item: MenuItemWithVariants; currency
   );
 }
 
-// ─── Order Status Color ──────────────────────────────────
+// ─── Status helpers ───────────────────────────────────────
+const ITEM_STATUS_STEPS = ['received', 'preparing', 'ready', 'served'];
+
+const ITEM_STATUS_META: Record<string, { emoji: string; label: string; color: string }> = {
+  received: { emoji: '⏳', label: 'Received', color: '#F59E0B' },
+  preparing: { emoji: '🔥', label: 'Cooking', color: '#F97316' },
+  ready: { emoji: '✅', label: 'Ready!', color: '#22C55E' },
+  served: { emoji: '🍽️', label: 'Served', color: '#94A3B8' },
+  cancelled: { emoji: '❌', label: 'Cancelled', color: '#EF4444' },
+};
+
+function ItemStatusProgress({ status }: { status?: string }) {
+  const s = status || 'received';
+  if (s === 'cancelled') {
+    return (
+      <View className="mt-1 flex-row items-center gap-1">
+        <Text className="text-xs text-red-400">❌ Cancelled</Text>
+      </View>
+    );
+  }
+  const currentIdx = ITEM_STATUS_STEPS.indexOf(s);
+  return (
+    <View className="mt-1.5 flex-row items-center gap-1">
+      {ITEM_STATUS_STEPS.map((step, idx) => {
+        const meta = ITEM_STATUS_META[step];
+        const done = idx <= currentIdx;
+        return (
+          <View key={step} className="flex-row items-center">
+            <View
+              className="rounded-full px-1.5 py-0.5"
+              style={{ backgroundColor: done ? meta.color + '25' : '#1E293B' }}>
+              <Text
+                className="text-[10px] font-semibold"
+                style={{ color: done ? meta.color : '#475569' }}>
+                {meta.emoji} {meta.label}
+              </Text>
+            </View>
+            {idx < ITEM_STATUS_STEPS.length - 1 && (
+              <View
+                className="h-px w-3"
+                style={{ backgroundColor: done ? meta.color : '#1E293B' }}
+              />
+            )}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 function getStatusStyle(status: string): { bg: string; text: string; label: string } {
   switch (status) {
     case 'received':
-      return { bg: 'bg-amber-500/15', text: 'text-amber-400', label: 'Received' };
+      return { bg: 'bg-amber-500/15', text: 'text-amber-400', label: '⏳ Received' };
     case 'preparing':
-      return { bg: 'bg-blue-500/15', text: 'text-blue-400', label: 'Preparing' };
+      return { bg: 'bg-orange-500/15', text: 'text-orange-400', label: '🔥 Preparing' };
     case 'ready':
-      return { bg: 'bg-emerald-500/15', text: 'text-emerald-400', label: 'Ready' };
+      return { bg: 'bg-emerald-500/15', text: 'text-emerald-400', label: '✅ Ready' };
     case 'served':
-      return { bg: 'bg-slate-500/15', text: 'text-slate-400', label: 'Served' };
+      return { bg: 'bg-slate-500/15', text: 'text-slate-400', label: '🍽️ Served' };
     case 'cancelled':
-      return { bg: 'bg-red-500/15', text: 'text-red-400', label: 'Cancelled' };
+      return { bg: 'bg-red-500/15', text: 'text-red-400', label: '❌ Cancelled' };
     case 'paid':
-      return { bg: 'bg-emerald-500/15', text: 'text-emerald-400', label: 'Paid' };
+      return { bg: 'bg-emerald-500/15', text: 'text-emerald-400', label: '💰 Paid' };
     default:
       return { bg: 'bg-slate-500/15', text: 'text-slate-300', label: status };
   }
@@ -242,6 +294,9 @@ function OrderScreenContent() {
   const [placing, setPlacing] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
 
+  const sessionRef = useRef<any>(null);
+  const deviceIdRef = useRef('');
+
   // ── Load data ──
   useEffect(() => {
     (async () => {
@@ -249,6 +304,7 @@ function OrderScreenContent() {
         setLoading(true);
         const did = await getDeviceId();
         setDeviceId(did);
+        deviceIdRef.current = did;
 
         // Check session exists
         const tableInfoRes = await publicAPI.getTableInfo(slug as string, Number(table), did);
@@ -268,11 +324,28 @@ function OrderScreenContent() {
         // Fetch session status via GET (not POST)
         const sessionRes = await publicAPI.getSessionStatus(existingSessionId);
         setSession(sessionRes.data);
+        sessionRef.current = sessionRes.data;
 
         // Fetch existing orders
         if (sessionRes.data?.id) {
           const ordersRes = await publicAPI.getSessionOrders(sessionRes.data.id);
           setOrders(ordersRes.data || []);
+        }
+
+        // Register FCM token for push notifications (customer)
+        try {
+          const fcmToken = await registerForPushNotifications();
+          if (fcmToken && existingSessionId) {
+            const deviceType = Platform.OS === 'web' ? 'web' : Platform.OS;
+            await notificationAPI.registerCustomerDevice(
+              existingSessionId,
+              did,
+              fcmToken,
+              deviceType
+            );
+          }
+        } catch {
+          // Non-critical — don't block menu load
         }
       } catch (err: any) {
         setError(err.message || 'Failed to load');
@@ -281,6 +354,19 @@ function OrderScreenContent() {
       }
     })();
   }, [slug, table, router]);
+
+  // ── Poll orders every 10s ──
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (sessionRef.current?.id) {
+        publicAPI
+          .getSessionOrders(sessionRef.current.id)
+          .then((res) => setOrders(res.data || []))
+          .catch(() => {});
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   // ── Refresh orders ──
   const refreshOrders = useCallback(async () => {
@@ -605,19 +691,29 @@ function OrderScreenContent() {
                         </View>
                       </View>
 
-                      {/* Order items */}
+                      {/* Order items — per-item status */}
                       {order.items?.map((oi: any, idx: number) => (
-                        <View key={idx} className="flex-row justify-between py-1.5">
-                          <Text className="flex-1 text-sm text-slate-300">
-                            {oi.quantity}× {oi.itemName}
-                            {oi.variantName ? ` (${oi.variantName})` : ''}
-                          </Text>
-                          <Text className="text-sm text-slate-400">
-                            {formatPrice(
-                              parseFloat(oi.priceAtOrder || '0') * (oi.quantity || 1),
-                              currency
-                            )}
-                          </Text>
+                        <View key={idx} className="border-b border-slate-600/30 py-2">
+                          <View className="flex-row items-start justify-between">
+                            <View className="mr-2 flex-1">
+                              <Text className="text-sm font-semibold text-slate-200">
+                                {oi.quantity}× {oi.itemName}
+                                {oi.variantName ? (
+                                  <Text className="text-slate-400"> ({oi.variantName})</Text>
+                                ) : null}
+                              </Text>
+                              {oi.notes && (
+                                <Text className="mt-0.5 text-xs text-amber-400">📝 {oi.notes}</Text>
+                              )}
+                              <ItemStatusProgress status={oi.status} />
+                            </View>
+                            <Text className="mt-1 text-xs text-slate-400">
+                              {formatPrice(
+                                parseFloat(oi.priceAtOrder || '0') * (oi.quantity || 1),
+                                currency
+                              )}
+                            </Text>
+                          </View>
                         </View>
                       ))}
 

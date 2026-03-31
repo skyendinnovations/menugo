@@ -17,11 +17,41 @@ class OrderRepository {
   async findWithItems(id: number) {
     const order = await this.findById(id);
     if (!order) return null;
-    const items = await db
+    const items = await this.findItemsByOrder(id);
+    return { ...order, items };
+  }
+
+  async findItemById(itemId: number) {
+    const [item] = await db
       .select()
       .from(orderItems)
-      .where(eq(orderItems.orderId, id));
-    return { ...order, items };
+      .where(eq(orderItems.id, itemId));
+    return item || null;
+  }
+
+  async findItemsByOrder(orderId: number) {
+    const items = await db
+      .select({
+        item: orderItems,
+        kitchenAcceptorName: sql<string | null>`kitchen_acceptor.name`,
+        waiterAcceptorName: sql<string | null>`waiter_acceptor.name`,
+      })
+      .from(orderItems)
+      .leftJoin(
+        sql`${userTable} AS kitchen_acceptor`,
+        sql`kitchen_acceptor.id = ${orderItems.acceptedByKitchen}`,
+      )
+      .leftJoin(
+        sql`${userTable} AS waiter_acceptor`,
+        sql`waiter_acceptor.id = ${orderItems.acceptedByWaiter}`,
+      )
+      .where(eq(orderItems.orderId, orderId));
+
+    return items.map((r) => ({
+      ...r.item,
+      acceptedByKitchenName: r.kitchenAcceptorName,
+      acceptedByWaiterName: r.waiterAcceptorName,
+    }));
   }
 
   async create(data: {
@@ -63,6 +93,76 @@ class OrderRepository {
     return order;
   }
 
+  /** Update a single order item's status */
+  async updateItemStatus(itemId: number, status: string) {
+    const [item] = await db
+      .update(orderItems)
+      .set({ status: status as any })
+      .where(eq(orderItems.id, itemId))
+      .returning();
+    return item;
+  }
+
+  /**
+   * Accept a specific order item by kitchen or waiter staff.
+   * Kitchen claims items to prepare; waiter claims items to deliver.
+   */
+  async acceptOrderItem(
+    itemId: number,
+    userId: string,
+    role: "kitchen" | "waiter",
+  ) {
+    const isKitchen = role === "kitchen";
+    const alreadyAcceptedField = isKitchen
+      ? orderItems.acceptedByKitchen
+      : orderItems.acceptedByWaiter;
+
+    const [item] = await db
+      .update(orderItems)
+      .set(
+        isKitchen
+          ? { acceptedByKitchen: userId, acceptedByKitchenAt: new Date() }
+          : { acceptedByWaiter: userId, acceptedByWaiterAt: new Date() },
+      )
+      .where(
+        and(eq(orderItems.id, itemId), isNull(alreadyAcceptedField)),
+      )
+      .returning();
+
+    return item || null;
+  }
+
+  /**
+   * Compute the aggregate status of an order from its items.
+   * Logic:
+   *  - Any item is "cancelled" and not all cancelled → ignore cancelled, check rest
+   *  - All items cancelled → order is "cancelled"
+   *  - All items paid → order is "paid" (won't usually happen at item level)
+   *  - All items served → order is "served"
+   *  - All items ready → order is "ready"
+   *  - Any item preparing → order is "preparing"
+   *  - Otherwise → "received"
+   */
+  async computeOrderStatusFromItems(orderId: number): Promise<string> {
+    const items = await db
+      .select({ status: orderItems.status })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, orderId));
+
+    if (items.length === 0) return "received";
+
+    const statuses = items.map((i) => i.status || "received");
+    const activeStatuses = statuses.filter((s) => s !== "cancelled");
+
+    if (activeStatuses.length === 0) return "cancelled";
+
+    if (activeStatuses.every((s) => s === "served" || s === "paid")) return "served";
+    if (activeStatuses.every((s) => s === "ready" || s === "served" || s === "paid")) return "ready";
+    if (activeStatuses.some((s) => s === "preparing")) return "preparing";
+
+    return "received";
+  }
+
   async findBySession(sessionId: number) {
     const sessionOrders = await db
       .select()
@@ -73,10 +173,7 @@ class OrderRepository {
     if (sessionOrders.length === 0) return [];
 
     const orderIds = sessionOrders.map((o) => o.id);
-    const allItems = await db
-      .select()
-      .from(orderItems)
-      .where(inArray(orderItems.orderId, orderIds));
+    const allItems = await this._getItemsWithAcceptors(orderIds);
 
     return sessionOrders.map((order) => ({
       ...order,
@@ -99,10 +196,7 @@ class OrderRepository {
     if (restaurantOrders.length === 0) return [];
 
     const orderIds = restaurantOrders.map((o) => o.id);
-    const allItems = await db
-      .select()
-      .from(orderItems)
-      .where(inArray(orderItems.orderId, orderIds));
+    const allItems = await this._getItemsWithAcceptors(orderIds);
 
     return restaurantOrders.map((order) => ({
       ...order,
@@ -135,10 +229,7 @@ class OrderRepository {
     if (kitchenOrders.length === 0) return [];
 
     const orderIds = kitchenOrders.map((o) => o.order.id);
-    const allItems = await db
-      .select()
-      .from(orderItems)
-      .where(inArray(orderItems.orderId, orderIds));
+    const allItems = await this._getItemsWithAcceptors(orderIds);
 
     return kitchenOrders.map((row) => ({
       ...row.order,
@@ -147,7 +238,7 @@ class OrderRepository {
     }));
   }
 
-  // Waiter view: orders with status ready (need delivery)
+  // Waiter view: items with status ready (any order), grouped by table
   async getWaiterOrders(restaurantId: number) {
     const waiterOrders = await db
       .select({
@@ -161,23 +252,28 @@ class OrderRepository {
         eq(tableSessions.tableId, restaurantTables.id),
       )
       .where(
-        and(eq(orders.restaurantId, restaurantId), eq(orders.status, "ready")),
+        and(
+          eq(orders.restaurantId, restaurantId),
+          inArray(orders.status, ["received", "preparing", "ready"] as any[]),
+        ),
       )
       .orderBy(sql`${orders.createdAt} asc`);
 
     if (waiterOrders.length === 0) return [];
 
     const orderIds = waiterOrders.map((o) => o.order.id);
-    const allItems = await db
-      .select()
-      .from(orderItems)
-      .where(inArray(orderItems.orderId, orderIds));
+    const allItems = await this._getItemsWithAcceptors(orderIds);
 
-    return waiterOrders.map((row) => ({
-      ...row.order,
-      tableNumber: row.tableNumber,
-      items: allItems.filter((item) => item.orderId === row.order.id),
-    }));
+    // Only return items with status "ready" for the waiter view
+    return waiterOrders
+      .map((row) => ({
+        ...row.order,
+        tableNumber: row.tableNumber,
+        items: allItems.filter(
+          (item) => item.orderId === row.order.id && item.status === "ready",
+        ),
+      }))
+      .filter((order) => order.items.length > 0);
   }
 
   async acceptOrder(id: number, userId: string) {
@@ -237,6 +333,43 @@ class OrderRepository {
     }
 
     return total.toFixed(2);
+  }
+
+  /** Internal helper to fetch items with acceptor names for a set of order IDs */
+  private async _getItemsWithAcceptors(orderIds: number[]) {
+    if (orderIds.length === 0) return [];
+
+    const items = await db
+      .select()
+      .from(orderItems)
+      .where(inArray(orderItems.orderId, orderIds));
+
+    // Gather all unique user IDs referenced as acceptors
+    const userIds = [
+      ...new Set([
+        ...items.map((i) => i.acceptedByKitchen).filter(Boolean),
+        ...items.map((i) => i.acceptedByWaiter).filter(Boolean),
+      ]),
+    ] as string[];
+
+    let userMap: Record<string, string> = {};
+    if (userIds.length > 0) {
+      const users = await db
+        .select({ id: userTable.id, name: userTable.name })
+        .from(userTable)
+        .where(inArray(userTable.id, userIds));
+      userMap = Object.fromEntries(users.map((u) => [u.id, u.name]));
+    }
+
+    return items.map((item) => ({
+      ...item,
+      acceptedByKitchenName: item.acceptedByKitchen
+        ? userMap[item.acceptedByKitchen]
+        : undefined,
+      acceptedByWaiterName: item.acceptedByWaiter
+        ? userMap[item.acceptedByWaiter]
+        : undefined,
+    }));
   }
 }
 

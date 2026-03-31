@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { menuService } from "../services/menu.service";
 import { sessionService } from "../services/session.service";
 import { orderService } from "../services/order.service";
+import { notificationService } from "../services/notification.service";
 import { AppError } from "../types";
 
 // ── Shared helpers to avoid duplicated slug → restaurant → table lookup ──
@@ -194,13 +195,26 @@ class PublicController {
     try {
       const sessionId = Number(req.params.sessionId);
       if (!sessionId || isNaN(sessionId)) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Invalid session ID" });
+        return res.status(400).json({ success: false, message: "Invalid session ID" });
       }
 
       const orders = await orderService.getOrdersBySession(sessionId);
       return res.json({ success: true, data: orders });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /** POST /public/session/:sessionId/register-device */
+  async registerCustomerDevice(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, deviceType, deviceId } = req.body;
+      if (!token || !deviceType || !deviceId) {
+        return res.status(400).json({ success: false, message: "token, deviceType and deviceId are required" });
+      }
+
+      await notificationService.registerCustomerToken(deviceId, token, deviceType);
+      return res.json({ success: true });
     } catch (error) {
       next(error);
     }

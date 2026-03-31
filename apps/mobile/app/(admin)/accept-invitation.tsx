@@ -1,5 +1,5 @@
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { memberAPI, type MyInvitation } from '@/lib/api';
@@ -69,35 +69,46 @@ export default function AcceptInvitationScreen() {
   );
 
   return (
-    <View className="flex-1 bg-slate-900 px-5 pt-2">
-      <View className="mb-5 flex-row items-center justify-between">
-        <Text className="text-2xl font-bold text-white">My Invitations</Text>
-        <Button
-          title="+ Restaurant"
-          size="sm"
-          variant="ghost"
-          onPress={() => router.push(ROUTES.ADMIN.RESTAURANTS.CREATE as any)}
-        />
-      </View>
-
-      {error ? <Alert variant="destructive" description={error} className="mb-4" /> : null}
-
-      {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#F97316" />
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View className="flex-1 bg-slate-900">
+        {/* Header */}
+        <View className="flex-row items-center gap-3 border-b border-slate-800 px-4 pb-4 pt-14">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="h-11 w-11 items-center justify-center rounded-xl bg-slate-800">
+            <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
+          </TouchableOpacity>
+          <Text className="flex-1 text-lg font-bold text-white">Invitations</Text>
+          <Button
+            title="+ Restaurant"
+            size="sm"
+            variant="ghost"
+            onPress={() => router.push(ROUTES.ADMIN.RESTAURANTS.CREATE as any)}
+          />
         </View>
-      ) : (
-        <FlatList
-          data={invitations}
-          renderItem={renderInvitation}
-          keyExtractor={(item) => String(item.id)}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={
-            invitations.length === 0 ? { flexGrow: 1 } : { paddingBottom: 100 }
-          }
-          ListEmptyComponent={renderEmpty}
-        />
-      )}
-    </View>
+
+        <View className="flex-1 px-5 pt-4">
+          {error ? <Alert variant="destructive" description={error} className="mb-4" /> : null}
+
+          {loading ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="large" color="#F97316" />
+            </View>
+          ) : (
+            <FlatList
+              data={invitations}
+              renderItem={renderInvitation}
+              keyExtractor={(item) => String(item.id)}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={
+                invitations.length === 0 ? { flexGrow: 1 } : { paddingBottom: 100 }
+              }
+              ListEmptyComponent={renderEmpty}
+            />
+          )}
+        </View>
+      </View>
+    </>
   );
 }

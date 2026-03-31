@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { ImageUpload } from '@/components/ui/ImageUpload';
 import { MaterialIcons } from '@expo/vector-icons';
+import { AdminPageHeader } from '@/components/AdminPageHeader';
 
 export default function Profile() {
   const router = useRouter();
@@ -124,20 +125,13 @@ export default function Profile() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-slate-900">
-        <ScrollView className="flex-1 px-5 pt-4" keyboardShouldPersistTaps="handled">
-          <View className="mb-6 flex-row items-center gap-4">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-              <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
-            </TouchableOpacity>
-            <Text className="text-xl font-bold text-white">Profile</Text>
-          </View>
-
-          {error ? <Alert variant="destructive" description={error} className="mb-4" /> : null}
+      <View className="flex-1 bg-slate-900">
+        <AdminPageHeader title="Profile" />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1">
+          <ScrollView className="flex-1 px-5 pt-4" keyboardShouldPersistTaps="handled">
+            {error ? <Alert variant="destructive" description={error} className="mb-4" /> : null}
           {success ? <Alert variant="default" description={success} className="mb-4" /> : null}
 
           <View className="gap-5">
@@ -169,8 +163,9 @@ export default function Profile() {
               className="mt-2"
             />
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
     </>
   );
 }

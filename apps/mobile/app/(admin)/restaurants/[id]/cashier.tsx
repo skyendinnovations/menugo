@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/Badge';
 import { formatPrice } from '@menugo/dto';
 import { restaurantAPI } from '@/lib/api';
 import { MaterialIcons } from '@expo/vector-icons';
+import { AdminPageHeader } from '@/components/AdminPageHeader';
 
 export default function CashierView() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -109,137 +110,136 @@ export default function CashierView() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: 'Cashier',
-          headerStyle: { backgroundColor: '#0F172A' },
-          headerTintColor: '#F8FAFC',
-          headerShadowVisible: false,
-        }}
-      />
-      <View className="flex-1 bg-slate-900 px-5 pt-2">
-        <View className="mb-4 flex-row items-center justify-between">
-          <Text className="text-xl font-bold text-white">Active Sessions</Text>
-          <TouchableOpacity
-            onPress={fetchSessions}
-            className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-            <MaterialIcons name="refresh" size={22} color="#F97316" />
-          </TouchableOpacity>
-        </View>
-
-        <FlatList
-          data={sessions}
-          keyExtractor={(item, idx) => String(item.session?.id || idx)}
-          contentContainerStyle={{ paddingBottom: 20 }}
-          renderItem={({ item }) => {
-            const session = item.session || item;
-            return (
-              <TouchableOpacity onPress={() => handleViewBill(item)} activeOpacity={0.7}>
-                <Card className="mb-3">
-                  <CardContent>
-                    <View className="flex-row items-center justify-between">
-                      <View className="mr-3 flex-1">
-                        <Text className="text-base font-bold text-white">
-                          Table #{item.tableNumber}
-                        </Text>
-                        {session.customerName ? (
-                          <Text className="mt-0.5 text-sm font-semibold text-orange-400">
-                            {session.customerName}
-                          </Text>
-                        ) : null}
-                        <Text className="mt-0.5 text-sm text-slate-400">
-                          Code: {session.joinCode} | Persons: {session.personsCount}
-                        </Text>
-                        <Text className="mt-1 text-xs text-slate-500">
-                          Started: {new Date(session.startTime).toLocaleTimeString()}
-                        </Text>
-                      </View>
-                      <View className="items-end gap-2">
-                        <Badge variant="default">
-                          {formatPrice(parseFloat(session.calculatedTotal || '0'), currency)}
-                        </Badge>
-                        <MaterialIcons name="chevron-right" size={22} color="#64748B" />
-                      </View>
-                    </View>
-                  </CardContent>
-                </Card>
-              </TouchableOpacity>
-            );
-          }}
-          ListEmptyComponent={
-            <View className="flex-1 items-center justify-center py-16">
-              <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-slate-800">
-                <MaterialIcons name="receipt" size={40} color="#64748B" />
-              </View>
-              <Text className="text-base text-slate-500">No active sessions</Text>
-            </View>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View className="flex-1 bg-slate-900">
+        <AdminPageHeader
+          title="Cashier"
+          subtitle="Active Sessions"
+          restaurantId={restaurantId}
+          right={
+            <TouchableOpacity
+              onPress={fetchSessions}
+              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
+              <MaterialIcons name="refresh" size={22} color="#F97316" />
+            </TouchableOpacity>
           }
         />
 
-        <Modal visible={showBill} animationType="slide" transparent>
-          <View className="flex-1 justify-end bg-black/60">
-            <View className="max-h-[85%] rounded-t-3xl border-t border-slate-700 bg-slate-800 p-5">
-              <View className="mb-5 flex-row items-center justify-between">
-                <Text className="text-xl font-bold text-white">Bill Summary</Text>
-                <TouchableOpacity
-                  onPress={() => setShowBill(false)}
-                  className="h-10 w-10 items-center justify-center rounded-full bg-slate-700">
-                  <MaterialIcons name="close" size={22} color="#F8FAFC" />
-                </TouchableOpacity>
-              </View>
-
-              {selectedSession && (
-                <View className="mb-4">
-                  <Text className="text-slate-400">
-                    Table #{selectedSession.tableNumber} | Code:{' '}
-                    {(selectedSession.session || selectedSession).joinCode}
-                  </Text>
-                </View>
-              )}
-
-              <ScrollView>
-                {sessionOrders.map((order) => (
-                  <View key={order.id} className="mb-4">
-                    <View className="mb-1 flex-row items-center justify-between">
-                      <Text className="font-bold text-white">{order.orderNumber}</Text>
-                      <Badge variant={order.status === 'cancelled' ? 'destructive' : 'default'}>
-                        {order.status}
-                      </Badge>
-                    </View>
-                    {order.items?.map((item, idx) => (
-                      <View key={idx} className="ml-4 flex-row justify-between py-1">
-                        <Text className="text-sm text-slate-300">
-                          {item.quantity}x {item.itemName}
-                          {item.variantName ? ` (${item.variantName})` : ''}
-                        </Text>
-                        <Text className="text-sm text-slate-400">
-                          {formatPrice(parseFloat(item.priceAtOrder) * item.quantity, currency)}
-                        </Text>
+        <View className="flex-1 px-5 pt-3">
+          <FlatList
+            data={sessions}
+            keyExtractor={(item, idx) => String(item.session?.id || idx)}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            renderItem={({ item }) => {
+              const session = item.session || item;
+              return (
+                <TouchableOpacity onPress={() => handleViewBill(item)} activeOpacity={0.7}>
+                  <Card className="mb-3">
+                    <CardContent>
+                      <View className="flex-row items-center justify-between">
+                        <View className="mr-3 flex-1">
+                          <Text className="text-base font-bold text-white">
+                            Table #{item.tableNumber}
+                          </Text>
+                          {session.customerName ? (
+                            <Text className="mt-0.5 text-sm font-semibold text-orange-400">
+                              {session.customerName}
+                            </Text>
+                          ) : null}
+                          <Text className="mt-0.5 text-sm text-slate-400">
+                            Code: {session.joinCode} | Persons: {session.personsCount}
+                          </Text>
+                          <Text className="mt-1 text-xs text-slate-500">
+                            Started: {new Date(session.startTime).toLocaleTimeString()}
+                          </Text>
+                        </View>
+                        <View className="items-end gap-2">
+                          <Badge variant="default">
+                            {formatPrice(parseFloat(session.calculatedTotal || '0'), currency)}
+                          </Badge>
+                          <MaterialIcons name="chevron-right" size={22} color="#64748B" />
+                        </View>
                       </View>
-                    ))}
-                  </View>
-                ))}
-              </ScrollView>
-
-              <View className="mt-4 border-t border-slate-700 pt-5">
-                <View className="mb-5 flex-row justify-between">
-                  <Text className="text-xl font-bold text-white">Total</Text>
-                  <Text className="text-xl font-bold text-white">
-                    {formatPrice(calculateTotal(), currency)}
-                  </Text>
+                    </CardContent>
+                  </Card>
+                </TouchableOpacity>
+              );
+            }}
+            ListEmptyComponent={
+              <View className="flex-1 items-center justify-center py-16">
+                <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-slate-800">
+                  <MaterialIcons name="receipt" size={40} color="#64748B" />
                 </View>
-                <Button
-                  title="Close Session & Settle Bill"
-                  loading={closing}
-                  onPress={handleCloseSession}
-                  disabled={closing}
-                  variant="success"
-                  size="lg"
-                />
+                <Text className="text-base text-slate-500">No active sessions</Text>
+              </View>
+            }
+          />
+
+          <Modal visible={showBill} animationType="slide" transparent>
+            <View className="flex-1 justify-end bg-black/60">
+              <View className="max-h-[85%] rounded-t-3xl border-t border-slate-700 bg-slate-800 p-5">
+                <View className="mb-5 flex-row items-center justify-between">
+                  <Text className="text-xl font-bold text-white">Bill Summary</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowBill(false)}
+                    className="h-10 w-10 items-center justify-center rounded-full bg-slate-700">
+                    <MaterialIcons name="close" size={22} color="#F8FAFC" />
+                  </TouchableOpacity>
+                </View>
+
+                {selectedSession && (
+                  <View className="mb-4">
+                    <Text className="text-slate-400">
+                      Table #{selectedSession.tableNumber} | Code:{' '}
+                      {(selectedSession.session || selectedSession).joinCode}
+                    </Text>
+                  </View>
+                )}
+
+                <ScrollView>
+                  {sessionOrders.map((order) => (
+                    <View key={order.id} className="mb-4">
+                      <View className="mb-1 flex-row items-center justify-between">
+                        <Text className="font-bold text-white">{order.orderNumber}</Text>
+                        <Badge variant={order.status === 'cancelled' ? 'destructive' : 'default'}>
+                          {order.status}
+                        </Badge>
+                      </View>
+                      {order.items?.map((item, idx) => (
+                        <View key={idx} className="ml-4 flex-row justify-between py-1">
+                          <Text className="text-sm text-slate-300">
+                            {item.quantity}x {item.itemName}
+                            {item.variantName ? ` (${item.variantName})` : ''}
+                          </Text>
+                          <Text className="text-sm text-slate-400">
+                            {formatPrice(parseFloat(item.priceAtOrder) * item.quantity, currency)}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                </ScrollView>
+
+                <View className="mt-4 border-t border-slate-700 pt-5">
+                  <View className="mb-5 flex-row justify-between">
+                    <Text className="text-xl font-bold text-white">Total</Text>
+                    <Text className="text-xl font-bold text-white">
+                      {formatPrice(calculateTotal(), currency)}
+                    </Text>
+                  </View>
+                  <Button
+                    title="Close Session & Settle Bill"
+                    loading={closing}
+                    onPress={handleCloseSession}
+                    disabled={closing}
+                    variant="success"
+                    size="lg"
+                  />
+                </View>
               </View>
             </View>
-          </View>
-        </Modal>
+          </Modal>
+        </View>
       </View>
     </>
   );

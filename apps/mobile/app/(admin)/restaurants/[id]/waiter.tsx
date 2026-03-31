@@ -5,6 +5,7 @@ import { orderAPI } from '@/lib/api/order';
 import type { Order, OrderItem } from '@menugo/dto';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { MaterialIcons } from '@expo/vector-icons';
+import { AdminPageHeader } from '@/components/AdminPageHeader';
 
 // ─── Item Row for Waiter ───────────────────────────────────────────────────────
 
@@ -216,29 +217,20 @@ export default function WaiterView() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: 'Waiter',
-          headerStyle: { backgroundColor: '#0F172A' },
-          headerTintColor: '#F8FAFC',
-          headerShadowVisible: false,
-        }}
-      />
-      <View className="flex-1 bg-slate-900 px-4 pt-3">
-        {/* Header */}
-        <View className="mb-4 flex-row items-center justify-between">
-          <View>
-            <Text className="text-xl font-bold text-white">Ready for Delivery</Text>
-            <Text className="mt-0.5 text-xs text-slate-500">
-              {totalReadyItems} item{totalReadyItems !== 1 ? 's' : ''} waiting
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={fetchData}
-            className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-            <MaterialIcons name="refresh" size={22} color="#22C55E" />
-          </TouchableOpacity>
-        </View>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View className="flex-1 bg-slate-900">
+        <AdminPageHeader
+          title="Waiter"
+          subtitle={`${totalReadyItems} item${totalReadyItems !== 1 ? 's' : ''} ready for delivery`}
+          restaurantId={restaurantId}
+          right={
+            <TouchableOpacity
+              onPress={fetchData}
+              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
+              <MaterialIcons name="refresh" size={22} color="#22C55E" />
+            </TouchableOpacity>
+          }
+        />
 
         <FlatList
           data={[]}

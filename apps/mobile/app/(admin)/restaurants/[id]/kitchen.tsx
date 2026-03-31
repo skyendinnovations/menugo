@@ -5,6 +5,7 @@ import { orderAPI } from '@/lib/api/order';
 import type { Order, OrderItem } from '@menugo/dto';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { MaterialIcons } from '@expo/vector-icons';
+import { AdminPageHeader } from '@/components/AdminPageHeader';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -281,27 +282,20 @@ export default function KitchenView() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: 'Kitchen',
-          headerStyle: { backgroundColor: '#0F172A' },
-          headerTintColor: '#F8FAFC',
-          headerShadowVisible: false,
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-slate-900">
-        {/* Header */}
-        <View className="flex-row items-center justify-between border-b border-slate-800 px-4 py-3">
-          <View>
-            <Text className="text-xl font-bold text-white">Kitchen View</Text>
-            <Text className="mt-0.5 text-xs text-slate-500">Tap dishes to claim and advance</Text>
-          </View>
-          <TouchableOpacity
-            onPress={fetchOrders}
-            className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-            <MaterialIcons name="refresh" size={22} color="#F97316" />
-          </TouchableOpacity>
-        </View>
+        <AdminPageHeader
+          title="Kitchen"
+          subtitle="Tap dishes to claim and advance"
+          restaurantId={restaurantId}
+          right={
+            <TouchableOpacity
+              onPress={fetchOrders}
+              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
+              <MaterialIcons name="refresh" size={22} color="#F97316" />
+            </TouchableOpacity>
+          }
+        />
 
         {/* Kanban Columns (horizontal scroll) */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">

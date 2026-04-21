@@ -142,7 +142,7 @@ export class SubscriptionService {
       interval,
       callback_url:
         SKYEND_CALLBACK_URL ||
-        "http://localhost:5000/api/subscription/callback",
+        "http://192.168.1.40:5000/api/subscription/callback",
     };
 
     // Generate HMAC signature

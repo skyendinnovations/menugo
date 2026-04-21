@@ -17,7 +17,7 @@ import {
 
 const allowedOrigins = CORS_ALLOWED_ORIGINS
   ? CORS_ALLOWED_ORIGINS.split(",")
-  : ["http://localhost:3000", "http://localhost:8081"];
+  : ["http://localhost:3000", "http://localhost:8081", "http://192.168.1.40:5000", "http://192.168.1.40:8081"];
 
 export const config = {
   port: PORT,

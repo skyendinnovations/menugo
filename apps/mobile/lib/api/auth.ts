@@ -75,7 +75,7 @@ class AuthAPI extends BaseAPI {
         Platform.OS === 'web'
           ? typeof window !== 'undefined'
             ? window.location.origin
-            : 'http://localhost:8081'
+            : 'http://192.168.1.40:8081'
           : '/';
 
       const result = await signIn.social({

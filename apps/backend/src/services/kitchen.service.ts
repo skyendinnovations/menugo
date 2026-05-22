@@ -7,17 +7,20 @@ import { inArray } from "drizzle-orm";
 class KitchenService {
   async list(restaurantId: number) {
     const ks = await kitchenRepository.findByRestaurant(restaurantId);
-    
+
     // Batch fetch all members for all kitchens
-    const kitchenIds = ks.map(k => k.id);
+    const kitchenIds = ks.map((k) => k.id);
     if (kitchenIds.length === 0) return [];
-    
+
     // Fetch all members in one query
     const members = await db
-      .select({ kitchenId: kitchenMembers.kitchenId, userId: kitchenMembers.userId })
+      .select({
+        kitchenId: kitchenMembers.kitchenId,
+        userId: kitchenMembers.userId,
+      })
       .from(kitchenMembers)
       .where(inArray(kitchenMembers.kitchenId, kitchenIds));
-    
+
     // Map members by kitchenId
     const membersByKitchen = new Map<number, string[]>();
     for (const member of members) {
@@ -26,13 +29,13 @@ class KitchenService {
       }
       membersByKitchen.get(member.kitchenId)!.push(member.userId);
     }
-    
+
     // Build output with members attached
-    const out = ks.map(k => ({
+    const out = ks.map((k) => ({
       ...k,
-      memberUserIds: membersByKitchen.get(k.id) || []
+      memberUserIds: membersByKitchen.get(k.id) || [],
     }));
-    
+
     return out;
   }
   async create(restaurantId: number, name: string) {

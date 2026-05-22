@@ -30,6 +30,14 @@ const ALL_CARDS: DashboardCard[] = [
     permission: 'view_orders',
   },
   {
+    title: 'Kitchen Mgmt',
+    icon: 'manage-accounts',
+    route: 'kitchen-management',
+    color: '#14B8A6',
+    bg: 'rgba(20,184,166,0.12)',
+    permission: 'manage_menu',
+  },
+  {
     title: 'Waiter',
     icon: 'room-service',
     route: 'waiter',

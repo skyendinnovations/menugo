@@ -7,5 +7,6 @@ export * from "./session";
 export * from "./table";
 export * from "./member";
 export * from "./role";
+export * from "./kitchen";
 export * from "./file";
 export * from "./notification";

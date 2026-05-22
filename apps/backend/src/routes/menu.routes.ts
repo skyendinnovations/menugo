@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { menuController } from "../controllers/menu.controller";
+import { kitchenController } from "../controllers/kitchen.controller";
 import { requirePermission, requireAnyPermission } from "../middlewares/permission.middleware";
 
 const router = Router({ mergeParams: true });
@@ -84,5 +85,14 @@ router.delete(
   requirePermission("manage_menu"),
   menuController.deleteVariant.bind(menuController),
 );
+
+
+// --- Kitchens ---
+router.get("/kitchens", requireAnyPermission("manage_menu", "view_orders"), kitchenController.list.bind(kitchenController));
+router.post("/kitchens", requirePermission("manage_menu"), kitchenController.create.bind(kitchenController));
+router.put("/kitchens/:kitchenId", requirePermission("manage_menu"), kitchenController.update.bind(kitchenController));
+router.delete("/kitchens/:kitchenId", requirePermission("manage_menu"), kitchenController.delete.bind(kitchenController));
+router.post("/kitchens/:kitchenId/members", requirePermission("manage_menu"), kitchenController.addMember.bind(kitchenController));
+router.delete("/kitchens/:kitchenId/members/:userId", requirePermission("manage_menu"), kitchenController.removeMember.bind(kitchenController));
 
 export default router;

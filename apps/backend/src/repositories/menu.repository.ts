@@ -4,7 +4,9 @@ import {
   menuCategories,
   menuItems,
   menuItemVariants,
+  kitchenMenuItems,
 } from "@menugo/data/schemas";
+import type { CreateMenuItemDTO, UpdateMenuItemDTO } from "@menugo/dto";
 
 class MenuRepository {
   // --- Categories ---
@@ -79,40 +81,44 @@ class MenuRepository {
     return item || null;
   }
 
-  async createItem(data: {
-    restaurantId: number;
-    categoryId: number;
-    name: string;
-    description?: string;
-    price: string;
-    isVeg?: boolean;
-    imagePath?: string;
-    hasVariants?: boolean;
-  }) {
-    const [item] = await db.insert(menuItems).values(data).returning();
-    return item;
+  async createItem(data: CreateMenuItemDTO & { restaurantId: number }) {
+    const { kitchenId, ...itemData } = data;
+    
+    const result = await db.transaction(async (tx) => {
+      const [item] = await tx.insert(menuItems).values(itemData).returning();
+      if (item && kitchenId) {
+        await tx.insert(kitchenMenuItems).values({ kitchenId, menuItemId: item.id });
+      }
+      return item;
+    });
+    
+    return result;
   }
 
   async updateItem(
     id: number,
-    data: {
-      categoryId?: number;
-      name?: string;
-      description?: string;
-      price?: string;
-      isVeg?: boolean;
-      imagePath?: string;
-      isAvailable?: boolean;
-      isActive?: boolean;
-      hasVariants?: boolean;
-    },
+    data: UpdateMenuItemDTO,
   ) {
-    const [item] = await db
-      .update(menuItems)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(menuItems.id, id))
-      .returning();
-    return item;
+    const { kitchenId, ...itemData } = data;
+    
+    const result = await db.transaction(async (tx) => {
+      const [item] = await tx
+        .update(menuItems)
+        .set({ ...itemData, updatedAt: new Date() })
+        .where(eq(menuItems.id, id))
+        .returning();
+      
+      if (typeof kitchenId !== "undefined") {
+        await tx.delete(kitchenMenuItems).where(eq(kitchenMenuItems.menuItemId, id));
+        if (kitchenId) {
+          await tx.insert(kitchenMenuItems).values({ kitchenId, menuItemId: id });
+        }
+      }
+      
+      return item;
+    });
+    
+    return result;
   }
 
   async toggleAvailability(id: number) {

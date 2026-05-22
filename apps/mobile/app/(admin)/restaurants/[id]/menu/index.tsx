@@ -2,7 +2,7 @@ import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Image } from
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { menuAPI, type MenuCategory, type MenuItem } from '@/lib/api';
+import { menuAPI, kitchenAPI, type MenuCategory, type MenuItem, type Kitchen } from '@/lib/api';
 import { fileAPI } from '@/lib/api/file';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -22,6 +22,7 @@ export default function MenuScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [currency, setCurrency] = useState('INR');
+  const [kitchens, setKitchens] = useState<Kitchen[]>([]);
 
   const restaurantId = Number(id);
 
@@ -38,7 +39,8 @@ export default function MenuScreen() {
   const fetchMenu = useCallback(async () => {
     try {
       setLoading(true);
-      const catRes = await menuAPI.getCategories(restaurantId);
+      const [catRes, kitchenRes] = await Promise.all([menuAPI.getCategories(restaurantId), kitchenAPI.list(restaurantId)]);
+      setKitchens(kitchenRes.data || []);
       const cats = catRes.data || [];
       setCategories(cats);
       if (cats.length > 0 && !selectedCategory) {
@@ -169,6 +171,7 @@ export default function MenuScreen() {
                                 ? `From ${formatPrice(item.price, currency)}`
                                 : formatPrice(item.price, currency)}
                             </Text>
+                            <Text className="text-xs text-slate-500">Kitchen: {(kitchens.find((k) => k.id === item.kitchenId)?.name) || 'Unassigned'}</Text>
                             {item.hasVariants && (
                               <Text className="text-xs text-slate-500">Has variants</Text>
                             )}
@@ -179,6 +182,24 @@ export default function MenuScreen() {
                               onCheckedChange={() => handleToggleAvailability(item.id)}
                             />
                             <TouchableOpacity
+                              onLongPress={async () => {
+                                const currentIndex = kitchens.findIndex(k => String(k.id) === String(item.kitchenId));
+                                let nextKitchenId: number | null = null;
+                                
+                                if (currentIndex === -1) {
+                                  // Not assigned, assign first kitchen
+                                  nextKitchenId = kitchens.length > 0 ? kitchens[0].id : null;
+                                } else if (currentIndex < kitchens.length - 1) {
+                                  // Move to next kitchen
+                                  nextKitchenId = kitchens[currentIndex + 1].id;
+                                } else {
+                                  // Last kitchen, unassign
+                                  nextKitchenId = null;
+                                }
+                                
+                                await menuAPI.updateItem(restaurantId, item.id, { kitchenId: nextKitchenId } as any);
+                                fetchMenu();
+                              }}
                               onPress={() =>
                                 router.push(
                                   ROUTES.ADMIN.MENU.itemForm(id!, item.id) as any

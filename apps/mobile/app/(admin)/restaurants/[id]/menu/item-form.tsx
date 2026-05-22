@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { menuAPI, type MenuCategory } from '@/lib/api';
+import { menuAPI, kitchenAPI, type MenuCategory, type Kitchen } from '@/lib/api';
 import { fileAPI } from '@/lib/api/file';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -31,6 +31,7 @@ export default function ItemForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [categories, setCategories] = useState<MenuCategory[]>([]);
+  const [kitchens, setKitchens] = useState<Kitchen[]>([]);
 
   const [form, setForm] = useState({
     categoryId: '',
@@ -39,6 +40,7 @@ export default function ItemForm() {
     price: '',
     isVeg: false,
     hasVariants: false,
+    kitchenId: '',
   });
   const [variants, setVariants] = useState<VariantInput[]>([]);
 
@@ -53,8 +55,9 @@ export default function ItemForm() {
   useEffect(() => {
     (async () => {
       try {
-        const catRes = await menuAPI.getCategories(restaurantId);
+        const [catRes, kitchenRes] = await Promise.all([menuAPI.getCategories(restaurantId), kitchenAPI.list(restaurantId)]);
         setCategories(catRes.data || []);
+        setKitchens(kitchenRes.data || []);
 
         if (isEdit) {
           const itemRes = await menuAPI.getItem(restaurantId, Number(itemId));
@@ -66,6 +69,7 @@ export default function ItemForm() {
             price: item.price,
             isVeg: item.isVeg ?? false,
             hasVariants: item.hasVariants ?? false,
+            kitchenId: item.kitchenId ? String(item.kitchenId) : '',
           });
           if (item.imagePath) {
             setSavedImageUrl(
@@ -141,6 +145,7 @@ export default function ItemForm() {
           price: effectivePrice,
           isVeg: form.isVeg,
           hasVariants: form.hasVariants,
+          kitchenId: form.kitchenId ? Number(form.kitchenId) : null,
           variants: form.hasVariants ? validVariants : undefined,
         } as any);
       } else {
@@ -151,6 +156,7 @@ export default function ItemForm() {
           price: effectivePrice,
           isVeg: form.isVeg,
           hasVariants: form.hasVariants,
+          kitchenId: form.kitchenId ? Number(form.kitchenId) : null,
           variants: form.hasVariants ? validVariants : undefined,
         });
         targetItemId = String(createRes.data?.id);
@@ -219,6 +225,18 @@ export default function ItemForm() {
                 value={form.description}
                 onChangeText={(description) => setForm((p) => ({ ...p, description }))}
                 placeholder="Item description"
+              />
+            </View>
+
+
+
+            <View>
+              <Label>Kitchen (Optional)</Label>
+              <Select
+                value={form.kitchenId}
+                onValueChange={(kitchenId) => setForm((p) => ({ ...p, kitchenId }))}
+                options={kitchens.map((k) => ({ label: k.name, value: String(k.id) }))}
+                placeholder="No specific kitchen"
               />
             </View>
 

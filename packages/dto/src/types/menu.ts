@@ -18,6 +18,7 @@ export interface MenuItem {
     isAvailable?: boolean;
     isActive?: boolean;
     hasVariants?: boolean;
+    kitchenId?: number | null;
     variants?: MenuItemVariant[];
 }
 
@@ -53,6 +54,7 @@ export interface CreateMenuItemDTO {
     imagePath?: string;
     hasVariants?: boolean;
     variants?: CreateVariantDTO[];
+    kitchenId?: number;
 }
 
 export interface UpdateMenuItemDTO {
@@ -65,6 +67,7 @@ export interface UpdateMenuItemDTO {
     isAvailable?: boolean;
     isActive?: boolean;
     hasVariants?: boolean;
+    kitchenId?: number | null;
 }
 
 export interface CreateVariantDTO {

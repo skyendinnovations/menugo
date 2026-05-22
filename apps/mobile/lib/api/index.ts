@@ -9,6 +9,7 @@ export { publicAPI } from './public';
 export { fileAPI } from './file';
 export type { UploadImageParams } from './file';
 export { notificationAPI } from './notification';
+export { kitchenAPI } from './kitchen';
 
 // Re-export shared types from @menugo/dto
 export type {
@@ -31,4 +32,5 @@ export type {
   Invitation,
   MyInvitation,
   FileRecord,
+  Kitchen,
 } from '@menugo/dto';

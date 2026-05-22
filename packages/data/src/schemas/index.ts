@@ -7,6 +7,7 @@ export * from "./role.schema";
 export * from "./invitation.schema";
 export * from "./table.schema";
 export * from "./menu.schema";
+export * from "./kitchen.schema";
 export * from "./session.schema";
 export * from "./order.schema";
 export * from "./file.schema";

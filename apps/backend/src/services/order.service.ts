@@ -102,12 +102,12 @@ class OrderService {
 
     // Notify all enabled kitchen + waiter staff
     notificationService
-      .sendOrderNotification(restaurantId, "order_placed", {
+      .sendOrderNotificationToKitchensByItems(restaurantId, "order_placed", {
         type: "order_placed",
         orderId: order.id,
         orderNumber: order.orderNumber,
         restaurantId,
-      })
+      }, order.id)
       .catch((err) => logger.error("Failed to send order placed notification", err));
 
     return { ...order, items };
@@ -174,12 +174,12 @@ class OrderService {
 
     // Notify all enabled kitchen + waiter staff
     notificationService
-      .sendOrderNotification(restaurantId, "order_placed", {
+      .sendOrderNotificationToKitchensByItems(restaurantId, "order_placed", {
         type: "order_placed",
         orderId: order.id,
         orderNumber: order.orderNumber,
         restaurantId,
-      })
+      }, order.id)
       .catch((err) => logger.error("Failed to send order placed notification", err));
 
     return { ...order, items };

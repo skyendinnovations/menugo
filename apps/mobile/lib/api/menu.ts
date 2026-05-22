@@ -54,6 +54,7 @@ class MenuAPI extends BaseAPI {
       isVeg?: boolean;
       hasVariants?: boolean;
       variants?: { name: string; price: string }[];
+      kitchenId?: number | null;
     }
   ) {
     return this.post<{ success: boolean; data: MenuItem }>(

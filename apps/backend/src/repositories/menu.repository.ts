@@ -83,41 +83,44 @@ class MenuRepository {
 
   async createItem(data: CreateMenuItemDTO & { restaurantId: number }) {
     const { kitchenId, ...itemData } = data;
-    
+
     const result = await db.transaction(async (tx) => {
       const [item] = await tx.insert(menuItems).values(itemData).returning();
       if (item && kitchenId) {
-        await tx.insert(kitchenMenuItems).values({ kitchenId, menuItemId: item.id });
+        await tx
+          .insert(kitchenMenuItems)
+          .values({ kitchenId, menuItemId: item.id });
       }
       return item;
     });
-    
+
     return result;
   }
 
-  async updateItem(
-    id: number,
-    data: UpdateMenuItemDTO,
-  ) {
+  async updateItem(id: number, data: UpdateMenuItemDTO) {
     const { kitchenId, ...itemData } = data;
-    
+
     const result = await db.transaction(async (tx) => {
       const [item] = await tx
         .update(menuItems)
         .set({ ...itemData, updatedAt: new Date() })
         .where(eq(menuItems.id, id))
         .returning();
-      
+
       if (typeof kitchenId !== "undefined") {
-        await tx.delete(kitchenMenuItems).where(eq(kitchenMenuItems.menuItemId, id));
+        await tx
+          .delete(kitchenMenuItems)
+          .where(eq(kitchenMenuItems.menuItemId, id));
         if (kitchenId) {
-          await tx.insert(kitchenMenuItems).values({ kitchenId, menuItemId: id });
+          await tx
+            .insert(kitchenMenuItems)
+            .values({ kitchenId, menuItemId: id });
         }
       }
-      
+
       return item;
     });
-    
+
     return result;
   }
 

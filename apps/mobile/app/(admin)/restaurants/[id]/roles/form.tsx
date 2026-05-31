@@ -73,8 +73,8 @@ export default function RoleFormScreen() {
     return (
       <>
         <Stack.Screen options={{ title: isEdit ? 'Edit Role' : 'Create Role' }} />
-        <View className="flex-1 items-center justify-center bg-slate-900">
-          <ActivityIndicator size="large" color="#F97316" />
+        <View className="flex-1 items-center justify-center bg-white">
+          <ActivityIndicator size="large" color="#DC2626" />
         </View>
       </>
     );
@@ -83,8 +83,8 @@ export default function RoleFormScreen() {
   return (
     <>
       <Stack.Screen options={{ title: isEdit ? 'Edit Role' : 'Create Role' }} />
-      <ScrollView className="flex-1 bg-slate-900 px-5 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
-        <Text className="mb-2 text-sm font-medium text-slate-300">Role Name</Text>
+      <ScrollView className="flex-1 bg-white px-5 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
+        <Text className="mb-2 text-sm font-medium text-gray-700">Role Name</Text>
         <Input
           value={name}
           onChangeText={setName}
@@ -92,7 +92,7 @@ export default function RoleFormScreen() {
           autoCapitalize="words"
         />
 
-        <Text className="mb-3 mt-6 text-sm font-medium text-slate-300">Permissions</Text>
+        <Text className="mb-3 mt-6 text-sm font-medium text-gray-700">Permissions</Text>
         <View className="gap-1">
           {PERMISSION_KEYS.map((key) => (
             <Switch
@@ -100,7 +100,7 @@ export default function RoleFormScreen() {
               checked={!!permissions[key]}
               onCheckedChange={() => togglePermission(key)}
               label={PERMISSION_LABELS[key] || key}
-              className="rounded-xl bg-slate-800/60 px-4 py-3.5"
+              className="rounded-xl bg-gray-50 px-4 py-3.5"
             />
           ))}
         </View>

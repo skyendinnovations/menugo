@@ -93,7 +93,7 @@ export default function CashierView() {
     sessionOrders.forEach((order) => {
       if (order.status !== 'cancelled') {
         order.items?.forEach((item) => {
-          total += parseFloat(item.priceAtOrder) * item.quantity;
+          total += Number.parseFloat(item.priceAtOrder) * item.quantity;
         });
       }
     });
@@ -102,8 +102,8 @@ export default function CashierView() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-900">
-        <ActivityIndicator size="large" color="#F97316" />
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator size="large" color="#DC2626" />
       </View>
     );
   }
@@ -111,7 +111,7 @@ export default function CashierView() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-slate-900">
+      <View className="flex-1 bg-white">
         <AdminPageHeader
           title="Cashier"
           subtitle="Active Sessions"
@@ -119,8 +119,8 @@ export default function CashierView() {
           right={
             <TouchableOpacity
               onPress={fetchSessions}
-              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-              <MaterialIcons name="refresh" size={22} color="#F97316" />
+              className="h-10 w-10 items-center justify-center rounded-xl bg-gray-100">
+              <MaterialIcons name="refresh" size={22} color="#DC2626" />
             </TouchableOpacity>
           }
         />
@@ -138,24 +138,24 @@ export default function CashierView() {
                     <CardContent>
                       <View className="flex-row items-center justify-between">
                         <View className="mr-3 flex-1">
-                          <Text className="text-base font-bold text-white">
+                          <Text className="text-base font-bold text-black">
                             Table #{item.tableNumber}
                           </Text>
                           {session.customerName ? (
-                            <Text className="mt-0.5 text-sm font-semibold text-orange-400">
+                            <Text className="mt-0.5 text-sm font-semibold text-red-600">
                               {session.customerName}
                             </Text>
                           ) : null}
-                          <Text className="mt-0.5 text-sm text-slate-400">
+                          <Text className="mt-0.5 text-sm text-gray-600">
                             Code: {session.joinCode} | Persons: {session.personsCount}
                           </Text>
-                          <Text className="mt-1 text-xs text-slate-500">
+                          <Text className="mt-1 text-xs text-gray-500">
                             Started: {new Date(session.startTime).toLocaleTimeString()}
                           </Text>
                         </View>
                         <View className="items-end gap-2">
                           <Badge variant="default">
-                            {formatPrice(parseFloat(session.calculatedTotal || '0'), currency)}
+                            {formatPrice(Number.parseFloat(session.calculatedTotal || '0'), currency)}
                           </Badge>
                           <MaterialIcons name="chevron-right" size={22} color="#64748B" />
                         </View>
@@ -167,29 +167,29 @@ export default function CashierView() {
             }}
             ListEmptyComponent={
               <View className="flex-1 items-center justify-center py-16">
-                <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-slate-800">
+                <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-gray-100">
                   <MaterialIcons name="receipt" size={40} color="#64748B" />
                 </View>
-                <Text className="text-base text-slate-500">No active sessions</Text>
+                <Text className="text-base text-gray-500">No active sessions</Text>
               </View>
             }
           />
 
           <Modal visible={showBill} animationType="slide" transparent>
             <View className="flex-1 justify-end bg-black/60">
-              <View className="max-h-[85%] rounded-t-3xl border-t border-slate-700 bg-slate-800 p-5">
+              <View className="max-h-[85%] rounded-t-3xl border-t border-gray-200 bg-white p-5">
                 <View className="mb-5 flex-row items-center justify-between">
-                  <Text className="text-xl font-bold text-white">Bill Summary</Text>
+                  <Text className="text-xl font-bold text-black">Bill Summary</Text>
                   <TouchableOpacity
                     onPress={() => setShowBill(false)}
-                    className="h-10 w-10 items-center justify-center rounded-full bg-slate-700">
-                    <MaterialIcons name="close" size={22} color="#F8FAFC" />
+                    className="h-10 w-10 items-center justify-center rounded-full bg-gray-100">
+                    <MaterialIcons name="close" size={22} color="#111827" />
                   </TouchableOpacity>
                 </View>
 
                 {selectedSession && (
                   <View className="mb-4">
-                    <Text className="text-slate-400">
+                    <Text className="text-gray-600">
                       Table #{selectedSession.tableNumber} | Code:{' '}
                       {(selectedSession.session || selectedSession).joinCode}
                     </Text>
@@ -200,19 +200,19 @@ export default function CashierView() {
                   {sessionOrders.map((order) => (
                     <View key={order.id} className="mb-4">
                       <View className="mb-1 flex-row items-center justify-between">
-                        <Text className="font-bold text-white">{order.orderNumber}</Text>
+                        <Text className="font-bold text-black">{order.orderNumber}</Text>
                         <Badge variant={order.status === 'cancelled' ? 'destructive' : 'default'}>
                           {order.status}
                         </Badge>
                       </View>
-                      {order.items?.map((item, idx) => (
-                        <View key={idx} className="ml-4 flex-row justify-between py-1">
-                          <Text className="text-sm text-slate-300">
+                      {order.items?.map((item) => (
+                        <View key={`${order.id}-${item.itemName}-${item.quantity}`} className="ml-4 flex-row justify-between py-1">
+                          <Text className="text-sm text-gray-700">
                             {item.quantity}x {item.itemName}
                             {item.variantName ? ` (${item.variantName})` : ''}
                           </Text>
-                          <Text className="text-sm text-slate-400">
-                            {formatPrice(parseFloat(item.priceAtOrder) * item.quantity, currency)}
+                          <Text className="text-sm text-gray-600">
+                            {formatPrice(Number.parseFloat(item.priceAtOrder) * item.quantity, currency)}
                           </Text>
                         </View>
                       ))}
@@ -220,10 +220,10 @@ export default function CashierView() {
                   ))}
                 </ScrollView>
 
-                <View className="mt-4 border-t border-slate-700 pt-5">
+                <View className="mt-4 border-t border-gray-200 pt-5">
                   <View className="mb-5 flex-row justify-between">
-                    <Text className="text-xl font-bold text-white">Total</Text>
-                    <Text className="text-xl font-bold text-white">
+                    <Text className="text-xl font-bold text-black">Total</Text>
+                    <Text className="text-xl font-bold text-black">
                       {formatPrice(calculateTotal(), currency)}
                     </Text>
                   </View>

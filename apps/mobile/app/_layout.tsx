@@ -90,5 +90,5 @@ export default function Layout() {
     checkSession();
   }, [refetch]);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#FFFFFF' } }} />;
 }

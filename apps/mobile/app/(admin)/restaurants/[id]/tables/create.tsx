@@ -66,7 +66,7 @@ export default function CreateTable() {
       <Stack.Screen options={{ title: 'Add Tables' }} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-slate-900">
+        className="flex-1 bg-white">
         <ScrollView className="flex-1 px-5 pt-4">
           {error ? <Alert variant="destructive" description={error} className="mb-4" /> : null}
 

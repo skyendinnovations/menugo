@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Pressable,
-  Modal,
-  ScrollView,
-  TouchableOpacity,
-  PressableProps,
-} from 'react-native';
+import { Text, Pressable, Modal, ScrollView, TouchableOpacity, PressableProps } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export interface SelectOption {
@@ -21,6 +13,7 @@ interface SelectProps extends Omit<PressableProps, 'onPress'> {
   options: SelectOption[];
   placeholder?: string;
   disabled?: boolean;
+  variant?: 'dark' | 'light';
 }
 
 export function Select({
@@ -29,29 +22,32 @@ export function Select({
   options,
   placeholder = 'Select an option',
   disabled,
+  variant = 'light',
   className,
   ...props
-}: SelectProps) {
+}: Readonly<SelectProps>) {
   const [open, setOpen] = useState(false);
 
   const selectedOption = options.find((opt) => opt.value === value);
+  const selectedTextColor = 'text-black';
+  const placeholderTextColor = 'text-gray-500';
+  const optionTextColor = 'text-black';
+  const selectedOptionTextColor = 'text-brand';
 
   return (
     <>
       <Pressable
         onPress={() => !disabled && setOpen(true)}
         disabled={disabled}
-        className={`flex-row items-center justify-between rounded-xl border border-slate-700 bg-slate-800 px-4 py-3.5 ${
-          disabled ? 'opacity-50' : ''
-        } ${className || ''}`}
+        className={`flex-row items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3.5 ${disabled ? 'opacity-50' : ''} ${className || ''}`}
         {...props}>
-        <Text className={selectedOption ? 'text-base text-white' : 'text-base text-slate-500'}>
+        <Text className={`text-base ${selectedOption ? selectedTextColor : placeholderTextColor}`}>
           {selectedOption?.label || placeholder}
         </Text>
         <MaterialIcons
           name={open ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
           size={24}
-          color="#94A3B8"
+          color="#6B7280"
         />
       </Pressable>
 
@@ -61,7 +57,7 @@ export function Select({
           onPress={() => setOpen(false)}>
           <Pressable
             onPress={(e) => e.stopPropagation()}
-            className="max-h-96 w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-800">
+            className="max-h-96 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white">
             <ScrollView>
               {options.map((option) => (
                 <TouchableOpacity
@@ -70,11 +66,8 @@ export function Select({
                     onValueChange(option.value);
                     setOpen(false);
                   }}
-                  className={`border-b border-slate-700/50 px-5 py-4 ${
-                    option.value === value ? 'bg-brand/10' : ''
-                  }`}>
-                  <Text
-                    className={`text-base ${option.value === value ? 'font-semibold text-brand' : 'text-white'}`}>
+                  className={`border-b border-gray-200/80 px-5 py-4 ${option.value === value ? 'bg-brand/10' : ''}`}>
+                  <Text className={`text-base ${option.value === value ? selectedOptionTextColor : optionTextColor}`}>
                     {option.label}
                   </Text>
                 </TouchableOpacity>

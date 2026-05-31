@@ -19,6 +19,17 @@ const allowedOrigins = CORS_ALLOWED_ORIGINS
   ? CORS_ALLOWED_ORIGINS.split(",")
   : ["http://localhost:3000", "http://localhost:8081"];
 
+const developmentOrigins = [
+  "http://localhost:3000",
+  "http://localhost:8081",
+  "http://localhost:8082",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:8081",
+  "http://127.0.0.1:8082",
+];
+
+const mergedAllowedOrigins = new Set([...allowedOrigins, ...developmentOrigins]);
+
 export const config = {
   port: PORT,
   nodeEnv: NODE_ENV,
@@ -37,7 +48,7 @@ export const config = {
       // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      if (mergedAllowedOrigins.has(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));

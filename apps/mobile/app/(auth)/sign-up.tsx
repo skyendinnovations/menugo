@@ -70,7 +70,7 @@ export default function SignUpScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-slate-900">
+      className="flex-1 bg-white">
       <Stack.Screen options={{ title: 'Sign Up', headerShown: false }} />
       <ScrollView
         className="flex-1"
@@ -80,8 +80,8 @@ export default function SignUpScreen() {
           <View className="mb-5 h-20 w-20 items-center justify-center rounded-full bg-brand/15">
             <MaterialIcons name="person-add" size={40} color="#F97316" />
           </View>
-          <Text className="text-3xl font-bold text-white">Create account</Text>
-          <Text className="mt-2 text-base text-slate-400">Get started with MenuGo</Text>
+          <Text className="text-3xl font-bold text-black">Create account</Text>
+          <Text className="mt-2 text-base text-gray-600">Get started with MenuGo</Text>
         </View>
 
         {error ? <Alert variant="destructive" description={error} className="mb-6" /> : null}
@@ -124,9 +124,9 @@ export default function SignUpScreen() {
           />
 
           <View className="my-2 flex-row items-center gap-3">
-            <View className="h-px flex-1 bg-slate-700" />
-            <Text className="text-sm text-slate-500">or</Text>
-            <View className="h-px flex-1 bg-slate-700" />
+            <View className="h-px flex-1 bg-gray-200" />
+            <Text className="text-sm text-gray-600">or</Text>
+            <View className="h-px flex-1 bg-gray-200" />
           </View>
 
           <Button
@@ -136,7 +136,7 @@ export default function SignUpScreen() {
             onPress={onGoogleSignUp}
             disabled={loading || googleLoading}
             size="lg"
-            icon={!googleLoading ? <AntDesign name="google" size={20} color="#fff" /> : undefined}
+            icon={!googleLoading ? <AntDesign name="google" size={20} color="#111827" /> : undefined}
           />
 
           <Link href={ROUTES.AUTH.SIGN_IN} asChild>

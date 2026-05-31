@@ -45,7 +45,7 @@ export default function SeatSelectionScreen() {
         const did = await getDeviceId();
         setDeviceId(did);
 
-        const res = await publicAPI.getTableInfo(slug as string, Number(table), did);
+        const res = await publicAPI.getTableInfo(slug, Number(table), did);
         const { restaurant, table: t } = res.data;
 
         setRestaurantName(restaurant.name);
@@ -56,7 +56,7 @@ export default function SeatSelectionScreen() {
 
         // If this device already has a session → go straight to menu
         if (t.existingSessionId) {
-          router.replace(ROUTES.ORDER.menu(slug as string, table as string));
+          router.replace(ROUTES.ORDER.menu(slug, table));
           return;
         }
       } catch (err: any) {
@@ -79,18 +79,18 @@ export default function SeatSelectionScreen() {
     try {
       await saveCustomerName(customerName.trim());
       await publicAPI.createOrGetSession(
-        slug as string,
+        slug,
         Number(table),
         deviceId,
         personsCount,
         customerName.trim()
       );
-      router.replace(ROUTES.ORDER.menu(slug as string, table as string));
+      router.replace(ROUTES.ORDER.menu(slug, table));
     } catch (err: any) {
       setError(err.message || 'Could not join table');
       // Refresh availability
       try {
-        const res = await publicAPI.getTableInfo(slug as string, Number(table), deviceId);
+        const res = await publicAPI.getTableInfo(slug, Number(table), deviceId);
         setAvailableSeats(res.data.table.availableSeats);
         setOccupiedSeats(res.data.table.occupiedSeats);
         setIsFull(res.data.table.isFull);
@@ -111,7 +111,7 @@ export default function SeatSelectionScreen() {
 
     try {
       await publicAPI.joinSession(joinCode.trim(), deviceId);
-      router.replace(ROUTES.ORDER.menu(slug as string, table as string));
+      router.replace(ROUTES.ORDER.menu(slug, table));
     } catch (err: any) {
       setError(err.message || 'Invalid code. Please check and try again.');
     } finally {
@@ -122,8 +122,9 @@ export default function SeatSelectionScreen() {
   // --- LOADING ---
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-900">
-        <ActivityIndicator size="large" color="#F97316" />
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator size="large" color="#DC2626" />
+        <Text className="mt-4 text-gray-600">Loading menu...</Text>
       </View>
     );
   }
@@ -133,7 +134,7 @@ export default function SeatSelectionScreen() {
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-slate-900">
+        className="flex-1 bg-white">
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
@@ -142,8 +143,8 @@ export default function SeatSelectionScreen() {
             <View className="mb-5 h-24 w-24 items-center justify-center rounded-full bg-red-500/15">
               <MaterialIcons name="no-meals" size={48} color="#EF4444" />
             </View>
-            <Text className="text-center text-2xl font-bold text-white">Table Full</Text>
-            <Text className="mt-2 text-center text-base text-slate-400">
+            <Text className="text-center text-2xl font-bold text-black">Table Full</Text>
+            <Text className="mt-2 text-center text-base text-gray-600">
               All {capacity} seats are taken.
             </Text>
           </View>
@@ -156,12 +157,12 @@ export default function SeatSelectionScreen() {
           ) : null}
 
           {/* Join existing session */}
-          <View className="mb-6 rounded-2xl bg-slate-800 p-4">
+          <View className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
             <View className="mb-2 flex-row items-center gap-2">
               <MaterialIcons name="group" size={20} color="#F97316" />
-              <Text className="text-base font-bold text-white">Already at the table?</Text>
+              <Text className="text-base font-bold text-black">Already at the table?</Text>
             </View>
-            <Text className="mb-4 text-sm text-slate-400">
+            <Text className="mb-4 text-sm text-gray-600">
               Enter the code shared by your friend or family member to access the menu.
             </Text>
 
@@ -169,7 +170,7 @@ export default function SeatSelectionScreen() {
               <Input
                 value={joinCode}
                 onChangeText={(text) => {
-                  setJoinCode(text.replace(/[^0-9]/g, '').slice(0, 4));
+                  setJoinCode(text.replace(/\D/g, '').slice(0, 4));
                   if (error) setError('');
                 }}
                 placeholder="Enter 4-digit code"
@@ -195,12 +196,12 @@ export default function SeatSelectionScreen() {
               setIsFull(false);
               (async () => {
                 try {
-                  const res = await publicAPI.getTableInfo(slug as string, Number(table), deviceId);
+                  const res = await publicAPI.getTableInfo(slug, Number(table), deviceId);
                   setAvailableSeats(res.data.table.availableSeats);
                   setOccupiedSeats(res.data.table.occupiedSeats);
                   setIsFull(res.data.table.isFull);
                   if (res.data.table.existingSessionId) {
-                    router.replace(ROUTES.ORDER.menu(slug as string, table as string));
+                    router.replace(ROUTES.ORDER.menu(slug, table));
                   }
                 } catch {}
                 setLoading(false);
@@ -219,22 +220,22 @@ export default function SeatSelectionScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-slate-900">
+      className="flex-1 bg-white">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
         keyboardShouldPersistTaps="handled">
         {/* Restaurant + Table Header */}
         <View className="mb-8 items-center">
-          <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-brand/15">
+          <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
             <MaterialIcons name="restaurant" size={40} color="#F97316" />
           </View>
-          <Text className="text-center text-2xl font-bold text-white">
+          <Text className="text-center text-2xl font-bold text-black">
             {restaurantName || 'Restaurant'}
           </Text>
-          <Text className="mt-1 text-base text-slate-400">Table {table}</Text>
+          <Text className="mt-1 text-base text-gray-600">Table {table}</Text>
           {occupiedSeats > 0 && (
-            <Text className="mt-2 text-sm text-slate-500">
+            <Text className="mt-2 text-sm text-gray-500">
               {availableSeats} of {capacity} seats available
             </Text>
           )}
@@ -250,12 +251,12 @@ export default function SeatSelectionScreen() {
         {/* ─── Join Existing Session (shown when table has occupied seats) ─── */}
         {occupiedSeats > 0 && (
           <View className="mb-6">
-            <View className="rounded-2xl bg-slate-800 p-4">
+            <View className="rounded-2xl border border-gray-200 bg-white p-4">
               <View className="mb-2 flex-row items-center gap-2">
                 <MaterialIcons name="group" size={20} color="#F97316" />
-                <Text className="text-base font-bold text-white">Already at the table?</Text>
+                <Text className="text-base font-bold text-black">Already at the table?</Text>
               </View>
-              <Text className="mb-4 text-sm text-slate-400">
+              <Text className="mb-4 text-sm text-gray-600">
                 Enter the code shared by your friend or family member to access the menu.
               </Text>
 
@@ -263,7 +264,7 @@ export default function SeatSelectionScreen() {
                 <Input
                   value={joinCode}
                   onChangeText={(text) => {
-                    setJoinCode(text.replace(/[^0-9]/g, '').slice(0, 4));
+                    setJoinCode(text.replace(/\D/g, '').slice(0, 4));
                     if (error) setError('');
                   }}
                   placeholder="Enter 4-digit code"
@@ -285,9 +286,9 @@ export default function SeatSelectionScreen() {
 
             {/* Divider */}
             <View className="my-6 flex-row items-center">
-              <View className="h-px flex-1 bg-slate-700" />
-              <Text className="mx-4 text-sm font-medium text-slate-500">or start your own</Text>
-              <View className="h-px flex-1 bg-slate-700" />
+              <View className="h-px flex-1 bg-gray-200" />
+              <Text className="mx-4 text-sm font-medium text-gray-500">or start your own</Text>
+              <View className="h-px flex-1 bg-gray-200" />
             </View>
           </View>
         )}
@@ -295,7 +296,7 @@ export default function SeatSelectionScreen() {
         {/* ─── Start New Session ─── */}
         {/* Name Input */}
         <View className="mb-5">
-          <Text className="mb-2 text-sm font-semibold text-slate-300">Your Name</Text>
+          <Text className="mb-2 text-sm font-semibold text-gray-700">Your Name</Text>
           <Input
             value={customerName}
             onChangeText={(text) => {
@@ -308,24 +309,24 @@ export default function SeatSelectionScreen() {
 
         {/* Persons Counter */}
         <View className="mb-8">
-          <Text className="mb-3 text-sm font-semibold text-slate-300">How many people?</Text>
-          <View className="flex-row items-center justify-center gap-8 rounded-2xl bg-slate-800 py-5">
+          <Text className="mb-3 text-sm font-semibold text-gray-700">How many people?</Text>
+          <View className="flex-row items-center justify-center gap-8 rounded-2xl border border-gray-200 bg-white py-5">
             <TouchableOpacity
               onPress={() => setPersonsCount((p) => Math.max(1, p - 1))}
               disabled={personsCount <= 1}
               activeOpacity={0.7}
               className={`h-14 w-14 items-center justify-center rounded-full ${
-                personsCount <= 1 ? 'bg-slate-700' : 'bg-brand/20'
+                personsCount <= 1 ? 'bg-gray-100' : 'bg-red-500/10'
               }`}>
               <MaterialIcons
                 name="remove"
                 size={32}
-                color={personsCount <= 1 ? '#475569' : '#F97316'}
+                color={personsCount <= 1 ? '#6B7280' : '#DC2626'}
               />
             </TouchableOpacity>
 
             <View className="min-w-[60px] items-center">
-              <Text className="text-5xl font-bold text-white">{personsCount}</Text>
+              <Text className="text-5xl font-bold text-black">{personsCount}</Text>
             </View>
 
             <TouchableOpacity
@@ -333,12 +334,12 @@ export default function SeatSelectionScreen() {
               disabled={personsCount >= availableSeats}
               activeOpacity={0.7}
               className={`h-14 w-14 items-center justify-center rounded-full ${
-                personsCount >= availableSeats ? 'bg-slate-700' : 'bg-brand/20'
+                personsCount >= availableSeats ? 'bg-gray-100' : 'bg-red-500/10'
               }`}>
               <MaterialIcons
                 name="add"
                 size={32}
-                color={personsCount >= availableSeats ? '#475569' : '#F97316'}
+                color={personsCount >= availableSeats ? '#6B7280' : '#DC2626'}
               />
             </TouchableOpacity>
           </View>

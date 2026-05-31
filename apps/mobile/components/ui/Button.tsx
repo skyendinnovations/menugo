@@ -20,10 +20,18 @@ type ButtonProps = {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary: 'bg-brand',
-  secondary: 'bg-slate-700',
-  ghost: 'bg-transparent border border-slate-600',
+  secondary: 'bg-gray-100',
+  ghost: 'bg-transparent border border-gray-300',
   danger: 'bg-red-500',
   success: 'bg-emerald-500',
+};
+
+const variantTextStyles: Record<ButtonVariant, string> = {
+  primary: 'text-white',
+  secondary: 'text-gray-900',
+  ghost: 'text-gray-900',
+  danger: 'text-white',
+  success: 'text-white',
 };
 
 const sizeStyles: Record<ButtonSize, { container: string; text: string }> = {
@@ -56,7 +64,7 @@ export const Button = forwardRef<View, ButtonProps>(
         {...touchableProps}
         className={`flex-row items-center justify-center gap-2 ${sizeStyle.container} ${variantStyles[variant]} ${disabled || loading ? 'opacity-50' : ''} ${className || ''}`}>
         {loading ? <ActivityIndicator size="small" color="#fff" /> : icon ? icon : null}
-        <Text className={`text-center font-semibold text-white ${sizeStyle.text}`}>{title}</Text>
+        <Text className={`text-center font-semibold ${variantTextStyles[variant]} ${sizeStyle.text}`}>{title}</Text>
       </TouchableOpacity>
     );
   }

@@ -1,7 +1,10 @@
 {
   "name": "menugo",
+  "devDependencies": {
+    "turbo": "^2"
+  },
+  "packageManager": "bun@1.2.5",
   "private": true,
-  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "dev": "turbo dev",
     "start": "turbo start",
@@ -20,8 +23,8 @@
     "db:push": "bun run --cwd packages/data push",
     "db:seed:plans": "bun run packages/data/src/seeds/subscription-plans.seed.ts"
   },
-  "devDependencies": {
-    "turbo": "^2"
-  },
-  "packageManager": "bun@1.2.5"
+  "workspaces": ["packages/*", "apps/*"],
+  "dependencies": {
+    "date-fns": "^2.0.0"
+  }
 }

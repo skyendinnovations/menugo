@@ -35,8 +35,8 @@ export default function InviteScreen() {
   }, [token, email, action, router]);
 
   return (
-    <View className="flex-1 items-center justify-center bg-slate-900">
-      <ActivityIndicator size="large" color="#F97316" />
+    <View className="flex-1 items-center justify-center bg-white">
+      <ActivityIndicator size="large" color="#DC2626" />
     </View>
   );
 }

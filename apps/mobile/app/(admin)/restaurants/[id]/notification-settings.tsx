@@ -1,5 +1,6 @@
 import { View, Text, ScrollView, Switch, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { notificationAPI } from '@/lib/api/notification';
@@ -10,6 +11,8 @@ import type { NotificationSettingsMatrix } from '@menugo/dto';
 
 export default function NotificationSettingsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [matrix, setMatrix] = useState<NotificationSettingsMatrix[]>([]);
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
@@ -36,18 +39,7 @@ export default function NotificationSettingsScreen() {
 
   const handleToggle = async (triggerEvent: string, roleId: number, currentValue: boolean) => {
     // Optimistic update
-    setMatrix((prev) =>
-      prev.map((event) => {
-        if (event.triggerEvent !== triggerEvent) return event;
-        return {
-          ...event,
-          roles: event.roles.map((role) => {
-            if (role.roleId !== roleId) return role;
-            return { ...role, enabled: !currentValue };
-          }),
-        };
-      })
-    );
+    setMatrix((prev) => updateEventRole(prev, triggerEvent, roleId, !currentValue));
 
     try {
       await notificationAPI.updateSettings(restaurantId, [
@@ -56,18 +48,7 @@ export default function NotificationSettingsScreen() {
     } catch (error) {
       console.error('Failed to update setting:', error);
       // Revert on error
-      setMatrix((prev) =>
-        prev.map((event) => {
-          if (event.triggerEvent !== triggerEvent) return event;
-          return {
-            ...event,
-            roles: event.roles.map((role) => {
-              if (role.roleId !== roleId) return role;
-              return { ...role, enabled: currentValue };
-            }),
-          };
-        })
-      );
+      setMatrix((prev) => updateEventRole(prev, triggerEvent, roleId, currentValue));
     }
   };
 
@@ -87,40 +68,57 @@ export default function NotificationSettingsScreen() {
     event.roles.some((role) => role.enabled)
   );
 
+  const updateEventRole = (
+    prev: NotificationSettingsMatrix[],
+    triggerEvent: string,
+    roleId: number,
+    enabled: boolean
+  ) =>
+    prev.map((event) => {
+      if (event.triggerEvent !== triggerEvent) return event;
+      return {
+        ...event,
+        roles: event.roles.map((role) => {
+          if (role.roleId !== roleId) return role;
+          return { ...role, enabled };
+        }),
+      };
+    });
+
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-900">
-        <ActivityIndicator size="large" color="#F97316" />
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator size="large" color="#DC2626" />
       </View>
     );
   }
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: 'Notifications',
-          headerStyle: { backgroundColor: '#0F172A' },
-          headerTintColor: '#F8FAFC',
-          headerShadowVisible: false,
-        }}
-      />
-      <ScrollView className="flex-1 bg-slate-900" contentContainerStyle={{ padding: 16 }}>
-        <View className="mb-4 flex-row items-center justify-between">
+      <Stack.Screen options={{ headerShown: false }} />
+      <View className="flex-1 bg-white">
+        <View className="flex-row items-center gap-3 border-b border-gray-200 px-5 pb-4" style={{ paddingTop: insets.top + 12 }}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="h-10 w-10 items-center justify-center rounded-xl bg-gray-100 active:opacity-70">
+            <MaterialIcons name="arrow-back" size={22} color="#111827" />
+          </TouchableOpacity>
           <View className="flex-1">
-            <Text className="text-xl font-bold text-white">Notification Flow</Text>
-            <Text className="mt-1 text-sm text-slate-400">
+            <Text className="text-xl font-bold text-black">Notification Flow</Text>
+            <Text className="text-sm text-gray-600">
               Configure who gets notified for each order event
             </Text>
           </View>
         </View>
+      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
 
         {!hasAnyEnabled && (
           <Card className="mb-4 border border-amber-500/30">
             <CardContent className="flex-row items-center gap-3 p-4">
               <MaterialIcons name="info-outline" size={20} color="#F59E0B" />
               <View className="flex-1">
-                <Text className="text-sm text-amber-400">
+                <Text className="text-sm text-amber-700">
                   No notifications configured yet. Load defaults to get started.
                 </Text>
               </View>
@@ -144,21 +142,21 @@ export default function NotificationSettingsScreen() {
                   size={20}
                   color={getEventColor(event.triggerEvent)}
                 />
-                <Text className="text-base font-bold text-white">{event.label}</Text>
+                <Text className="text-base font-bold text-black">{event.label}</Text>
               </View>
 
               {event.roles.length === 0 ? (
-                <Text className="text-sm text-slate-500">
+                <Text className="text-sm text-gray-500">
                   No roles available. Create roles first.
                 </Text>
               ) : (
                 event.roles.map((role) => (
                   <View
                     key={role.roleId}
-                    className="flex-row items-center justify-between border-t border-slate-700/50 py-3">
+                    className="flex-row items-center justify-between border-t border-gray-200 py-3">
                     <View className="flex-row items-center gap-2">
                       <MaterialIcons name="person" size={16} color="#94A3B8" />
-                      <Text className="text-sm capitalize text-slate-300">{role.roleName}</Text>
+                      <Text className="text-sm capitalize text-gray-700">{role.roleName}</Text>
                     </View>
                     <Switch
                       value={role.enabled}
@@ -180,12 +178,13 @@ export default function NotificationSettingsScreen() {
             onPress={handleSeedDefaults}
             disabled={seeding}
             className="mb-6 items-center py-3">
-            <Text className="text-sm text-slate-500">
+            <Text className="text-sm text-gray-500">
               {seeding ? 'Loading...' : 'Reset to defaults'}
             </Text>
           </TouchableOpacity>
         )}
       </ScrollView>
+      </View>
     </>
   );
 }

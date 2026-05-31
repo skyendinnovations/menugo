@@ -8,22 +8,22 @@ module.exports = {
       colors: {
         // App background layers
         bg: {
-          primary: '#0F172A',
-          card: '#1E293B',
-          elevated: '#334155',
-          input: '#1E293B',
+          primary: '#FFFFFF',
+          card: '#FFFFFF',
+          elevated: '#F3F4F6',
+          input: '#F3F4F6',
         },
         // Brand colors
         brand: {
-          DEFAULT: '#F97316',
-          dark: '#EA580C',
-          light: '#FB923C',
-          muted: '#F9731620',
+          DEFAULT: '#DC2626',
+          dark: '#B91C1C',
+          light: '#F87171',
+          muted: '#FEE2E2',
         },
         // Semantic
         border: {
-          DEFAULT: '#334155',
-          subtle: '#1E293B',
+          DEFAULT: '#E5E7EB',
+          subtle: '#F3F4F6',
         },
       },
     },

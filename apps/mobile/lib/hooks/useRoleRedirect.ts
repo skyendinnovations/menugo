@@ -3,7 +3,7 @@
  * Priority: kitchen → kitchen page, waiter → waiter page, cashier → cashier page,
  * owner/manager/other → restaurant dashboard.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { memberAPI } from '@/lib/api';
 import { ROUTES } from '@/lib/routes';
@@ -23,9 +23,16 @@ const ROLE_TO_ROUTE: Record<string, string> = {
 export function useRoleRedirect({ restaurantId, enabled = true }: UseRoleRedirectOptions) {
   const router = useRouter();
   const didRedirect = useRef(false);
+  const [redirecting, setRedirecting] = useState(enabled);
 
   useEffect(() => {
-    if (!enabled || didRedirect.current) return;
+    if (!enabled) {
+      setRedirecting(false);
+      return;
+    }
+    if (didRedirect.current) return;
+
+    setRedirecting(true);
 
     (async () => {
       try {
@@ -33,7 +40,10 @@ export function useRoleRedirect({ restaurantId, enabled = true }: UseRoleRedirec
         const membership = res.data;
 
         // Owners and managers go to the dashboard (no forced redirect)
-        if (membership.isOwner) return;
+        if (membership.isOwner) {
+          setRedirecting(false);
+          return;
+        }
 
         const roles: string[] =
           membership.roles?.map((r: any) => (r.name || r.roleName || '').toLowerCase()) ?? [];
@@ -54,6 +64,9 @@ export function useRoleRedirect({ restaurantId, enabled = true }: UseRoleRedirec
         // Non-fatal — fall back to dashboard
         console.warn('Failed to determine role for redirect:', err);
       }
+      setRedirecting(false);
     })();
   }, [restaurantId, enabled, router]);
+
+  return { redirecting };
 }

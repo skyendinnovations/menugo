@@ -116,8 +116,8 @@ export default function Profile() {
 
   if ((!checked && isPending) || !user?.id) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-900">
-        <ActivityIndicator size="large" color="#F97316" />
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator size="large" color="#DC2626" />
       </View>
     );
   }
@@ -125,7 +125,7 @@ export default function Profile() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-slate-900">
+      <View className="flex-1 bg-white">
         <AdminPageHeader title="Profile" />
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -145,13 +145,13 @@ export default function Profile() {
             </View>
 
             <View>
-              <Label>Email</Label>
-              <Input value={user.email || ''} editable={false} />
+              <Label className="text-gray-600">Email</Label>
+              <Input variant="light" value={user.email || ''} editable={false} />
             </View>
 
             <View>
-              <Label required>Name</Label>
-              <Input value={name} onChangeText={setName} placeholder="Your name" />
+              <Label required className="text-gray-600">Name</Label>
+              <Input variant="light" value={name} onChangeText={setName} placeholder="Your name" />
             </View>
 
             <Button

@@ -1,4 +1,5 @@
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -12,6 +13,7 @@ import { ROUTES } from '@/lib/routes';
 
 export default function AcceptInvitationScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [invitations, setInvitations] = useState<MyInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -51,11 +53,11 @@ export default function AcceptInvitationScreen() {
 
   const renderEmpty = () => (
     <View className="flex-1 items-center justify-center px-8">
-      <View className="mb-6 h-24 w-24 items-center justify-center rounded-full bg-slate-800">
-        <MaterialIcons name="mail-outline" size={48} color="#64748B" />
+      <View className="mb-6 h-24 w-24 items-center justify-center rounded-full bg-gray-100">
+        <MaterialIcons name="mail-outline" size={48} color="#DC2626" />
       </View>
-      <Text className="text-center text-xl font-bold text-white">No Invitations</Text>
-      <Text className="mt-2 text-center text-sm text-slate-400">
+      <Text className="text-center text-xl font-bold text-black">No Invitations</Text>
+      <Text className="mt-2 text-center text-sm text-gray-600">
         You don&apos;t have any pending invitations. Ask a restaurant owner to invite you, or create
         your own restaurant.
       </Text>
@@ -71,15 +73,22 @@ export default function AcceptInvitationScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-slate-900">
+      <View className="flex-1 bg-white">
         {/* Header */}
-        <View className="flex-row items-center gap-3 border-b border-slate-800 px-4 pb-4 pt-14">
+        <View className="flex-row items-center gap-3 border-b border-gray-200 px-4 pb-4" style={{ paddingTop: insets.top + 12 }}>
           <TouchableOpacity
-            onPress={() => router.back()}
-            className="h-11 w-11 items-center justify-center rounded-xl bg-slate-800">
-            <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace(ROUTES.ADMIN.HOME);
+              }
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="h-11 w-11 items-center justify-center rounded-xl bg-gray-100 active:opacity-70">
+            <MaterialIcons name="arrow-back" size={22} color="#111827" />
           </TouchableOpacity>
-          <Text className="flex-1 text-lg font-bold text-white">Invitations</Text>
+          <Text className="flex-1 text-lg font-bold text-black">Invitations</Text>
           <Button
             title="+ Restaurant"
             size="sm"
@@ -93,7 +102,7 @@ export default function AcceptInvitationScreen() {
 
           {loading ? (
             <View className="flex-1 items-center justify-center">
-              <ActivityIndicator size="large" color="#F97316" />
+              <ActivityIndicator size="large" color="#DC2626" />
             </View>
           ) : (
             <FlatList

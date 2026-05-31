@@ -47,7 +47,7 @@ export default function InviteMember() {
       const result = await memberAPI.inviteMember(restaurantId, email.trim(), [
         Number(selectedRole),
       ]);
-      setSuccess(`Invitation sent! Token: ${result.data.token}`);
+      setSuccess('Invitation sent successfully!');
       setEmail('');
       setSelectedRole('');
     } catch (err: any) {
@@ -62,14 +62,14 @@ export default function InviteMember() {
       <Stack.Screen
         options={{
           title: 'Invite Member',
-          headerStyle: { backgroundColor: '#0F172A' },
-          headerTintColor: '#F8FAFC',
+          headerStyle: { backgroundColor: '#FFFFFF' },
+          headerTintColor: '#111827',
           headerShadowVisible: false,
         }}
       />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-slate-900">
+        className="flex-1 bg-white">
         <ScrollView className="flex-1 px-5 pt-4" keyboardShouldPersistTaps="handled">
           {error ? <Alert variant="destructive" description={error} className="mb-5" /> : null}
           {success ? <Alert variant="success" description={success} className="mb-5" /> : null}

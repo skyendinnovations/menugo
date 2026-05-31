@@ -7,7 +7,7 @@ interface CardProps extends ViewProps {
 
 export function Card({ children, className, ...props }: CardProps) {
   return (
-    <View className={`overflow-hidden rounded-2xl bg-slate-800 ${className || ''}`} {...props}>
+    <View className={`overflow-hidden rounded-2xl border border-gray-200 ${className || ''}`} {...props}>
       {children}
     </View>
   );
@@ -27,7 +27,7 @@ export function CardTitle({
   ...props
 }: { children: React.ReactNode; className?: string } & React.ComponentProps<typeof Text>) {
   return (
-    <Text className={`text-lg font-bold text-white ${className || ''}`} {...props}>
+    <Text className={`text-lg font-bold text-black ${className || ''}`} {...props}>
       {children}
     </Text>
   );
@@ -39,7 +39,7 @@ export function CardDescription({
   ...props
 }: { children: React.ReactNode; className?: string } & React.ComponentProps<typeof Text>) {
   return (
-    <Text className={`mt-1 text-sm text-slate-400 ${className || ''}`} {...props}>
+    <Text className={`mt-1 text-sm text-gray-600 ${className || ''}`} {...props}>
       {children}
     </Text>
   );
@@ -55,7 +55,7 @@ export function CardContent({ children, className, ...props }: CardProps) {
 
 export function CardFooter({ children, className, ...props }: CardProps) {
   return (
-    <View className={`border-t border-slate-700 px-5 py-4 ${className || ''}`} {...props}>
+    <View className={`border-t border-gray-200 px-5 py-4 ${className || ''}`} {...props}>
       {children}
     </View>
   );

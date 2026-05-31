@@ -1,5 +1,7 @@
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { ROUTES } from '@/lib/routes';
 import { useState, useCallback, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { orderAPI, type Order } from '@/lib/api';
@@ -23,6 +25,7 @@ const STATUS_COLORS: Record<string, 'default' | 'destructive' | 'success' | 'out
 export default function OrdersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [currency, setCurrency] = useState('INR');
@@ -88,7 +91,7 @@ export default function OrdersScreen() {
       <Card className="mb-3">
         <CardContent>
           <View className="mb-3 flex-row items-center justify-between">
-            <Text className="text-base font-bold text-white">{order.orderNumber}</Text>
+            <Text className="text-base font-bold text-black">{order.orderNumber}</Text>
             <Badge variant={STATUS_COLORS[order.status] || 'default'}>
               {order.status.toUpperCase()}
             </Badge>
@@ -96,18 +99,18 @@ export default function OrdersScreen() {
 
           {order.items?.map((item, idx) => (
             <View key={idx} className="flex-row justify-between py-1">
-              <Text className="text-sm text-slate-300">
+              <Text className="text-sm text-gray-700">
                 {item.quantity}x {item.itemName}
                 {item.variantName ? ` (${item.variantName})` : ''}
               </Text>
-              <Text className="text-sm text-slate-400">
+              <Text className="text-sm text-gray-500">
                 {formatPrice(parseFloat(item.priceAtOrder) * item.quantity, currency)}
               </Text>
             </View>
           ))}
 
-          <View className="mt-3 flex-row items-center justify-between border-t border-slate-700 pt-3">
-            <Text className="font-semibold text-white">Total: {formatPrice(total, currency)}</Text>
+          <View className="mt-3 flex-row items-center justify-between border-t border-gray-200 pt-3">
+            <Text className="font-semibold text-black">Total: {formatPrice(total, currency)}</Text>
             {nextStatus && (
               <Button
                 title={nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}
@@ -124,26 +127,33 @@ export default function OrdersScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-slate-900">
-        <View className="flex-row items-center justify-between px-5 py-4">
+      <View className="flex-1 bg-white">
+        <View className="flex-row items-center justify-between px-5 pb-4" style={{ paddingTop: insets.top + 12 }}>
           <View className="flex-row items-center gap-4">
             <TouchableOpacity
-              onPress={() => router.back()}
-              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-              <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace(ROUTES.ADMIN.HOME);
+                }
+              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              className="h-10 w-10 items-center justify-center rounded-xl bg-gray-100 active:opacity-70">
+              <MaterialIcons name="arrow-back" size={22} color="#111827" />
             </TouchableOpacity>
-            <Text className="text-xl font-bold text-white">Orders</Text>
+            <Text className="text-xl font-bold text-black">Orders</Text>
           </View>
           <TouchableOpacity
             onPress={fetchOrders}
-            className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-            <MaterialIcons name="refresh" size={22} color="#F97316" />
+            className="h-10 w-10 items-center justify-center rounded-xl bg-gray-100">
+            <MaterialIcons name="refresh" size={22} color="#DC2626" />
           </TouchableOpacity>
         </View>
 
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#F97316" />
+            <ActivityIndicator size="large" color="#DC2626" />
           </View>
         ) : (
           <Tabs defaultValue="received">
@@ -165,7 +175,7 @@ export default function OrdersScreen() {
                   contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
                   renderItem={({ item }) => renderOrder(item)}
                   ListEmptyComponent={
-                    <Text className="py-10 text-center text-slate-500">No {s} orders</Text>
+                    <Text className="py-10 text-center text-gray-500">No {s} orders</Text>
                   }
                 />
               </TabsContent>

@@ -46,7 +46,7 @@ export default function JoinSession() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-slate-900">
+      className="flex-1 bg-white">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
@@ -55,8 +55,8 @@ export default function JoinSession() {
           <View className="mb-6 h-24 w-24 items-center justify-center rounded-full bg-brand/15">
             <MaterialIcons name="qr-code-scanner" size={48} color="#F97316" />
           </View>
-          <Text className="text-2xl font-bold text-white">Join a Table</Text>
-          <Text className="mt-2 text-center text-base text-slate-400">
+          <Text className="text-2xl font-bold text-black">Join a Table</Text>
+          <Text className="mt-2 text-center text-base text-gray-600">
             Enter the 4-digit code shown on your table
           </Text>
         </View>

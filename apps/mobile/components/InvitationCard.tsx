@@ -7,12 +7,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { getExpiryBadge } from '@menugo/dto';
 
 interface InvitationCardProps {
-  invitation: MyInvitation;
-  onAccept: (invitation: MyInvitation) => void;
-  onReject: (invitation: MyInvitation) => void;
-  isAccepting: boolean;
-  isRejecting: boolean;
-  disabled: boolean;
+  readonly invitation: MyInvitation;
+  readonly onAccept: (invitation: MyInvitation) => void;
+  readonly onReject: (invitation: MyInvitation) => void;
+  readonly isAccepting: boolean;
+  readonly isRejecting: boolean;
+  readonly disabled: boolean;
 }
 
 export function InvitationCard({
@@ -26,14 +26,14 @@ export function InvitationCard({
   const expiry = getExpiryBadge(invitation.expiresAt);
 
   return (
-    <Card className="mb-3">
+    <Card className="mb-3 overflow-hidden rounded-2xl border border-gray-200 bg-white">
       <CardContent>
         <View className="flex-row items-center gap-4">
-          <View className="h-12 w-12 items-center justify-center rounded-xl bg-brand/15">
-            <MaterialIcons name="mail" size={24} color="#F97316" />
+          <View className="h-12 w-12 items-center justify-center rounded-xl bg-brand-muted">
+            <MaterialIcons name="mail" size={24} color="#DC2626" />
           </View>
           <View className="flex-1">
-            <Text className="text-base font-bold text-white">{invitation.restaurantName}</Text>
+            <Text className="text-base font-bold text-black">{invitation.restaurantName}</Text>
             <View className="mt-1 flex-row items-center gap-2">
               <Badge variant={expiry.variant}>{expiry.label}</Badge>
             </View>
@@ -43,11 +43,11 @@ export function InvitationCard({
           <Button
             title="Reject"
             size="sm"
-            variant="secondary"
+            variant="ghost"
             onPress={() => onReject(invitation)}
             loading={isRejecting}
             disabled={disabled}
-            className="flex-1"
+            className="flex-1 border-gray-200"
           />
           <Button
             title="Accept"

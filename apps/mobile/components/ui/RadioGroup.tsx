@@ -49,11 +49,11 @@ export function RadioGroupItem({ value, label, className, ...props }: RadioGroup
       {...props}>
       <View
         className={`h-6 w-6 items-center justify-center rounded-full border-2 ${
-          isSelected ? 'border-brand' : 'border-slate-600'
+          isSelected ? 'border-brand' : 'border-gray-400'
         }`}>
         {isSelected && <View className="h-3 w-3 rounded-full bg-brand" />}
       </View>
-      {label && <Text className="ml-3 text-white">{label}</Text>}
+      {label && <Text className="ml-3 text-black">{label}</Text>}
     </Pressable>
   );
 }

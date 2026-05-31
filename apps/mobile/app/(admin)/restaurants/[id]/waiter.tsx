@@ -16,6 +16,8 @@ import { usePermissions } from '@/lib/hooks/usePermissions';
 import { MaterialIcons } from '@expo/vector-icons';
 import { AdminPageHeader } from '@/components/AdminPageHeader';
 
+/* eslint-disable complexity */
+
 // ─── Item Row for Waiter ───────────────────────────────────────────────────────
 
 interface WaiterItemRowProps {
@@ -32,7 +34,7 @@ function WaiterItemRow({
   restaurantId,
   currentUserId,
   onRefresh,
-}: WaiterItemRowProps) {
+}: Readonly<WaiterItemRowProps>) {
   const [loading, setLoading] = useState(false);
   const isMyClaim = item.acceptedByWaiter === currentUserId;
   const isClaimed = !!item.acceptedByWaiter;
@@ -49,6 +51,28 @@ function WaiterItemRow({
     }
   };
 
+function formatPersonCount(personsCount: number | string): string {
+  const count = typeof personsCount === 'number' ? personsCount : Number(personsCount);
+  return `${personsCount} person${count === 1 ? '' : 's'}`;
+}
+
+function getTableChipClass(isSelected: boolean, count: number): string {
+  if (isSelected) return 'border-red-500 bg-red-600';
+  if (count > 0) return 'border-red-200 bg-white';
+  return 'border-gray-200 bg-white';
+}
+
+function getWaiterSubtitle(activeTab: Tab, totalReadyItems: number, activeSessions: any[]): string {
+  if (activeTab === 'deliver') {
+    return `${totalReadyItems} ${totalReadyItems === 1 ? 'item' : 'items'} ready for delivery`;
+  }
+  return `${activeSessions.length} active ${activeSessions.length === 1 ? 'table' : 'tables'}`;
+}
+
+function getOrderCountLabel(count: number): string {
+  return count === 1 ? '1 order' : `${count} orders`;
+}
+
   const handleDeliver = async () => {
     setLoading(true);
     try {
@@ -62,18 +86,18 @@ function WaiterItemRow({
   };
 
   return (
-    <View className="mb-2 flex-row items-center gap-3 rounded-xl bg-slate-800 p-3">
+    <View className="mb-2 flex-row items-center gap-3 rounded-xl border border-gray-200 bg-white p-3">
       {/* Item info */}
       <View className="flex-1">
-        <Text className="text-base font-bold text-white">
+        <Text className="text-base font-bold text-black">
           {item.quantity}× {item.itemName}
         </Text>
-        {item.variantName && <Text className="text-sm text-slate-400">{item.variantName}</Text>}
-        {item.notes && <Text className="mt-0.5 text-xs text-amber-400">📝 {item.notes}</Text>}
+        {item.variantName && <Text className="text-sm text-gray-600">{item.variantName}</Text>}
+        {item.notes && <Text className="mt-0.5 text-xs text-amber-700">📝 {item.notes}</Text>}
         {isClaimed && (
           <View className="mt-1 flex-row items-center gap-1">
             <MaterialIcons name="check-circle" size={12} color="#22C55E" />
-            <Text className="text-xs text-green-400" numberOfLines={1}>
+            <Text className="text-xs text-green-700" numberOfLines={1}>
               {isMyClaim
                 ? 'You claimed this'
                 : `Claimed by ${item.acceptedByWaiterName || 'another waiter'}`}
@@ -89,7 +113,7 @@ function WaiterItemRow({
             onPress={handleAccept}
             disabled={loading}
             activeOpacity={0.7}
-            className="flex-row items-center gap-1 rounded-lg bg-blue-600 px-3 py-2">
+            className="flex-row items-center gap-1 rounded-lg bg-red-600 px-3 py-2">
             {loading ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
@@ -130,21 +154,26 @@ interface WaiterOrderCardProps {
   onRefresh: () => void;
 }
 
-function WaiterOrderCard({ order, restaurantId, currentUserId, onRefresh }: WaiterOrderCardProps) {
+function WaiterOrderCard({
+  order,
+  restaurantId,
+  currentUserId,
+  onRefresh,
+}: Readonly<WaiterOrderCardProps>) {
   const readyItems = (order.items || []).filter((i) => i.status === 'ready');
   if (readyItems.length === 0) return null;
 
   return (
-    <View className="bg-slate-850 mb-4 overflow-hidden rounded-2xl border border-slate-700">
-      <View className="flex-row items-center justify-between bg-slate-700 px-4 py-3">
+    <View className="mb-4 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <View className="flex-row items-center justify-between bg-gray-100 px-4 py-3">
         <View className="flex-row items-center gap-2">
-          <MaterialIcons name="receipt" size={16} color="#22C55E" />
-          <Text className="text-base font-bold text-white">{order.orderNumber}</Text>
+          <MaterialIcons name="receipt" size={16} color="#DC2626" />
+          <Text className="text-base font-bold text-black">{order.orderNumber}</Text>
         </View>
         {order.tableNumber && (
-          <View className="flex-row items-center gap-1 rounded-full border border-green-600/30 bg-green-600/20 px-2 py-0.5">
-            <MaterialIcons name="table-restaurant" size={12} color="#22C55E" />
-            <Text className="text-xs font-semibold text-green-400">Table {order.tableNumber}</Text>
+          <View className="flex-row items-center gap-1 rounded-full border border-green-600/30 bg-green-50 px-2 py-0.5">
+            <MaterialIcons name="table-restaurant" size={12} color="#DC2626" />
+            <Text className="text-xs font-semibold text-green-700">Table {order.tableNumber}</Text>
           </View>
         )}
       </View>
@@ -173,7 +202,7 @@ interface ActiveSessionRowProps {
   onPress: () => void;
 }
 
-function ActiveSessionRow({ session, restaurantId, onPress }: ActiveSessionRowProps) {
+function ActiveSessionRow({ session, restaurantId, onPress }: Readonly<ActiveSessionRowProps>) {
   const tableNumber = session.tableNumber ?? session.session?.tableNumber;
   const personsCount = session.session?.personsCount ?? session.personsCount ?? '—';
   const customerName = session.session?.customerName ?? session.customerName;
@@ -183,36 +212,38 @@ function ActiveSessionRow({ session, restaurantId, onPress }: ActiveSessionRowPr
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      className="mb-3 flex-row items-center justify-between rounded-2xl border border-slate-700 bg-slate-800 px-4 py-4">
+      className="mb-3 flex-row items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-4">
       {/* Table icon */}
-      <View className="mr-4 h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/15">
-        <MaterialIcons name="table-restaurant" size={24} color="#06B6D4" />
+      <View className="mr-4 h-12 w-12 items-center justify-center rounded-xl bg-red-500/10">
+        <MaterialIcons name="table-restaurant" size={24} color="#DC2626" />
       </View>
 
       {/* Info */}
       <View className="flex-1">
-        <Text className="text-base font-bold text-white">Table #{tableNumber}</Text>
+        <Text className="text-base font-bold text-black">Table #{tableNumber}</Text>
         {customerName ? (
-          <Text className="text-sm text-cyan-400" numberOfLines={1}>
+          <Text className="text-sm text-red-600" numberOfLines={1}>
             {customerName}
           </Text>
         ) : null}
         <View className="mt-1 flex-row items-center gap-3">
           <View className="flex-row items-center gap-1">
-            <MaterialIcons name="people" size={12} color="#64748B" />
-            <Text className="text-xs text-slate-500">{personsCount} person{personsCount !== 1 ? 's' : ''}</Text>
+            <MaterialIcons name="people" size={12} color="#6B7280" />
+            <Text className="text-xs text-gray-500">
+              {formatPersonCount(personsCount)}
+            </Text>
           </View>
           {joinCode ? (
             <View className="flex-row items-center gap-1">
-              <MaterialIcons name="pin" size={12} color="#64748B" />
-              <Text className="text-xs text-slate-500">Code: {joinCode}</Text>
+              <MaterialIcons name="pin" size={12} color="#6B7280" />
+              <Text className="text-xs text-gray-500">Code: {joinCode}</Text>
             </View>
           ) : null}
         </View>
       </View>
 
       {/* Arrow */}
-      <View className="ml-2 flex-row items-center gap-1 rounded-lg bg-cyan-600 px-3 py-2">
+      <View className="ml-2 flex-row items-center gap-1 rounded-lg bg-red-600 px-3 py-2">
         <MaterialIcons name="add-shopping-cart" size={14} color="#fff" />
         <Text className="text-sm font-bold text-white">Order</Text>
       </View>
@@ -224,6 +255,7 @@ function ActiveSessionRow({ session, restaurantId, onPress }: ActiveSessionRowPr
 
 type Tab = 'deliver' | 'new-order';
 
+// eslint-disable-next-line complexity
 export default function WaiterView() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -289,6 +321,7 @@ export default function WaiterView() {
     : orders;
 
   const totalReadyItems = Object.values(readyItemsByTable).reduce((a, b) => a + b, 0);
+  const totalOrdersLabel = filteredOrders.length === 1 ? '1 order' : `${filteredOrders.length} orders`;
 
   const handleNewOrder = (session: any) => {
     const sessionData = session.session || session;
@@ -305,9 +338,9 @@ export default function WaiterView() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-900">
-        <ActivityIndicator size="large" color="#22C55E" />
-        <Text className="mt-3 text-slate-400">Loading orders…</Text>
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator size="large" color="#DC2626" />
+        <Text className="mt-3 text-gray-600">Loading orders…</Text>
       </View>
     );
   }
@@ -315,7 +348,7 @@ export default function WaiterView() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-slate-900">
+      <View className="flex-1 bg-white">
         <AdminPageHeader
           title="Waiter"
           subtitle={
@@ -327,33 +360,33 @@ export default function WaiterView() {
           right={
             <TouchableOpacity
               onPress={fetchData}
-              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-              <MaterialIcons name="refresh" size={22} color="#22C55E" />
+              className="h-10 w-10 items-center justify-center rounded-xl bg-gray-100">
+              <MaterialIcons name="refresh" size={22} color="#DC2626" />
             </TouchableOpacity>
           }
         />
 
         {/* ─── Tab Bar ─── */}
-        <View className="flex-row border-b border-slate-800 px-4 pt-2">
+        <View className="flex-row border-b border-gray-200 px-4 pt-2">
           <TouchableOpacity
             onPress={() => setActiveTab('deliver')}
             activeOpacity={0.7}
             className={`mr-2 flex-row items-center gap-1.5 rounded-t-xl px-4 py-2.5 ${
-              activeTab === 'deliver' ? 'bg-green-600/15' : ''
+              activeTab === 'deliver' ? 'bg-red-50' : ''
             }`}>
             <MaterialIcons
               name="delivery-dining"
               size={16}
-              color={activeTab === 'deliver' ? '#22C55E' : '#64748B'}
+              color={activeTab === 'deliver' ? '#DC2626' : '#64748B'}
             />
             <Text
               className={`text-sm font-semibold ${
-                activeTab === 'deliver' ? 'text-green-400' : 'text-slate-500'
+                activeTab === 'deliver' ? 'text-red-600' : 'text-gray-500'
               }`}>
               Deliver
             </Text>
             {totalReadyItems > 0 && (
-              <View className="rounded-full bg-green-600 px-1.5 py-0.5">
+              <View className="rounded-full bg-red-600 px-1.5 py-0.5">
                 <Text className="text-[10px] font-bold text-white">{totalReadyItems}</Text>
               </View>
             )}
@@ -364,21 +397,21 @@ export default function WaiterView() {
               onPress={() => setActiveTab('new-order')}
               activeOpacity={0.7}
               className={`flex-row items-center gap-1.5 rounded-t-xl px-4 py-2.5 ${
-                activeTab === 'new-order' ? 'bg-cyan-600/15' : ''
+                activeTab === 'new-order' ? 'bg-red-50' : ''
               }`}>
               <MaterialIcons
                 name="add-shopping-cart"
                 size={16}
-                color={activeTab === 'new-order' ? '#06B6D4' : '#64748B'}
+                color={activeTab === 'new-order' ? '#DC2626' : '#64748B'}
               />
               <Text
                 className={`text-sm font-semibold ${
-                  activeTab === 'new-order' ? 'text-cyan-400' : 'text-slate-500'
+                  activeTab === 'new-order' ? 'text-red-600' : 'text-gray-500'
                 }`}>
                 New Order
               </Text>
               {activeSessions.length > 0 && (
-                <View className="rounded-full bg-cyan-600 px-1.5 py-0.5">
+                <View className="rounded-full bg-red-600 px-1.5 py-0.5">
                   <Text className="text-[10px] font-bold text-white">{activeSessions.length}</Text>
                 </View>
               )}
@@ -398,13 +431,13 @@ export default function WaiterView() {
                 {/* Table filter chips */}
                 {tables.length > 0 && (
                   <>
-                    <Text className="mb-2 text-xs uppercase tracking-wider text-slate-500">
+                    <Text className="mb-2 text-xs uppercase tracking-wider text-gray-500">
                       Filter by table
                     </Text>
                     <FlatList
                       horizontal
                       showsHorizontalScrollIndicator={false}
-                      data={tables.sort((a, b) => a.tableNumber - b.tableNumber)}
+                      data={[...tables].sort((a, b) => a.tableNumber - b.tableNumber)}
                       keyExtractor={(t) => String(t.tableNumber)}
                       className="mb-4"
                       renderItem={({ item: table }) => {
@@ -414,20 +447,17 @@ export default function WaiterView() {
                           <TouchableOpacity
                             onPress={() => setSelectedTable(isSelected ? null : table.tableNumber)}
                             activeOpacity={0.7}
-                            className={`mr-2 min-w-[64px] items-center rounded-xl border px-4 py-3 ${
-                              isSelected
-                                ? 'border-green-500 bg-green-600'
-                                : count > 0
-                                  ? 'border-green-600/40 bg-slate-800'
-                                  : 'border-slate-700 bg-slate-800'
-                            }`}>
+                            className={`mr-2 min-w-[64px] items-center rounded-xl border px-4 py-3 ${getTableChipClass(
+                              isSelected,
+                              count
+                            )}`}>
                             <Text
-                              className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                              className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-black'}`}>
                               #{table.tableNumber}
                             </Text>
                             {count > 0 && (
                               <View
-                                className={`mt-1 rounded-full px-1.5 py-0.5 ${isSelected ? 'bg-white/20' : 'bg-green-600'}`}>
+                                className={`mt-1 rounded-full px-1.5 py-0.5 ${isSelected ? 'bg-white/20' : 'bg-red-600'}`}>
                                 <Text className="text-[10px] font-bold text-white">{count}</Text>
                               </View>
                             )}
@@ -439,9 +469,8 @@ export default function WaiterView() {
                 )}
 
                 {/* Orders list */}
-                <Text className="mb-3 text-base font-bold text-white">
-                  {selectedTable ? `Table #${selectedTable} —` : 'All'} {filteredOrders.length} order
-                  {filteredOrders.length !== 1 ? 's' : ''}
+                <Text className="mb-3 text-base font-bold text-black">
+                  {selectedTable ? `Table #${selectedTable} —` : 'All'} {totalOrdersLabel}
                 </Text>
 
                 {filteredOrders.map((order) => (
@@ -456,11 +485,11 @@ export default function WaiterView() {
 
                 {filteredOrders.length === 0 && (
                   <View className="items-center py-16">
-                    <MaterialIcons name="check-circle-outline" size={56} color="#1E293B" />
-                    <Text className="mt-4 text-base font-semibold text-slate-600">
+                    <MaterialIcons name="check-circle-outline" size={56} color="#64748B" />
+                    <Text className="mt-4 text-base font-semibold text-gray-600">
                       All delivered!
                     </Text>
-                    <Text className="mt-1 text-sm text-slate-700">No items waiting for pickup</Text>
+                    <Text className="mt-1 text-sm text-gray-600">No items waiting for pickup</Text>
                   </View>
                 )}
               </View>
@@ -473,18 +502,18 @@ export default function WaiterView() {
           <ScrollView
             contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 }}
             showsVerticalScrollIndicator={false}>
-            <Text className="mb-1 text-base font-bold text-white">Active Tables</Text>
-            <Text className="mb-4 text-sm text-slate-400">
+            <Text className="mb-1 text-base font-bold text-black">Active Tables</Text>
+            <Text className="mb-4 text-sm text-gray-600">
               Select a table to add items for the current session.
             </Text>
 
             {activeSessions.length === 0 ? (
               <View className="items-center py-16">
-                <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-slate-800">
-                  <MaterialIcons name="table-restaurant" size={38} color="#334155" />
+                <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-gray-100">
+                  <MaterialIcons name="table-restaurant" size={38} color="#64748B" />
                 </View>
-                <Text className="text-base font-semibold text-slate-600">No active sessions</Text>
-                <Text className="mt-1 text-sm text-slate-700">
+                <Text className="text-base font-semibold text-gray-600">No active sessions</Text>
+                <Text className="mt-1 text-sm text-gray-600">
                   Customers must scan the QR code to start a session.
                 </Text>
               </View>

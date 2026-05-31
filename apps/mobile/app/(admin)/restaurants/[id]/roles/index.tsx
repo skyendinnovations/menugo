@@ -1,4 +1,5 @@
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -16,6 +17,7 @@ const DEFAULT_ROLE_NAMES = ['owner', 'manager', 'kitchen', 'waiter', 'cashier'];
 export default function RolesScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
@@ -65,15 +67,22 @@ export default function RolesScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-slate-900 px-5 pt-4">
+      <View className="flex-1 bg-white px-5" style={{ paddingTop: insets.top + 12 }}>
         <View className="mb-5 flex-row items-center justify-between">
           <View className="flex-row items-center gap-4">
             <TouchableOpacity
-              onPress={() => router.back()}
-              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-              <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace(ROUTES.ADMIN.HOME);
+                }
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="h-10 w-10 items-center justify-center rounded-xl bg-gray-100 active:opacity-70">
+              <MaterialIcons name="arrow-back" size={22} color="#111827" />
             </TouchableOpacity>
-            <Text className="text-xl font-bold text-white">Roles</Text>
+            <Text className="text-xl font-bold text-black">Roles</Text>
           </View>
           <Button
             title="+ Create Role"
@@ -84,7 +93,7 @@ export default function RolesScreen() {
 
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#F97316" />
+            <ActivityIndicator size="large" color="#DC2626" />
           </View>
         ) : (
           <FlatList
@@ -99,7 +108,7 @@ export default function RolesScreen() {
                   <View className="flex-row items-start justify-between">
                     <View className="flex-1">
                       <View className="flex-row items-center gap-2">
-                        <Text className="text-base font-bold text-white capitalize">
+                        <Text className="text-base font-bold text-black capitalize">
                           {item.name}
                         </Text>
                         {isDefault(item) && (
@@ -120,14 +129,14 @@ export default function RolesScreen() {
                           onPress={() =>
                             router.push(ROUTES.ADMIN.ROLES.edit(id!, item.id) as any)
                           }
-                          className="h-9 w-9 items-center justify-center rounded-lg bg-slate-700">
+                          className="h-9 w-9 items-center justify-center rounded-lg bg-gray-100">
                           <MaterialIcons name="edit" size={18} color="#94A3B8" />
                         </TouchableOpacity>
                       )}
                       {!isDefault(item) && (
                         <TouchableOpacity
                           onPress={() => setDeleteTarget(item)}
-                          className="h-9 w-9 items-center justify-center rounded-lg bg-slate-700">
+                          className="h-9 w-9 items-center justify-center rounded-lg bg-gray-100">
                           <MaterialIcons name="delete" size={18} color="#EF4444" />
                         </TouchableOpacity>
                       )}
@@ -137,7 +146,7 @@ export default function RolesScreen() {
               </Card>
             )}
             ListEmptyComponent={
-              <Text className="py-10 text-center text-slate-500">No roles yet</Text>
+              <Text className="py-10 text-center text-gray-500">No roles yet</Text>
             }
           />
         )}

@@ -193,7 +193,7 @@ export default function ItemForm() {
       <Stack.Screen options={{ title: isEdit ? 'Edit Item' : 'Add Item' }} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-slate-900">
+        className="flex-1 bg-white">
         <ScrollView className="flex-1 px-5 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
           {error ? <Alert variant="destructive" description={error} className="mb-4" /> : null}
           <View className="gap-5">
@@ -285,7 +285,7 @@ export default function ItemForm() {
                   <TouchableOpacity
                     onPress={addVariant}
                     className="h-9 w-9 items-center justify-center rounded-lg bg-brand/15">
-                    <MaterialIcons name="add" size={22} color="#F97316" />
+                    <MaterialIcons name="add" size={22} color="#DC2626" />
                   </TouchableOpacity>
                 </View>
                 {variants.map((v, idx) => (
@@ -304,7 +304,7 @@ export default function ItemForm() {
                       className="w-24"
                     />
                     <TouchableOpacity onPress={() => removeVariant(idx)}>
-                      <MaterialIcons name="remove-circle" size={24} color="#64748B" />
+                      <MaterialIcons name="remove-circle" size={24} color="#9CA3AF" />
                     </TouchableOpacity>
                   </View>
                 ))}

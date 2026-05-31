@@ -14,6 +14,6 @@ export {
   getSession,
   useSession,
   $Infer,
-  sessionManager,
   storage,
 };
+export { sessionManager } from '@menugo/auth/client';

@@ -7,6 +7,7 @@ interface AlertProps extends ViewProps {
   title?: string;
   description?: string;
   icon?: boolean;
+  theme?: 'dark' | 'light';
 }
 
 export function Alert({
@@ -14,9 +15,10 @@ export function Alert({
   title,
   description,
   icon = true,
+  theme = 'light',
   className,
   ...props
-}: AlertProps) {
+}: Readonly<AlertProps>) {
   const getVariantStyles = () => {
     switch (variant) {
       case 'destructive':
@@ -24,7 +26,7 @@ export function Alert({
       case 'success':
         return 'bg-emerald-500/10 border-emerald-500/30';
       default:
-        return 'bg-slate-700/50 border-slate-600';
+        return 'bg-gray-50 border-gray-200';
     }
   };
 
@@ -46,7 +48,7 @@ export function Alert({
       case 'success':
         return '#10B981';
       default:
-        return '#94A3B8';
+        return '#6B7280';
     }
   };
 
@@ -63,8 +65,16 @@ export function Alert({
         />
       )}
       <View className="flex-1">
-        {title && <Text className="mb-1 text-base font-semibold text-white">{title}</Text>}
-        {description && <Text className="text-sm text-slate-300">{description}</Text>}
+        {title && (
+          <Text className="mb-1 text-base font-semibold text-black">
+            {title}
+          </Text>
+        )}
+        {description && (
+          <Text className="text-sm text-gray-600">
+            {description}
+          </Text>
+        )}
       </View>
     </View>
   );

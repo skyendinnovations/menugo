@@ -10,32 +10,32 @@ import { Textarea } from '@/components/ui/Textarea';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ROUTES } from '@/lib/routes';
 
-function ProgressDots({ current, total }: { current: number; total: number }) {
+function ProgressDots({ current, total }: { readonly current: number; readonly total: number }) {
   return (
-    <View className="mb-8 flex-row items-center justify-center gap-2">
-      {Array.from({ length: total }).map((_, i) => (
-        <View
-          key={i}
-          className={`h-1.5 rounded-full ${
-            i === current ? 'w-8 bg-brand' : i < current ? 'w-2 bg-brand' : 'w-2 bg-slate-700'
-          }`}
-        />
-      ))}
+    <View className="flex-row justify-center gap-2">
+      {Array.from({ length: total }).map((_, i) => {
+        const getDotStyle = () => {
+          if (i === current) return 'w-8 bg-brand';
+          if (i < current) return 'w-2 bg-brand';
+          return 'w-2 bg-gray-300';
+        };
+        return <View key={`dot-${i}`} className={`h-2 rounded-full ${getDotStyle()}`} />;
+      })}
     </View>
   );
 }
 
-function WelcomeStep({ onNext }: { onNext: () => void }) {
+function WelcomeStep({ onNext }: { readonly onNext: () => void }) {
   return (
-    <View className="flex-1 items-center justify-center px-8">
+    <View className="flex-1 justify-between p-6">
       <View className="mb-8 h-28 w-28 items-center justify-center rounded-full bg-brand/15">
-        <MaterialIcons name="restaurant-menu" size={56} color="#F97316" />
+        <MaterialIcons name="restaurant-menu" size={56} color="#DC2626" />
       </View>
-      <Text className="text-center text-3xl font-bold text-white">Welcome to MenuGo!</Text>
-      <Text className="mt-4 text-center text-base leading-6 text-slate-400">
+      <Text className="text-center text-3xl font-bold text-black">Welcome to MenuGo!</Text>
+      <Text className="mt-4 text-center text-base leading-6 text-gray-600">
         Manage your restaurant&apos;s menus, tables, orders, and staff — all in one place.
       </Text>
-      <Text className="mt-6 text-center text-sm text-slate-500">
+      <Text className="mt-6 text-center text-sm text-gray-500">
         Let&apos;s set up your first restaurant to get started.
       </Text>
       <Button title="Get Started" onPress={onNext} size="lg" className="mt-10 w-full" />
@@ -47,21 +47,19 @@ function RestaurantDetailsStep({
   onNext,
   onBack,
 }: {
-  onNext: (restaurant: Restaurant) => void;
-  onBack: () => void;
+  readonly onNext: (restaurant: Restaurant) => void;
+  readonly onBack: () => void;
 }) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({
-    name: '',
-    description: '',
-    address: '',
-    phone: '',
-    email: '',
-  });
 
   const handleCreate = async () => {
-    if (!form.name.trim()) {
+    if (!name.trim()) {
       setError('Restaurant name is required');
       return;
     }
@@ -69,11 +67,11 @@ function RestaurantDetailsStep({
     setError('');
     try {
       const res = await restaurantAPI.create({
-        name: form.name.trim(),
-        description: form.description.trim() || undefined,
-        address: form.address.trim() || undefined,
-        phone: form.phone.trim() || undefined,
-        email: form.email.trim() || undefined,
+        name: name.trim(),
+        description: description.trim() || undefined,
+        address: address.trim() || undefined,
+        phone: phone.trim() || undefined,
+        email: email.trim() || undefined,
       });
       onNext(res.data);
     } catch (err: any) {
@@ -84,14 +82,14 @@ function RestaurantDetailsStep({
   };
 
   return (
-    <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
+    <ScrollView className="flex-1 px-5 bg-white" showsVerticalScrollIndicator={false}>
       <View className="mb-6 flex-row items-center gap-4">
         <TouchableOpacity
           onPress={onBack}
-          className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-          <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
+          className="h-10 w-10 items-center justify-center rounded-xl bg-gray-100">
+          <MaterialIcons name="arrow-back" size={22} color="#1F2937" />
         </TouchableOpacity>
-        <Text className="text-2xl font-bold text-white">Restaurant Details</Text>
+        <Text className="text-2xl font-bold text-black">Restaurant Details</Text>
       </View>
 
       {error ? <Alert variant="destructive" description={error} className="mb-5" /> : null}
@@ -100,43 +98,48 @@ function RestaurantDetailsStep({
         <View>
           <Label required>Restaurant Name</Label>
           <Input
-            value={form.name}
-            onChangeText={(name) => setForm((p) => ({ ...p, name }))}
+            value={name}
+            onChangeText={setName}
             placeholder="Enter restaurant name"
+            variant="light"
           />
         </View>
         <View>
           <Label>Description</Label>
           <Textarea
-            value={form.description}
-            onChangeText={(description) => setForm((p) => ({ ...p, description }))}
+            value={description}
+            onChangeText={setDescription}
             placeholder="Brief description"
+            variant="light"
           />
         </View>
         <View>
           <Label>Address</Label>
           <Input
-            value={form.address}
-            onChangeText={(address) => setForm((p) => ({ ...p, address }))}
+            value={address}
+            onChangeText={setAddress}
             placeholder="Restaurant address"
+            variant="light"
           />
         </View>
         <View>
           <Label>Phone</Label>
           <Input
-            value={form.phone}
-            onChangeText={(phone) => setForm((p) => ({ ...p, phone }))}
+            value={phone}
+            onChangeText={setPhone}
             placeholder="Phone number"
             keyboardType="phone-pad"
+            variant="light"
           />
         </View>
         <View>
           <Label>Email</Label>
           <Input
-            value={form.email}
-            onChangeText={(email) => setForm((p) => ({ ...p, email }))}
+            value={email}
+            onChangeText={setEmail}
             placeholder="Contact email"
             keyboardType="email-address"
+            variant="light"
           />
         </View>
         <Button
@@ -152,24 +155,31 @@ function RestaurantDetailsStep({
   );
 }
 
-function TableSetupStep({ restaurant, onNext }: { restaurant: Restaurant; onNext: () => void }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+function TableSetupStep({
+  restaurant,
+  onNext,
+}: {
+  readonly restaurant: Restaurant;
+  readonly onNext: () => void;
+}) {
   const [from, setFrom] = useState('1');
   const [to, setTo] = useState('10');
   const [capacity, setCapacity] = useState('4');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleCreate = async () => {
-    const fromNum = parseInt(from, 10);
-    const toNum = parseInt(to, 10);
-    const capNum = parseInt(capacity, 10);
+    setError('');
+    const fromNum = Number.parseInt(from, 10);
+    const toNum = Number.parseInt(to, 10);
+    const capNum = Number.parseInt(capacity, 10);
 
-    if (isNaN(fromNum) || isNaN(toNum) || fromNum < 1 || toNum < fromNum) {
-      setError('Please enter valid table numbers (From must be less than To)');
+    if (Number.isNaN(fromNum) || Number.isNaN(toNum) || fromNum < 1 || toNum < fromNum) {
+      setError('Invalid table range. Please enter a valid start and end number.');
       return;
     }
-    if (isNaN(capNum) || capNum < 1) {
-      setError('Please enter a valid capacity');
+    if (Number.isNaN(capNum) || capNum < 1) {
+      setError('Invalid capacity. Please enter a valid number.');
       return;
     }
 
@@ -187,8 +197,8 @@ function TableSetupStep({ restaurant, onNext }: { restaurant: Restaurant; onNext
 
   return (
     <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
-      <Text className="mb-2 text-2xl font-bold text-white">Table Setup</Text>
-      <Text className="mb-6 text-sm text-slate-400">
+      <Text className="mb-2 text-2xl font-bold text-black">Table Setup</Text>
+      <Text className="mb-6 text-sm text-gray-600">
         Create tables for your restaurant. You can always add more later.
       </Text>
 
@@ -198,11 +208,23 @@ function TableSetupStep({ restaurant, onNext }: { restaurant: Restaurant; onNext
         <View className="flex-row gap-4">
           <View className="flex-1">
             <Label required>From Table #</Label>
-            <Input value={from} onChangeText={setFrom} placeholder="1" keyboardType="number-pad" />
+            <Input
+              value={from}
+              onChangeText={setFrom}
+              placeholder="1"
+              keyboardType="number-pad"
+              variant="light"
+            />
           </View>
           <View className="flex-1">
             <Label required>To Table #</Label>
-            <Input value={to} onChangeText={setTo} placeholder="10" keyboardType="number-pad" />
+            <Input
+              value={to}
+              onChangeText={setTo}
+              placeholder="10"
+              keyboardType="number-pad"
+              variant="light"
+            />
           </View>
         </View>
         <View>
@@ -212,6 +234,7 @@ function TableSetupStep({ restaurant, onNext }: { restaurant: Restaurant; onNext
             onChangeText={setCapacity}
             placeholder="4"
             keyboardType="number-pad"
+            variant="light"
           />
         </View>
         <View className="mb-8 mt-4 flex-row gap-3">
@@ -230,16 +253,15 @@ function TableSetupStep({ restaurant, onNext }: { restaurant: Restaurant; onNext
   );
 }
 
-function CompleteStep({ restaurant }: { restaurant: Restaurant }) {
+function CompleteStep({ restaurant }: { readonly restaurant: Restaurant }) {
   const router = useRouter();
-
   return (
-    <View className="flex-1 items-center justify-center px-8">
+    <View className="flex-1 items-center justify-center bg-gray-50 p-8">
       <View className="mb-8 h-28 w-28 items-center justify-center rounded-full bg-emerald-500/15">
         <MaterialIcons name="check-circle" size={56} color="#10B981" />
       </View>
-      <Text className="text-center text-3xl font-bold text-white">You&apos;re all set!</Text>
-      <Text className="mt-4 text-center text-base text-slate-400">
+      <Text className="text-center text-3xl font-bold text-black">You&apos;re all set!</Text>
+      <Text className="mt-4 text-center text-base text-gray-600">
         Your restaurant &quot;{restaurant.name}&quot; has been created successfully.
       </Text>
 
@@ -278,7 +300,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <View className="flex-1 bg-slate-900 pt-4">
+    <View className="flex-1 bg-white pt-4">
       <ProgressDots current={step} total={4} />
       {step === 0 && <WelcomeStep onNext={() => setStep(1)} />}
       {step === 1 && (

@@ -6,8 +6,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
+import { ROUTES } from '@/lib/routes';
 import { restaurantAPI } from '@/lib/api';
 import { fileAPI } from '@/lib/api/file';
 import { Input } from '@/components/ui/Input';
@@ -21,6 +23,7 @@ import { SUPPORTED_CURRENCIES } from '@menugo/dto';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function EditRestaurant() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -36,6 +39,7 @@ export default function EditRestaurant() {
     phone: '',
     email: '',
     currency: 'INR',
+    tableCountRange: '',
   });
 
   useEffect(() => {
@@ -50,12 +54,13 @@ export default function EditRestaurant() {
           phone: r.phone || '',
           email: r.email || '',
           currency: r.currency || 'INR',
+          tableCountRange: r.tableCountRange || '',
         });
         if (r.logo) {
           setSavedLogoUrl(r.logo.startsWith('http') ? r.logo : fileAPI.getFullUrl(r.logo));
         }
-      } catch (err) {
-        setError('Failed to load restaurant');
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load restaurant');
       }
     })();
   }, [id]);
@@ -88,6 +93,7 @@ export default function EditRestaurant() {
         phone: form.phone.trim() || undefined,
         email: form.email.trim() || undefined,
         currency: form.currency,
+        tableCountRange: form.tableCountRange || undefined,
       });
 
       // Handle image: upload new or delete old
@@ -119,15 +125,22 @@ export default function EditRestaurant() {
       <Stack.Screen options={{ headerShown: false }} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-slate-900">
-        <ScrollView className="flex-1 px-5 pt-4" keyboardShouldPersistTaps="handled">
+        className="flex-1 bg-white">
+        <ScrollView className="flex-1 px-5" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: insets.top + 12 }}>
           <View className="mb-6 flex-row items-center gap-4">
             <TouchableOpacity
-              onPress={() => router.back()}
-              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-              <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace(ROUTES.ADMIN.HOME);
+                }
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="h-10 w-10 items-center justify-center rounded-xl bg-gray-100 active:opacity-70">
+              <MaterialIcons name="arrow-back" size={22} color="#111827" />
             </TouchableOpacity>
-            <Text className="text-xl font-bold text-white">Edit Restaurant</Text>
+            <Text className="text-xl font-bold text-black">Edit Restaurant</Text>
           </View>
           {error ? <Alert variant="destructive" description={error} className="mb-5" /> : null}
           <View className="gap-5">
@@ -187,6 +200,20 @@ export default function EditRestaurant() {
                 onValueChange={(currency) => setForm((p) => ({ ...p, currency }))}
                 options={SUPPORTED_CURRENCIES}
                 placeholder="Select currency"
+              />
+            </View>
+            <View>
+              <Label>Table Count Range</Label>
+              <Select
+                value={form.tableCountRange}
+                onValueChange={(tableCountRange) => setForm((p) => ({ ...p, tableCountRange }))}
+                options={[
+                  { label: 'Under 10', value: 'under_10' },
+                  { label: '10 to 20', value: '10_to_20' },
+                  { label: '20 to 40', value: '20_to_40' },
+                  { label: '40 to 50', value: '40_to_50' },
+                ]}
+                placeholder="Select range"
               />
             </View>
             <Button

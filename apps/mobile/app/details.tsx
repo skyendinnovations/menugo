@@ -5,9 +5,9 @@ export default function Details() {
   const { name } = useLocalSearchParams();
 
   return (
-    <View className="flex-1 items-center justify-center bg-slate-900 px-6">
+    <View className="flex-1 items-center justify-center bg-white px-6">
       <Stack.Screen options={{ title: 'Details' }} />
-      <Text className="text-xl font-bold text-white">Showing details for user {name}</Text>
+      <Text className="text-xl font-bold text-black">Showing details for user {name}</Text>
     </View>
   );
 }

@@ -37,13 +37,13 @@ export function Pagination({
         onPress={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
         className={`p-2 ${currentPage === 1 ? 'opacity-30' : ''}`}>
-        <MaterialIcons name="chevron-left" size={24} color="#F97316" />
+        <MaterialIcons name="chevron-left" size={24} color="#DC2626" />
       </Pressable>
 
       {startPage > 1 && (
         <>
           <PaginationButton page={1} currentPage={currentPage} onPageChange={onPageChange} />
-          {startPage > 2 && <Text className="px-2 text-slate-500">...</Text>}
+          {startPage > 2 && <Text className="px-2 text-gray-500">...</Text>}
         </>
       )}
 
@@ -58,7 +58,7 @@ export function Pagination({
 
       {endPage < totalPages && (
         <>
-          {endPage < totalPages - 1 && <Text className="px-2 text-slate-500">...</Text>}
+          {endPage < totalPages - 1 && <Text className="px-2 text-gray-500">...</Text>}
           <PaginationButton
             page={totalPages}
             currentPage={currentPage}
@@ -71,7 +71,7 @@ export function Pagination({
         onPress={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         className={`p-2 ${currentPage === totalPages ? 'opacity-30' : ''}`}>
-        <MaterialIcons name="chevron-right" size={24} color="#F97316" />
+        <MaterialIcons name="chevron-right" size={24} color="#DC2626" />
       </Pressable>
     </View>
   );
@@ -91,10 +91,10 @@ function PaginationButton({
   return (
     <Pressable
       onPress={() => onPageChange(page)}
-      className={`h-10 w-10 items-center justify-center rounded-xl ${
-        isActive ? 'bg-brand' : 'bg-slate-800'
+      className={`h-10 w-10 items-center justify-center rounded-xl border ${
+        isActive ? 'bg-brand border-brand' : 'bg-gray-50 border-gray-200'
       }`}>
-      <Text className={`font-semibold ${isActive ? 'text-white' : 'text-slate-400'}`}>{page}</Text>
+      <Text className={`font-semibold ${isActive ? 'text-white' : 'text-gray-600'}`}>{page}</Text>
     </Pressable>
   );
 }

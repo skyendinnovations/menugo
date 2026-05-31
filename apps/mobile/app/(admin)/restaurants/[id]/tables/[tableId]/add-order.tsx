@@ -1,4 +1,5 @@
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Image, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -17,6 +18,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 export default function AddOrderScreen() {
   const { id, tableId, sessionId } = useLocalSearchParams<{ id: string; tableId: string; sessionId: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [items, setItems] = useState<Record<number, MenuItem[]>>({});
   const [loading, setLoading] = useState(true);
@@ -133,25 +135,26 @@ export default function AddOrderScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-slate-900">
-        <View className="flex-row items-center justify-between px-5 py-4">
+      <View className="flex-1 bg-white">
+        <View className="flex-row items-center justify-between px-5 pb-4 border-b border-gray-200" style={{ paddingTop: insets.top + 12 }}>
           <View className="flex-row items-center gap-4">
             <TouchableOpacity
               onPress={() => router.back()}
-              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-              <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="h-10 w-10 items-center justify-center rounded-xl bg-gray-100 active:opacity-70">
+              <MaterialIcons name="arrow-back" size={22} color="#374151" />
             </TouchableOpacity>
-            <Text className="text-xl font-bold text-white">Create Order</Text>
+            <Text className="text-xl font-bold text-black">Create Order</Text>
           </View>
         </View>
 
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#F97316" />
+            <ActivityIndicator size="large" color="#DC2626" />
           </View>
         ) : categories.length === 0 ? (
           <View className="flex-1 items-center justify-center px-6">
-            <Text className="text-lg font-medium text-slate-400">No active menu categories available.</Text>
+            <Text className="text-lg font-medium text-gray-500">No active menu categories available.</Text>
           </View>
         ) : (
           <View className="flex-1">
@@ -179,15 +182,15 @@ export default function AddOrderScreen() {
                     keyExtractor={(order) => String(order.id)}
                     contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
                     renderItem={({ item: order }) => (
-                      <View className="mb-4 bg-slate-800 p-4 rounded-xl border border-slate-700">
-                        <View className="flex-row justify-between items-center border-b border-slate-700 pb-2 mb-3">
-                          <Text className="font-bold text-white text-lg">Order #{order.orderNumber}</Text>
+                      <View className="mb-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                        <View className="flex-row justify-between items-center border-b border-gray-200 pb-2 mb-3">
+                          <Text className="font-bold text-black text-lg">Order #{order.orderNumber}</Text>
                           <Badge variant={order.status === 'delivered' ? 'success' : 'default'}>{order.status}</Badge>
                         </View>
                         {(order.items || []).map((orderItem: any, i: number) => (
                           <View key={orderItem.id || i} className="flex-row justify-between mb-2">
-                            <Text className="text-white flex-1 text-base">{orderItem.quantity}× {orderItem.itemName}</Text>
-                            <Text className="text-slate-400 text-sm font-semibold uppercase">{orderItem.status}</Text>
+                            <Text className="text-black flex-1 text-base">{orderItem.quantity}× {orderItem.itemName}</Text>
+                            <Text className="text-gray-500 text-sm font-semibold uppercase">{orderItem.status}</Text>
                           </View>
                         ))}
                       </View>
@@ -221,11 +224,11 @@ export default function AddOrderScreen() {
                               ) : null}
                               <View className="mr-4 flex-1">
                                 <View className="flex-row items-center gap-2">
-                                  <Text className="text-base font-bold text-white">{item.name}</Text>
+                                  <Text className="text-base font-bold text-black">{item.name}</Text>
                                   {item.isVeg && <Badge variant="success">Veg</Badge>}
                                 </View>
                                 {item.description && (
-                                  <Text className="mt-1 text-sm text-slate-400" numberOfLines={2}>
+                                  <Text className="mt-1 text-sm text-gray-500" numberOfLines={2}>
                                     {item.description}
                                   </Text>
                                 )}
@@ -238,10 +241,10 @@ export default function AddOrderScreen() {
                                   <>
                                     <TouchableOpacity
                                       onPress={() => handleRemoveFromCart(item.id)}
-                                      className="h-8 w-8 items-center justify-center rounded-lg bg-slate-700">
-                                      <MaterialIcons name="remove" size={16} color="#fff" />
+                                      className="h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
+                                      <MaterialIcons name="remove" size={16} color="#374151" />
                                     </TouchableOpacity>
-                                    <Text className="mx-3 text-white font-bold">{qty}</Text>
+                                    <Text className="mx-3 text-black font-bold">{qty}</Text>
                                     <TouchableOpacity
                                       onPress={() => handleAddToCart(item)}
                                       className="h-8 w-8 items-center justify-center rounded-lg bg-brand">
@@ -262,7 +265,7 @@ export default function AddOrderScreen() {
                       );
                     }}
                     ListEmptyComponent={
-                      <Text className="py-10 text-center text-slate-500">
+                      <Text className="py-10 text-center text-gray-500">
                         No available items.
                       </Text>
                     }
@@ -275,10 +278,10 @@ export default function AddOrderScreen() {
 
         {/* Placing Order Footer */}
         {cartItemsCount > 0 && (
-          <View className="absolute bottom-0 left-0 right-0 bg-slate-800 px-5 py-4 pt-4 pb-8 flex-row items-center justify-between border-t border-slate-700 shadow-xl">
+          <View className="absolute bottom-0 left-0 right-0 bg-white px-5 pt-4 flex-row items-center justify-between border-t border-gray-200 shadow-xl" style={{ paddingBottom: insets.bottom + 16 }}>
             <View>
-              <Text className="text-slate-400">{cartItemsCount} item{cartItemsCount > 1 ? 's' : ''}</Text>
-              <Text className="text-lg font-bold text-white">{formatPrice(cartTotal, currency)}</Text>
+              <Text className="text-gray-500">{cartItemsCount} item{cartItemsCount > 1 ? 's' : ''}</Text>
+              <Text className="text-lg font-bold text-black">{formatPrice(cartTotal, currency)}</Text>
             </View>
             <Button
               title="Place Order"

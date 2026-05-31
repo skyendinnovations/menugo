@@ -80,45 +80,37 @@ export default function MenuScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-slate-900">
-        <View className="flex-row items-center justify-between px-5 py-4">
-          <View className="flex-row items-center gap-4">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-              <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
-            </TouchableOpacity>
-            <Text className="text-xl font-bold text-white">Menu</Text>
-          </View>
+      <Stack.Screen options={{ title: 'Menu' }} />
+      <View className="flex-1 bg-white">
+        <View className="flex-row items-center justify-end gap-2 px-5 pt-4 pb-4">
           <View className="flex-row gap-2">
             <Button
               title="+ Category"
               size="sm"
               variant="secondary"
-              onPress={() => router.push(ROUTES.ADMIN.MENU.categoryForm(id!) as any)}
+              onPress={() => router.push(ROUTES.ADMIN.MENU.categoryForm(id))}
             />
             <Button
               title="+ Item"
               size="sm"
-              onPress={() => router.push(ROUTES.ADMIN.MENU.itemForm(id!) as any)}
+              onPress={() => router.push(ROUTES.ADMIN.MENU.itemForm(id))}
             />
           </View>
         </View>
 
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#F97316" />
+            <ActivityIndicator size="large" color="#DC2626" />
           </View>
         ) : categories.length === 0 ? (
           <View className="flex-1 items-center justify-center px-6">
-            <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-slate-800">
+            <View className="mb-4 h-20 w-20 items-center justify-center rounded-full bg-gray-100">
               <MaterialIcons name="restaurant-menu" size={40} color="#64748B" />
             </View>
-            <Text className="text-lg font-medium text-slate-400">No menu categories yet</Text>
+            <Text className="text-lg font-medium text-gray-500">No menu categories yet</Text>
             <Button
               title="Add Category"
-              onPress={() => router.push(ROUTES.ADMIN.MENU.categoryForm(id!) as any)}
+              onPress={() => router.push(ROUTES.ADMIN.MENU.categoryForm(id))}
               className="mt-5"
             />
           </View>
@@ -158,11 +150,11 @@ export default function MenuScreen() {
                           ) : null}
                           <View className="mr-4 flex-1">
                             <View className="flex-row items-center gap-2">
-                              <Text className="text-base font-bold text-white">{item.name}</Text>
+                              <Text className="text-base font-bold text-black">{item.name}</Text>
                               {item.isVeg && <Badge variant="success">Veg</Badge>}
                             </View>
                             {item.description && (
-                              <Text className="mt-1 text-sm text-slate-400" numberOfLines={2}>
+                              <Text className="mt-1 text-sm text-gray-600" numberOfLines={2}>
                                 {item.description}
                               </Text>
                             )}
@@ -171,9 +163,9 @@ export default function MenuScreen() {
                                 ? `From ${formatPrice(item.price, currency)}`
                                 : formatPrice(item.price, currency)}
                             </Text>
-                            <Text className="text-xs text-slate-500">Kitchen: {(kitchens.find((k) => k.id === item.kitchenId)?.name) || 'Unassigned'}</Text>
+                            <Text className="text-xs text-gray-500">Kitchen: {(kitchens.find((k) => k.id === item.kitchenId)?.name) || 'Unassigned'}</Text>
                             {item.hasVariants && (
-                              <Text className="text-xs text-slate-500">Has variants</Text>
+                              <Text className="text-xs text-gray-500">Has variants</Text>
                             )}
                           </View>
                           <View className="items-end gap-3">
@@ -201,12 +193,10 @@ export default function MenuScreen() {
                                 fetchMenu();
                               }}
                               onPress={() =>
-                                router.push(
-                                  ROUTES.ADMIN.MENU.itemForm(id!, item.id) as any
-                                )
+                                router.push(ROUTES.ADMIN.MENU.itemForm(id, item.id))
                               }
-                              className="h-9 w-9 items-center justify-center rounded-lg bg-slate-700">
-                              <MaterialIcons name="edit" size={18} color="#94A3B8" />
+                              className="h-9 w-9 items-center justify-center rounded-lg bg-gray-100">
+                              <MaterialIcons name="edit" size={18} color="#6B7280" />
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -214,7 +204,7 @@ export default function MenuScreen() {
                     </Card>
                   )}
                   ListEmptyComponent={
-                    <Text className="py-10 text-center text-slate-500">
+                    <Text className="py-10 text-center text-gray-500">
                       No items in this category
                     </Text>
                   }

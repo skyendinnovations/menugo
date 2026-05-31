@@ -59,12 +59,12 @@ export default function ComponentShowcase() {
   ];
 
   return (
-    <View className="flex-1 bg-slate-900">
+    <View className="flex-1 bg-white">
       <Stack.Screen options={{ title: 'UI Components', headerShown: true }} />
 
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 20 }}>
-        <Text className="mb-2 text-3xl font-bold text-white">UI Components</Text>
-        <Text className="mb-6 text-slate-400">Design System Showcase</Text>
+        <Text className="mb-2 text-3xl font-bold text-black">UI Components</Text>
+        <Text className="mb-6 text-gray-600">Design System Showcase</Text>
 
         <Separator className="mb-6" />
 
@@ -132,7 +132,7 @@ export default function ComponentShowcase() {
               <CardDescription>This is a card description</CardDescription>
             </CardHeader>
             <CardContent>
-              <Text className="text-slate-300">
+              <Text className="text-gray-600">
                 Card content goes here. Styled with the new design system.
               </Text>
             </CardContent>
@@ -282,7 +282,7 @@ export default function ComponentShowcase() {
         {/* Pagination */}
         <ComponentSection title="Pagination">
           <Pagination currentPage={currentPage} totalPages={10} onPageChange={setCurrentPage} />
-          <Text className="mt-2 text-center text-slate-400">Current Page: {currentPage}</Text>
+          <Text className="mt-2 text-center text-gray-500">Current Page: {currentPage}</Text>
         </ComponentSection>
 
         <View className="h-8" />

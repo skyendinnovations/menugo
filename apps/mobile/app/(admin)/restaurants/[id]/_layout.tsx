@@ -1,10 +1,12 @@
 import { Stack } from 'expo-router';
+import { AdminPageHeader } from '@/components/AdminPageHeader';
 
 export default function RestaurantDetailLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: false,
+        header: (props) => <AdminPageHeader {...props} />,
+        headerShown: true,
       }}
     />
   );

@@ -1,4 +1,5 @@
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,6 +16,10 @@ export default function TablesScreen() {
   const [loading, setLoading] = useState(true);
 
   const restaurantId = Number(id);
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const numColumns = width < 380 ? 2 : width < 600 ? 3 : 4;
+  const cardWidth = (width - 32 - (numColumns - 1) * 8) / numColumns;
 
   useFocusEffect(
     useCallback(() => {
@@ -34,9 +39,9 @@ export default function TablesScreen() {
 
   const renderTable = ({ item }: { item: Table }) => (
     <TouchableOpacity
-      onPress={() => router.push(ROUTES.ADMIN.TABLES.detail(id!, item.id) as any)}
+      onPress={() => router.push(ROUTES.ADMIN.TABLES.detail(restaurantId, item.id) as any)}
       activeOpacity={0.7}
-      className="m-[1%] w-[31%]">
+      style={{ width: cardWidth, marginBottom: 8, marginRight: 8 }}>
       <Card>
         <CardContent className="items-center py-5">
           <View
@@ -50,8 +55,8 @@ export default function TablesScreen() {
               color={item.isActive ? '#22C55E' : '#64748B'}
             />
           </View>
-          <Text className="font-bold text-white">#{item.tableNumber}</Text>
-          <Text className="mt-0.5 text-xs text-slate-500">Cap: {item.capacity}</Text>
+          <Text className="font-bold text-black">#{item.tableNumber}</Text>
+          <Text className="mt-0.5 text-xs text-gray-500">Cap: {item.capacity}</Text>
         </CardContent>
       </Card>
     </TouchableOpacity>
@@ -59,36 +64,29 @@ export default function TablesScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-slate-900 px-4 pt-4">
-        <View className="mb-5 flex-row items-center justify-between">
-          <View className="flex-row items-center gap-4">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-              <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
-            </TouchableOpacity>
-            <Text className="text-xl font-bold text-white">Tables</Text>
-          </View>
+      <Stack.Screen options={{ title: 'Tables' }} />
+      <View className="flex-1 bg-white px-4">
+        <View className="mb-4 flex-row justify-end">
           <Button
             title="+ Add"
             size="sm"
-            onPress={() => router.push(ROUTES.ADMIN.TABLES.create(id!) as any)}
+            onPress={() => router.push(ROUTES.ADMIN.TABLES.create(restaurantId) as any)}
           />
         </View>
-
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#F97316" />
+            <ActivityIndicator size="large" color="#DC2626" />
           </View>
         ) : (
           <FlatList
-            data={tables.sort((a, b) => a.tableNumber - b.tableNumber)}
+            key={numColumns}
+            data={[...tables].sort((a, b) => a.tableNumber - b.tableNumber)}
             renderItem={renderTable}
             keyExtractor={(item) => String(item.id)}
-            numColumns={3}
+            numColumns={numColumns}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 20 }}
+            columnWrapperStyle={{ justifyContent: 'flex-start' }}
           />
         )}
       </View>

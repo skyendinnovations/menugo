@@ -1,8 +1,9 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { restaurantAPI, type Restaurant, memberAPI } from '@/lib/api';
+import { restaurantAPI, type Restaurant } from '@/lib/api';
 import { fileAPI } from '@/lib/api/file';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ROUTES } from '@/lib/routes';
@@ -123,6 +124,7 @@ const ALL_CARDS: DashboardCard[] = [
 export default function RestaurantDashboard() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,7 +139,7 @@ export default function RestaurantDashboard() {
   } = usePermissions(restaurantId);
 
   // Auto-redirect based on role (kitchen → kitchen view, waiter → waiter view)
-  useRoleRedirect({ restaurantId, enabled: !loading && !permLoading });
+  const { redirecting } = useRoleRedirect({ restaurantId, enabled: !loading && !permLoading });
 
   useFocusEffect(
     useCallback(() => {
@@ -171,10 +173,10 @@ export default function RestaurantDashboard() {
     [isOwner, hasPermission]
   );
 
-  if (loading || permLoading) {
+  if (loading || permLoading || redirecting) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-900">
-        <ActivityIndicator size="large" color="#F97316" />
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator size="large" color="#DC2626" />
       </View>
     );
   }
@@ -197,14 +199,21 @@ export default function RestaurantDashboard() {
         }}
       />
 
-      <ScrollView className="flex-1 bg-slate-900" contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView className="flex-1 bg-white" contentContainerStyle={{ paddingBottom: 40 }}>
         {/* ─── Header ─── */}
-        <View className="flex-row items-center gap-3 border-b border-slate-800 px-5 pb-5 pt-14">
+        <View className="flex-row items-center gap-3 border-b border-gray-200 px-5 pb-5" style={{ paddingTop: insets.top + 12 }}>
           {/* Back */}
           <TouchableOpacity
-            onPress={() => router.back()}
-            className="h-11 w-11 items-center justify-center rounded-xl bg-slate-800">
-            <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace(ROUTES.ADMIN.HOME);
+              }
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="h-11 w-11 items-center justify-center rounded-xl bg-gray-100 active:opacity-70">
+            <MaterialIcons name="arrow-back" size={22} color="#111827" />
           </TouchableOpacity>
 
           {/* Restaurant info */}
@@ -220,16 +229,16 @@ export default function RestaurantDashboard() {
                 resizeMode="cover"
               />
             ) : (
-              <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand/15">
-                <MaterialIcons name="restaurant" size={20} color="#F97316" />
+              <View className="h-10 w-10 items-center justify-center rounded-xl bg-red-500/10">
+                <MaterialIcons name="restaurant" size={20} color="#DC2626" />
               </View>
             )}
             <View className="flex-1">
-              <Text className="text-lg font-bold text-white" numberOfLines={1}>
+              <Text className="text-lg font-bold text-black" numberOfLines={1}>
                 {restaurant?.name}
               </Text>
               {restaurant?.description && (
-                <Text className="text-xs text-slate-500" numberOfLines={1}>
+                <Text className="text-xs text-gray-600" numberOfLines={1}>
                   {restaurant.description}
                 </Text>
               )}
@@ -239,14 +248,14 @@ export default function RestaurantDashboard() {
           {/* Hamburger */}
           <TouchableOpacity
             onPress={() => setMenuOpen(true)}
-            className="h-11 w-11 items-center justify-center rounded-xl bg-slate-800">
-            <MaterialIcons name="menu" size={24} color="#F8FAFC" />
+            className="h-11 w-11 items-center justify-center rounded-xl bg-gray-100">
+            <MaterialIcons name="menu" size={24} color="#111827" />
           </TouchableOpacity>
         </View>
 
         {/* ─── Quick actions section label ─── */}
         <View className="px-5 pb-3 pt-6">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-gray-500">
             Quick Access
           </Text>
         </View>
@@ -257,13 +266,11 @@ export default function RestaurantDashboard() {
             {cards.map((card) => (
               <TouchableOpacity
                 key={card.route}
-                onPress={() =>
-                  router.push(ROUTES.ADMIN.RESTAURANTS.subpage(id!, card.route) as any)
-                }
+                onPress={() => router.push(ROUTES.ADMIN.RESTAURANTS.subpage(restaurantId, card.route))}
                 activeOpacity={0.7}
                 style={{ width: '47%' }}>
                 <View
-                  className="items-center rounded-2xl border border-slate-700 bg-slate-800 px-3 py-7"
+                  className="items-center rounded-2xl border border-gray-200 bg-white px-3 py-7"
                   style={{
                     shadowColor: card.color,
                     shadowOffset: { width: 0, height: 2 },
@@ -276,7 +283,7 @@ export default function RestaurantDashboard() {
                     style={{ backgroundColor: card.bg }}>
                     <MaterialIcons name={card.icon as any} size={28} color={card.color} />
                   </View>
-                  <Text className="text-sm font-bold text-white">{card.title}</Text>
+                  <Text className="text-sm font-bold text-black">{card.title}</Text>
                 </View>
               </TouchableOpacity>
             ))}

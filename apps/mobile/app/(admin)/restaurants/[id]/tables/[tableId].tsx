@@ -1,7 +1,7 @@
-import { View, Text, ActivityIndicator, Image, Share } from 'react-native';
+import { View, Text, ActivityIndicator, Image, Share, Platform, Alert, ScrollView } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useState, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import { tableAPI, type Table, type QRData } from '@/lib/api';
 import { orderAPI } from '@/lib/api/order';
 import { publicAPI } from '@/lib/api/public';
@@ -19,6 +19,7 @@ export default function TableDetail() {
   const [sessionOrders, setSessionOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const navigation: any = useNavigation();
   const { hasPermission } = usePermissions(Number(id));
 
   const restaurantId = Number(id);
@@ -37,6 +38,9 @@ export default function TableDetail() {
           if (!isActive) return;
           const t = (tablesRes.data || []).find((t: Table) => t.id === Number(tableId));
           setTable(t || null);
+          if (t) {
+            navigation.setOptions({ title: `Table #${t.tableNumber}` });
+          }
           setQrData(qrRes.data);
           
           const sessionMatch = (sessionsRes.data || []).find(
@@ -65,6 +69,28 @@ export default function TableDetail() {
   const handleShare = async () => {
     if (!qrData) return;
     try {
+      if (Platform.OS === 'web') {
+        const shareText = `Scan this QR code to order at table ${qrData.tableNumber}: ${qrData.url}`;
+
+        if (typeof navigator !== 'undefined' && 'share' in navigator) {
+          await navigator.share({
+            title: `Table #${qrData.tableNumber}`,
+            text: shareText,
+            url: qrData.url,
+          });
+          return;
+        }
+
+        if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(qrData.url);
+          Alert.alert('QR link copied', 'The QR URL has been copied to your clipboard.');
+          return;
+        }
+
+        Alert.alert('Sharing unavailable', qrData.url);
+        return;
+      }
+
       await Share.share({
         message: `Scan this QR code to order at table ${qrData.tableNumber}: ${qrData.url}`,
         url: qrData.url,
@@ -74,18 +100,22 @@ export default function TableDetail() {
     }
   };
 
+  const shareButtonTitle = Platform.OS === 'web' ? 'Copy QR Link' : 'Share QR Code';
+
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-900">
-        <ActivityIndicator size="large" color="#F97316" />
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator size="large" color="#DC2626" />
       </View>
     );
   }
 
   return (
     <>
-      <Stack.Screen options={{ title: `Table #${table?.tableNumber || ''}` }} />
-      <View className="flex-1 bg-slate-900 px-5 pt-4">
+      <Stack.Screen options={{ title: `Table #${table?.tableNumber || ''}`, headerShown: false }} />
+      <ScrollView
+        className="flex-1 bg-gray-100"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32 }}>
         {table && (
           <Card className="mb-4">
             <CardHeader>
@@ -93,7 +123,7 @@ export default function TableDetail() {
             </CardHeader>
             <CardContent>
               <View className="flex-row items-center justify-between">
-                <Text className="text-slate-400">Capacity: {table.capacity}</Text>
+                <Text className="text-gray-600">Capacity: {table.capacity}</Text>
                 <Badge variant={table.isActive ? 'success' : 'destructive'}>
                   {table.isActive ? 'Active' : 'Inactive'}
                 </Badge>
@@ -109,7 +139,7 @@ export default function TableDetail() {
               <CardTitle>Active Session</CardTitle>
             </CardHeader>
             <CardContent>
-              <Text className="text-slate-400 mb-2">Customers: {activeSession.personsCount}</Text>
+              <Text className="text-gray-600 mb-2">Customers: {activeSession.personsCount}</Text>
               
               {/* {sessionOrders.length > 0 && (
                 <View className="mt-2 pt-3 border-t border-slate-700">
@@ -150,7 +180,7 @@ export default function TableDetail() {
             </CardHeader>
             <CardContent className="items-center">
               {qrData.qrDataUrl && (
-                <View className="mb-4 rounded-2xl bg-white p-4">
+                <View className="mb-4 rounded-2xl bg-transparent p-4">
                   <Image
                     source={{ uri: qrData.qrDataUrl }}
                     style={{ width: 250, height: 250 }}
@@ -158,17 +188,18 @@ export default function TableDetail() {
                   />
                 </View>
               )}
-              <Text className="mb-4 text-center text-sm text-slate-400">{qrData.url}</Text>
+              <Text className="mb-4 text-center text-sm text-gray-600">{qrData.url}</Text>
               <Button
-                title="Share QR Code"
+                title={shareButtonTitle}
                 onPress={handleShare}
-                icon={<MaterialIcons name="share" size={18} color="#fff" />}
-                size="lg"
+                icon={<MaterialIcons name="share" size={16} color="#fff" />}
+                size="sm"
+                className="self-center"
               />
             </CardContent>
           </Card>
         )}
-      </View>
+      </ScrollView>
     </>
   );
 }

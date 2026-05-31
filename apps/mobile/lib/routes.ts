@@ -2,6 +2,7 @@ export const ROUTES = {
   AUTH: {
     SIGN_IN: '/(auth)/sign-in' as const,
     SIGN_UP: '/(auth)/sign-up' as const,
+    FORGOT_PASSWORD: '/(auth)/forgot-password' as const,
   },
   ADMIN: {
     HOME: '/(admin)' as const,

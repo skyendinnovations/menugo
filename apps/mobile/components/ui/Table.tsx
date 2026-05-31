@@ -8,7 +8,7 @@ interface TableProps extends ScrollViewProps {
 export function Table({ children, className, ...props }: TableProps) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} className={className} {...props}>
-      <View className="overflow-hidden rounded-2xl border border-slate-700">{children}</View>
+      <View className="overflow-hidden rounded-2xl border border-gray-200">{children}</View>
     </ScrollView>
   );
 }
@@ -19,7 +19,7 @@ export function TableHeader({
   ...props
 }: { children: React.ReactNode; className?: string } & ViewProps) {
   return (
-    <View className={`bg-slate-800 ${className || ''}`} {...props}>
+    <View className={`bg-gray-50 ${className || ''}`} {...props}>
       {children}
     </View>
   );
@@ -43,7 +43,7 @@ export function TableRow({
   ...props
 }: { children: React.ReactNode; className?: string } & ViewProps) {
   return (
-    <View className={`flex-row border-b border-slate-700/50 ${className || ''}`} {...props}>
+    <View className={`flex-row border-b border-gray-100 ${className || ''}`} {...props}>
       {children}
     </View>
   );
@@ -56,7 +56,7 @@ export function TableHead({
 }: { children: React.ReactNode; className?: string } & ViewProps) {
   return (
     <View className={`min-w-32 px-4 py-3 ${className || ''}`} {...props}>
-      <Text className="text-sm font-bold text-slate-300">{children}</Text>
+      <Text className="text-sm font-bold text-gray-700">{children}</Text>
     </View>
   );
 }
@@ -68,7 +68,7 @@ export function TableCell({
 }: { children: React.ReactNode; className?: string } & ViewProps) {
   return (
     <View className={`min-w-32 px-4 py-3 ${className || ''}`} {...props}>
-      <Text className="text-sm text-slate-300">{children}</Text>
+      <Text className="text-sm text-gray-600">{children}</Text>
     </View>
   );
 }

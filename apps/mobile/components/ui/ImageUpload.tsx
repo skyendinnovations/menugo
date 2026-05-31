@@ -62,7 +62,7 @@ export function ImageUpload({ value, onChange, size = 120, shape = 'square' }: I
           borderRadius,
           overflow: 'hidden',
         }}
-        className="items-center justify-center border-2 border-dashed border-slate-600 bg-slate-800">
+        className="items-center justify-center border-2 border-dashed border-gray-200 bg-gray-100">
         {value ? (
           <Image
             source={{ uri: value }}
@@ -71,8 +71,8 @@ export function ImageUpload({ value, onChange, size = 120, shape = 'square' }: I
           />
         ) : (
           <View className="items-center gap-1">
-            <MaterialIcons name="add-a-photo" size={28} color="#64748B" />
-            <Text className="text-xs text-slate-500">Tap to upload</Text>
+            <MaterialIcons name="add-a-photo" size={28} color="#DC2626" />
+            <Text className="text-xs text-gray-600">Tap to upload</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -85,40 +85,40 @@ export function ImageUpload({ value, onChange, size = 120, shape = 'square' }: I
         <Pressable className="flex-1 justify-end bg-black/60" onPress={() => setShowOptions(false)}>
           <Pressable
             onPress={(e) => e.stopPropagation()}
-            className="rounded-t-2xl bg-slate-800 px-5 pb-8 pt-4">
-            <View className="mb-5 h-1 w-10 self-center rounded-full bg-slate-600" />
+            className="rounded-t-2xl bg-white px-5 pb-8 pt-4">
+            <View className="mb-5 h-1 w-10 self-center rounded-full bg-gray-300" />
 
-            <TouchableOpacity
-              onPress={handlePickImage}
-              className="flex-row items-center gap-4 py-4">
-              <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand/15">
-                <MaterialIcons name="photo-library" size={22} color="#F97316" />
-              </View>
-              <Text className="text-base font-medium text-white">Choose from Gallery</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handlePickImage}
+                className="flex-row items-center gap-4 py-4">
+                <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand/15">
+                  <MaterialIcons name="photo-library" size={22} color="#DC2626" />
+                </View>
+                <Text className="text-base font-medium text-black">Choose from Gallery</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleTakePhoto}
-              className="flex-row items-center gap-4 py-4">
-              <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand/15">
-                <MaterialIcons name="camera-alt" size={22} color="#F97316" />
-              </View>
-              <Text className="text-base font-medium text-white">Take a Photo</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleTakePhoto}
+                className="flex-row items-center gap-4 py-4">
+                <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand/15">
+                  <MaterialIcons name="camera-alt" size={22} color="#DC2626" />
+                </View>
+                <Text className="text-base font-medium text-black">Take a Photo</Text>
+              </TouchableOpacity>
 
             {value && (
               <TouchableOpacity onPress={handleRemove} className="flex-row items-center gap-4 py-4">
                 <View className="h-10 w-10 items-center justify-center rounded-xl bg-red-500/15">
                   <MaterialIcons name="delete" size={22} color="#EF4444" />
                 </View>
-                <Text className="text-base font-medium text-red-400">Remove Image</Text>
+                <Text className="text-base font-medium text-red-600">Remove Image</Text>
               </TouchableOpacity>
             )}
 
             <TouchableOpacity
               onPress={() => setShowOptions(false)}
               className="mt-2 items-center py-3">
-              <Text className="text-base text-slate-400">Cancel</Text>
+              <Text className="text-base text-gray-600">Cancel</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>

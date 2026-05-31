@@ -14,7 +14,7 @@ export function Badge({ variant = 'default', children, className, ...props }: Ba
       case 'success':
         return 'bg-emerald-500/15 border-emerald-500/30';
       case 'outline':
-        return 'bg-transparent border-slate-500';
+        return 'bg-transparent border-gray-400';
       default:
         return 'bg-brand/15 border-brand/30';
     }
@@ -23,13 +23,13 @@ export function Badge({ variant = 'default', children, className, ...props }: Ba
   const getTextColor = () => {
     switch (variant) {
       case 'destructive':
-        return 'text-red-400';
+        return 'text-red-600';
       case 'success':
-        return 'text-emerald-400';
+        return 'text-emerald-600';
       case 'outline':
-        return 'text-slate-300';
+        return 'text-gray-600';
       default:
-        return 'text-brand-light';
+        return 'text-brand';
     }
   };
 

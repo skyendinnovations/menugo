@@ -20,5 +20,17 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
+// Force react-native to always resolve to the project's version (0.81.5)
+config.resolver.extraNodeModules = {
+  'react-native': path.resolve(projectRoot, 'node_modules/react-native'),
+};
+
+// Block the .bun cache directory from being watched/resolved
+config.resolver.blockList = [
+  /node_modules[\/\\]\.bun[\/\\]react-native@0\.85/,
+];
+
 config.resolver.unstable_enablePackageExports = true;
+config.resolver.unstable_conditionNames = ['require', 'default'];
+
 module.exports = withNativeWind(config, { input: './global.css' });

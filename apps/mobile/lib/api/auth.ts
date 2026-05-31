@@ -40,7 +40,9 @@ class AuthAPI extends BaseAPI {
 
   async signOut(router?: any) {
     try {
-      await signOut();
+      console.log('[authAPI] signOut called');
+      const result = await signOut();
+      console.log('[authAPI] signOut result:', result);
       if (router) {
         router.replace(ROUTES.AUTH.SIGN_IN);
       }

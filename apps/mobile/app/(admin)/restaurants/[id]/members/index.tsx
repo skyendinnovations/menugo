@@ -1,4 +1,5 @@
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -8,10 +9,12 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { MaterialIcons } from '@expo/vector-icons';
+import { ROUTES } from '@/lib/routes';
 
 export default function MembersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,15 +50,22 @@ export default function MembersScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-slate-900 px-5 pt-4">
+      <View className="flex-1 bg-white px-5" style={{ paddingTop: insets.top + 12 }}>
         <View className="mb-5 flex-row items-center justify-between">
           <View className="flex-row items-center gap-4">
             <TouchableOpacity
-              onPress={() => router.back()}
-              className="h-10 w-10 items-center justify-center rounded-xl bg-slate-800">
-              <MaterialIcons name="arrow-back" size={22} color="#F8FAFC" />
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace(ROUTES.ADMIN.HOME);
+                }
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="h-10 w-10 items-center justify-center rounded-xl bg-gray-100 active:opacity-70">
+              <MaterialIcons name="arrow-back" size={22} color="#111827" />
             </TouchableOpacity>
-            <Text className="text-xl font-bold text-white">Members</Text>
+            <Text className="text-xl font-bold text-black">Members</Text>
           </View>
           <Button
             title="+ Invite"
@@ -66,7 +76,7 @@ export default function MembersScreen() {
 
         {loading ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#F97316" />
+            <ActivityIndicator size="large" color="#DC2626" />
           </View>
         ) : (
           <FlatList
@@ -80,8 +90,8 @@ export default function MembersScreen() {
                     <View className="flex-1 flex-row items-center gap-4">
                       <Avatar fallback={item.userName} />
                       <View className="flex-1">
-                        <Text className="font-bold text-white">{item.userName}</Text>
-                        <Text className="text-sm text-slate-400">{item.userEmail}</Text>
+                        <Text className="font-bold text-black">{item.userName}</Text>
+                        <Text className="text-sm text-gray-500">{item.userEmail}</Text>
                         <View className="mt-2 flex-row flex-wrap gap-1.5">
                           {item.isOwner && <Badge variant="destructive">Owner</Badge>}
                           {item.roles
@@ -107,7 +117,7 @@ export default function MembersScreen() {
               </Card>
             )}
             ListEmptyComponent={
-              <Text className="py-10 text-center text-slate-500">No members yet</Text>
+              <Text className="py-10 text-center text-gray-500">No members yet</Text>
             }
           />
         )}

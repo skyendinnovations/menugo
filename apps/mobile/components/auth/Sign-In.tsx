@@ -1,20 +1,31 @@
-import { View, Text, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import React, { useState } from 'react';
-import { Stack, Link, useRouter, useLocalSearchParams } from 'expo-router';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+  TextInput,
+} from 'react-native';
+import React, { useRef, useState } from 'react';
+
+import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
+
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { authAPI } from '@/lib/api';
 import { Alert } from '@/components/ui/Alert';
 import { PasswordInput } from '@/components/ui/PasswordInput';
-import { MaterialIcons, AntDesign } from '@expo/vector-icons';
+import { AntDesign, MaterialIcons } from '@expo/vector-icons';
+import { useSession } from '@/lib/auth-client';
 import { ROUTES } from '@/lib/routes';
-import { useSession } from '@/lib/api/auth';
 
 export function SignInForm() {
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string; redirect?: string }>();
   const { refetch } = useSession();
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState(params.email ?? '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -22,11 +33,22 @@ export function SignInForm() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   async function onSubmit() {
+    if (!email) {
+      setError('Email is required');
+      emailInputRef.current?.focus();
+      return;
+    }
+    if (!password) {
+      setError('Password is required');
+      passwordInputRef.current?.focus();
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const result = await authAPI.signIn({ email, password });
       if (result.data?.user) {
+        await refetch();
         if (params.redirect === 'invitations') {
           router.replace(ROUTES.ADMIN.ACCEPT_INVITATION);
         } else {
@@ -72,78 +94,86 @@ export function SignInForm() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-slate-900">
+      className="flex-1 bg-white">
       <Stack.Screen options={{ title: 'Sign In', headerShown: false }} />
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
         keyboardShouldPersistTaps="handled">
         <View className="mb-10 items-center">
-          <View className="mb-5 h-20 w-20 items-center justify-center rounded-full bg-brand/15">
-            <MaterialIcons name="restaurant-menu" size={40} color="#F97316" />
+          <View className="flex-row items-center gap-3 mb-5">
+            <View className="h-12 w-12 items-center justify-center rounded-lg bg-brand">
+              <MaterialIcons name="restaurant-menu" size={28} color="white" />
+            </View>
+            <Text className="text-3xl font-bold text-black">MenuGo</Text>
           </View>
-          <Text className="text-3xl font-bold text-white">Welcome back</Text>
-          <Text className="mt-2 text-base text-slate-400">Sign in to your account</Text>
+          <Text className="text-3xl font-bold text-black">Welcome back</Text>
+          <Text className="mt-2 text-base text-gray-600">
+            Sign in to manage your restaurants
+          </Text>
         </View>
 
         {error ? <Alert variant="destructive" description={error} className="mb-6" /> : null}
 
-        <View className="gap-5">
+        <View className="gap-4">
           <View>
-            <Label nativeID="email" required>
-              Email
-            </Label>
+            <Label>Email</Label>
             <Input
-              id="email"
+              ref={emailInputRef}
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
               autoCapitalize="none"
               keyboardType="email-address"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordInputRef.current?.focus()}
             />
           </View>
           <View>
-            <Label nativeID="password" required>
-              Password
-            </Label>
+            <View className="flex-row items-baseline justify-between">
+              <Label>Password</Label>
+              <Link href={ROUTES.AUTH.FORGOT_PASSWORD} asChild>
+                <Text className="text-sm font-medium text-brand">Forgot?</Text>
+              </Link>
+            </View>
             <PasswordInput
-              id="password"
+              ref={passwordInputRef}
               value={password}
               onChangeText={setPassword}
-              placeholder="Enter your password"
+              placeholder="••••••••"
+              returnKeyType="go"
+              onSubmitEditing={onSubmit}
             />
           </View>
 
           <Button
             title="Sign In"
-            loading={loading}
             onPress={onSubmit}
-            disabled={loading || googleLoading || !email || !password}
-            size="lg"
-            className="mt-4"
-          />
-
-          <View className="my-2 flex-row items-center gap-3">
-            <View className="h-px flex-1 bg-slate-700" />
-            <Text className="text-sm text-slate-500">or</Text>
-            <View className="h-px flex-1 bg-slate-700" />
-          </View>
-
-          <Button
-            title="Continue with Google"
-            variant="ghost"
-            loading={googleLoading}
-            onPress={onGoogleSignIn}
+            loading={loading}
             disabled={loading || googleLoading}
             size="lg"
-            icon={!googleLoading ? <AntDesign name="google" size={20} color="#fff" /> : undefined}
+          />
+          <Button
+            title="Sign in with Google"
+            onPress={onGoogleSignIn}
+            loading={googleLoading}
+            disabled={loading || googleLoading}
+            variant="outline"
+            size="lg"
+            icon={
+              googleLoading ? undefined : <AntDesign name="google" size={20} color="#1F2937" />
+            }
           />
 
-          <Link href={ROUTES.AUTH.SIGN_UP} asChild>
-            <Button title="Create an account" variant="ghost" size="lg" />
-          </Link>
+          <Text className="mt-6 text-center text-sm text-gray-600">
+            Don't have an account?{' '}
+            <Link href={ROUTES.AUTH.SIGN_UP} asChild>
+              <Text className="font-bold text-brand">Sign Up</Text>
+            </Link>
+          </Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
+

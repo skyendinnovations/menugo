@@ -12,14 +12,30 @@ import {
     OAUTH_CLIENT_SECRET,
 } from "./src/envs";
 
+const developmentTrustedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:8081",
+    "http://localhost:8082",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8081",
+    "http://127.0.0.1:8082",
+];
+
+const trustedOrigins = Array.from(
+    new Set([
+        ...(TRUSTED_ORIGINS ? TRUSTED_ORIGINS.split(",") : []),
+        ...developmentTrustedOrigins,
+    ])
+);
+
 export const auth = createServerAuth({
     db,
     schema: { user, session, account, verification },
-    trustedOrigins: TRUSTED_ORIGINS ? TRUSTED_ORIGINS.split(",") : [],
+    trustedOrigins,
     smtp: SMTP_HOST
         ? {
               host: SMTP_HOST,
-              port: parseInt(SMTP_PORT),
+              port: +SMTP_PORT,
               user: SMTP_USER!,
               pass: SMTP_PASS!,
               from: SMTP_FROM,

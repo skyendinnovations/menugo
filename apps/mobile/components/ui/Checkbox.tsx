@@ -25,11 +25,11 @@ export function Checkbox({
       {...props}>
       <View
         className={`h-6 w-6 items-center justify-center rounded-lg border-2 ${
-          checked ? 'border-brand bg-brand' : 'border-slate-600 bg-transparent'
+          checked ? 'border-brand bg-brand' : 'border-gray-400 bg-white'
         } ${disabled ? 'opacity-50' : ''}`}>
         {checked && <MaterialIcons name="check" size={16} color="white" />}
       </View>
-      {label && <Text className={`ml-3 text-white ${disabled ? 'opacity-50' : ''}`}>{label}</Text>}
+      {label && <Text className={`ml-3 text-black ${disabled ? 'opacity-50' : ''}`}>{label}</Text>}
     </Pressable>
   );
 }

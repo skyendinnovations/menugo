@@ -1,12 +1,13 @@
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
-  RefreshControl,
   Image,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -22,6 +23,7 @@ import { ROUTES } from '@/lib/routes';
 
 export default function HomePage() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [invitations, setInvitations] = useState<MyInvitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,8 +64,8 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-900">
-        <ActivityIndicator size="large" color="#F97316" />
+      <View className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator size="large" color="#DC2626" />
       </View>
     );
   }
@@ -81,19 +83,22 @@ export default function HomePage() {
         visible={menuOpen}
         onClose={() => setMenuOpen(false)}
         restaurants={restaurants}
-        onRestaurantSelect={(r) => router.push(ROUTES.ADMIN.RESTAURANTS.detail(r.id) as any)}
+        onRestaurantSelect={(r) => router.push(ROUTES.ADMIN.RESTAURANTS.detail(r) as any)}
+        restaurantId={0}
+        restaurantName=""
+        restaurantLogo={null}
       />
 
-      <View className="flex-1 bg-slate-900">
+      <View className="flex-1 bg-white">
         {/* ─── Header ─── */}
-        <View className="flex-row items-center justify-between border-b border-slate-800 bg-slate-900 px-5 pb-4 pt-14">
+        <View className="flex-row items-center justify-between border-b border-gray-200 bg-white px-5 pb-4" style={{ paddingTop: insets.top + 12 }}>
           <TouchableOpacity
             onPress={() => setMenuOpen(true)}
-            className="h-11 w-11 items-center justify-center rounded-xl bg-slate-800">
-            <MaterialIcons name="menu" size={24} color="#F8FAFC" />
+            className="h-11 w-11 items-center justify-center rounded-xl bg-gray-100">
+            <MaterialIcons name="menu" size={24} color="#1F2937" />
           </TouchableOpacity>
 
-          <Text className="text-lg font-bold text-white">MenuGo</Text>
+          <Text className="text-lg font-bold text-black">MenuGo</Text>
 
           <Button
             title="+ New"
@@ -106,17 +111,17 @@ export default function HomePage() {
           className="flex-1"
           contentContainerStyle={{ paddingBottom: 40 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F97316" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#DC2626" />
           }>
           <View className="px-5 pt-5">
             {/* Empty state */}
             {isEmpty && (
               <View className="items-center justify-center px-8 py-16">
-                <View className="mb-6 h-24 w-24 items-center justify-center rounded-full bg-brand/15">
-                  <MaterialIcons name="restaurant" size={48} color="#F97316" />
+                <View className="mb-6 h-24 w-24 items-center justify-center rounded-full bg-brand-muted">
+                  <MaterialIcons name="restaurant" size={48} color="#DC2626" />
                 </View>
-                <Text className="text-center text-xl font-bold text-white">Welcome to MenuGo!</Text>
-                <Text className="mt-2 text-center text-sm leading-5 text-slate-400">
+                <Text className="text-center text-xl font-bold text-black">Welcome to MenuGo!</Text>
+                <Text className="mt-2 text-center text-sm leading-5 text-gray-600">
                   You don't have any restaurants yet. Create one or ask a restaurant admin to invite
                   you.
                 </Text>
@@ -132,18 +137,18 @@ export default function HomePage() {
             {hasInvitations && (
               <View className="mb-6">
                 <View className="mb-3 flex-row items-center gap-2">
-                  <MaterialIcons name="mail" size={18} color="#8B5CF6" />
-                  <Text className="text-lg font-bold text-white">Pending Invitations</Text>
-                  <View className="rounded-full bg-purple-500/20 px-2 py-0.5">
-                    <Text className="text-xs font-bold text-purple-400">{invitations.length}</Text>
+                  <MaterialIcons name="mail" size={18} color="#DC2626" />
+                  <Text className="text-lg font-bold text-black">Pending Invitations</Text>
+                  <View className="rounded-full bg-red-500/20 px-2 py-0.5">
+                    <Text className="text-xs font-bold text-red-500">{invitations.length}</Text>
                   </View>
                 </View>
                 {invitations.map((item) => (
                   <InvitationCard
                     key={item.id}
                     invitation={item}
-                    onAccept={handleAccept}
-                    onReject={handleReject}
+                    onAccept={() => handleAccept(item)}
+                    onReject={() => handleReject(item)}
                     isAccepting={acceptingId === item.id}
                     isRejecting={rejectingId === item.id}
                     disabled={isBusy}
@@ -156,15 +161,15 @@ export default function HomePage() {
             {hasRestaurants && (
               <View className="mb-6">
                 <View className="mb-3 flex-row items-center gap-2">
-                  <MaterialIcons name="store" size={18} color="#F97316" />
-                  <Text className="text-lg font-bold text-white">My Restaurants</Text>
+                  <MaterialIcons name="store" size={18} color="#DC2626" />
+                  <Text className="text-lg font-bold text-black">My Restaurants</Text>
                 </View>
                 {restaurants.map((item) => (
                   <TouchableOpacity
                     key={item.id}
                     onPress={() => router.push(ROUTES.ADMIN.RESTAURANTS.detail(item.id) as any)}
                     activeOpacity={0.7}
-                    className="mb-3 rounded-2xl border border-slate-700 bg-slate-800 p-4">
+                    className="mb-3 rounded-2xl border border-gray-200 bg-white p-4">
                     <View className="flex-row items-center gap-4">
                       {item.logo ? (
                         <Image
@@ -177,21 +182,21 @@ export default function HomePage() {
                           resizeMode="cover"
                         />
                       ) : (
-                        <View className="h-14 w-14 items-center justify-center rounded-xl bg-brand/15">
-                          <MaterialIcons name="restaurant" size={28} color="#F97316" />
+                        <View className="h-14 w-14 items-center justify-center rounded-xl bg-brand-muted">
+                          <MaterialIcons name="restaurant" size={28} color="#DC2626" />
                         </View>
                       )}
                       <View className="flex-1">
-                        <Text className="text-base font-bold text-white">{item.name}</Text>
+                        <Text className="text-base font-bold text-black">{item.name}</Text>
                         {item.description && (
-                          <Text className="mt-0.5 text-sm text-slate-400" numberOfLines={1}>
+                          <Text className="mt-0.5 text-sm text-gray-500" numberOfLines={1}>
                             {item.description}
                           </Text>
                         )}
                         {item.address && (
                           <View className="mt-1 flex-row items-center gap-1">
-                            <MaterialIcons name="place" size={11} color="#64748B" />
-                            <Text className="text-xs text-slate-500" numberOfLines={1}>
+                            <MaterialIcons name="place" size={11} color="#9CA3AF" />
+                            <Text className="text-xs text-gray-400" numberOfLines={1}>
                               {item.address}
                             </Text>
                           </View>

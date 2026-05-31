@@ -6,7 +6,7 @@ export default function AdminLayout() {
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
-        contentStyle: { backgroundColor: '#0F172A' },
+        contentStyle: { backgroundColor: '#FFFFFF' },
       }}
     />
   );

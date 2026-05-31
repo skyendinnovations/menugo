@@ -30,7 +30,7 @@ export function DialogContent({
 }: { children: React.ReactNode; className?: string } & ViewProps) {
   return (
     <View
-      className={`w-full max-w-md rounded-2xl border border-slate-700 bg-slate-800 p-6 ${className || ''}`}
+      className={`w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 ${className || ''}`}
       {...props}>
       {children}
     </View>
@@ -55,7 +55,7 @@ export function DialogTitle({
   ...props
 }: { children: React.ReactNode; className?: string } & TextProps) {
   return (
-    <Text className={`text-xl font-bold text-white ${className || ''}`} {...props}>
+    <Text className={`text-xl font-bold text-black ${className || ''}`} {...props}>
       {children}
     </Text>
   );
@@ -67,7 +67,7 @@ export function DialogDescription({
   ...props
 }: { children: React.ReactNode; className?: string } & TextProps) {
   return (
-    <Text className={`mt-2 text-sm text-slate-400 ${className || ''}`} {...props}>
+    <Text className={`mt-2 text-sm text-gray-600 ${className || ''}`} {...props}>
       {children}
     </Text>
   );
